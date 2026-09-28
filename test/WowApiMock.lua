@@ -46,6 +46,15 @@ local function fire(self, name, ...)
 end
 WowMock.Fire = fire
 
+function frameMethods:RegisterEvent(event)
+    if WowMock.unknownEvents and WowMock.unknownEvents[event] then
+        error("Frame:RegisterEvent(): Attempt to register unknown event \"" .. event .. "\"")
+    end
+    self._events = self._events or {}
+    self._events[event] = true
+end
+function frameMethods:UnregisterEvent(event) if self._events then self._events[event] = nil end end
+function frameMethods:IsEventRegistered(event) return self._events ~= nil and self._events[event] == true end
 function frameMethods:SetScript(name, f) self._scripts[name] = f end
 function frameMethods:GetScript(name) return self._scripts[name] end
 function frameMethods:HookScript(name, f)

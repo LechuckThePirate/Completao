@@ -33,11 +33,11 @@ function LoadAddon(opts)
     return ns
 end
 
--- Every frame with an OnEvent receives the event (as if the game fired it).
+-- Every frame that registered the event and has an OnEvent receives it (as if the game fired it).
 function FireEvent(event, ...)
     for _, f in ipairs(WowMock.frames) do
         local handler = f._scripts.OnEvent
-        if handler then handler(f, event, ...) end
+        if handler and f._events and f._events[event] then handler(f, event, ...) end
     end
 end
 

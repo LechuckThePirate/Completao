@@ -41,12 +41,20 @@ local function announceReady()
     announce(ns.L["initialization complete (%d quests)"]:format(quests))
 end
 
+-- What the window shows depends on the quest log (taking, progressing, abandoning and turning in quests) and
+-- on the character's level (low level / too high, locked by level), so those events redraw it. Some of
+-- them may not exist in every client, and registering an unknown event is an error: they are optional.
+local REFRESH_EVENTS = {
+    "QUEST_LOG_UPDATE", "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN", "QUEST_DATA_LOAD_RESULT",
+    "UNIT_QUEST_LOG_CHANGED", "PLAYER_LEVEL_UP", "PLAYER_LEVEL_CHANGED",
+}
+-- the level may not be updated yet when the event fires, so these redraw again a moment later
+local LEVEL_EVENTS = { PLAYER_LEVEL_UP = true, PLAYER_LEVEL_CHANGED = true }
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
-events:RegisterEvent("QUEST_LOG_UPDATE")
-events:RegisterEvent("QUEST_TURNED_IN")
-events:RegisterEvent("QUEST_DATA_LOAD_RESULT")
+for _, name in ipairs(REFRESH_EVENTS) do pcall(events.RegisterEvent, events, name) end
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then return end
@@ -56,8 +64,10 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- also fires after /reload; announced once per UI load
         C_Timer.After(1, announceReady)
+        ns.RequestRefresh()
     else
         ns.RequestRefresh()
+        if LEVEL_EVENTS[event] then C_Timer.After(1, ns.RequestRefresh) end
     end
 end)
 

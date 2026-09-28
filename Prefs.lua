@@ -2,8 +2,8 @@ local ADDON, ns = ...
 local L = ns.L
 
 -- Ventana de preferencias (se abre con el engranaje de la ventana principal o con /completao prefs).
--- Ajustes basicos; todos se guardan por personaje (ns.char).
-local WIDTH, HEIGHT = 340, 310
+-- Ajustes basicos, en ns.char: por personaje o comunes a la cuenta segun la primera casilla.
+local WIDTH, HEIGHT = 340, 342
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -93,34 +93,43 @@ local function create()
     title:SetText(L["Completao!! Preferences"])
 
     local widgets = {}
+    local note = prefs:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+    note:SetPoint("BOTTOM", 0, 16)
+    local function refreshAll()
+        for _, widget in ipairs(widgets) do widget.Refresh() end
+        note:SetText(ns.IsPerCharacter() and L["Settings are saved for this character only."]
+            or L["Settings are shared by all your characters."])
+    end
 
-    widgets[#widgets + 1] = makeSlider(prefs, -52,
+    -- Como en Embolsao: decide donde se guarda todo lo de abajo (Core.lua, ns.SetPerCharacter).
+    widgets[#widgets + 1] = makeCheck(prefs, -48, L["Character specific preferences"],
+        function() return ns.IsPerCharacter() end,
+        function(value)
+            ns.SetPerCharacter(value)
+            refreshAll()
+        end)
+
+    widgets[#widgets + 1] = makeSlider(prefs, -84,
         function() return ns.char.fadeAlpha or 0.5 end,
         function(value) ns.char.fadeAlpha = value end,
         function(value) return L["Opacity while moving: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -104, L["Show the minimap button"],
+    widgets[#widgets + 1] = makeCheck(prefs, -136, L["Show the minimap button"],
         function() return ns.Minimap_IsShown() end,
         function(value) ns.Minimap_SetShown(value) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -132, L["Show chat messages at startup"],
+    widgets[#widgets + 1] = makeCheck(prefs, -164, L["Show chat messages at startup"],
         function() return not ns.char.quiet end,
         function(value) ns.char.quiet = (not value) or nil end)
 
-    makeButton(prefs, -176, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -206, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -236, L["Reset filters"], function()
+    makeButton(prefs, -208, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -238, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -268, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
 
-    local note = prefs:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    note:SetPoint("BOTTOM", 0, 16)
-    note:SetText(L["Settings are saved per character."])
-
-    prefs:SetScript("OnShow", function()
-        for _, widget in ipairs(widgets) do widget.Refresh() end
-    end)
+    prefs:SetScript("OnShow", refreshAll)
 end
 
 function ns.Prefs_Toggle()

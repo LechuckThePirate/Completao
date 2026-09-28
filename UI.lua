@@ -514,6 +514,23 @@ function ns.UI_SyncFilters()
     if frame then ns.UI_Refresh() end
 end
 
+-- Tras cambiar entre ajustes del personaje y comunes (Core.lua): ventana, zoom y filtros del almacen nuevo.
+function ns.UI_ApplySettings()
+    if frame then
+        local saved = ns.char.window
+        frame:ClearAllPoints()
+        if saved then
+            frame:SetSize(math.max(MIN_W, saved.w), math.max(MIN_H, saved.h))
+            frame:SetPoint(saved.point, UIParent, saved.relPoint, saved.x, saved.y)
+        else
+            frame:SetSize(DEFAULT_W, DEFAULT_H)
+            frame:SetPoint("CENTER")
+        end
+        ns.UI_SetZoom(ns.char.zoom or 1)
+    end
+    ns.UI_SyncFilters()
+end
+
 -- Como el mapa del mundo: mientras el personaje se mueve, la ventana se vuelve semitransparente para no
 -- tapar lo que hay delante (50 % por defecto; `/completao fade <10-100>` lo cambia, 100 = sin efecto), y
 -- vuelve a ser opaca al pararte o mientras el cursor esta encima, para poder usarla en marcha. El cambio es

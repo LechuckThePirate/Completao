@@ -48,7 +48,7 @@ grey, and as "completed" when every quest is done. A chain you have already
 started, and anything in your quest log, is never hidden by level. What stays
 visible is drawn translucent: quests too high for you more, low level ones just
 a little, so they are still easy to read. "Low level" is the grey title you know
-from your quest log. Your choices are remembered per character.
+from your quest log. Your choices are remembered, per character or for all of them.
 
 ### Which ones are done inside
 Quests that take place inside a dungeon or raid wear a small **doorway icon** on
@@ -93,12 +93,15 @@ Click any quest in the tree to open its panel:
 
 ### Made to stay out of your way
 - Move and resize the window; its position, size, open section and selected
-  dungeon are remembered **per character**.
+  dungeon are remembered **per character** (or shared, if you prefer).
 - A minimap button opens it (drag it wherever you like), and the addon has its
   own icon in the AddOns list and on the window's portrait, next to its version.
 - A **Preferences** window behind the gear next to the close button, with the
   basics: opacity while moving, the minimap button, the startup chat messages,
   and resets for the window position, zoom and filters. More options will come.
+  Tick **Character specific preferences** to keep them for one character, or
+  untick it to share them -- filters, zoom and window included -- with all
+  your characters.
 - **Fades while you move**, like the world map: the window goes half transparent
   while you walk or run, so it never hides what is ahead, and comes back when you
   stop or when the cursor is over it. `/completao fade <10-100>` changes how

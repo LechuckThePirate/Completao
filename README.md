@@ -21,8 +21,8 @@ Inspired by BtWQuests.
   by state (completed, in progress, available, locked). Long columns are split
   (12 rows at most), so a zone with a hundred loose quests reads as a grid.
   Drag the background to pan and use the wheel to zoom (Shift+wheel scrolls
-  sideways, Ctrl+wheel vertically); the zoom is remembered per character.
-- **Filters** above the tree, saved per character: a search box by title, and
+  sideways, Ctrl+wheel vertically); the zoom is remembered (per character or shared, see Preferences).
+- **Filters** above the tree, remembered like the zoom: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that require a
   higher level than yours, hide completed chains. Chains are shown or hidden
   as a whole, so they are never cut in half: "too high" hides a chain when
@@ -57,7 +57,8 @@ Inspired by BtWQuests.
     entrance** and points at the instance's door.
   - **Open quest** -- for quests in your log, opens the quest log on that quest.
 - Resizable, movable window; its position, size, open section and selected
-  dungeon are saved per character.
+  dungeon are saved (the position and size per character or shared, see
+  Preferences; the open section and dungeon always per character).
 - Minimap button (click to open, drag to move) and an icon in the AddOns list.
 - **Fades while you move**, like the world map: the window drops to 50 %
   opacity while the character is walking or running, so it never hides what is
@@ -68,7 +69,12 @@ Inspired by BtWQuests.
   prefs`) opens a small window, as in Embolsao, with the basics: opacity while
   moving, show the minimap button, show the chat messages at startup, and
   buttons to reset the window position, the zoom and the filters. More will be
-  added. Saved per character.
+  added. A **Character specific preferences** checkbox, as in Embolsao, decides
+  where these settings -- and the filters, zoom and window position and size --
+  are kept: for this character only (the default) or shared by all your
+  characters (`CompletaoDB.shared`). Switching to per character starts from a
+  copy of the shared ones; switching back leaves the character's copy saved,
+  unused. The selected entry and open section always stay per character.
 - Dungeons and raids are sorted by level, the other sections alphabetically.
 - Two chat lines, like Embolsao: `Completao!! vX -- initializing...` when the
   addon loads and `... initialization complete (N quests)` once you are in the

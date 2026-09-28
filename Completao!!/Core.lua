@@ -1,0 +1,183 @@
+local ADDON, ns = ...
+
+ns.entries = {}
+ns.entryList = {}
+
+-- Secciones del panel izquierdo, en orden. Para anadir una (zonas, quests de clase...):
+-- anadirla aqui y registrar entradas con category = "<id>".
+ns.categories = {
+    { id = "dungeons", name = "Dungeons" },
+    { id = "raids",    name = "Raids" },
+}
+
+function ns.Print(...)
+    print("|cff33ff99Completao!!|r:", ...)
+end
+
+-- Esquema de una entrada (mazmorra, raid...):
+-- { id = "deadmines", name = "...", category = "dungeons" (por defecto), minLevel = 15, maxLevel = 20,
+--   quests = { { id = 123, name = "fallback", level = 17, minLevel = 15,
+--                requires = { 122 }, faction = "Alliance"|"Horde"|nil,
+--                giver = "NPC (zona)", note = "texto libre" }, ... } }
+function ns.RegisterEntry(d)
+    d.quests = d.quests or {}
+    d.category = d.category or "dungeons"
+    ns.entries[d.id] = d
+    ns.entryList[#ns.entryList + 1] = d
+end
+
+function ns.AddQuests(entryId, list)
+    local e = ns.entries[entryId]
+    if not e then return end
+    for _, q in ipairs(list) do
+        q.entryId = q.entryId or entryId
+        e.quests[#e.quests + 1] = q
+    end
+end
+
+-- Donde esta la puerta de la instancia: { area = <AreaTable id>, x = , y = } (x, y opcionales).
+function ns.SetEntrance(entryId, loc)
+    local e = ns.entries[entryId]
+    if e then e.entrance = loc end
+end
+
+-- Correcciones a mano sobre datos generados (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
+-- Un valor false borra el campo.
+function ns.PatchQuest(id, fields)
+    local q = ns.FindQuestDef(id)
+    if not q then return end
+    for k, v in pairs(fields) do
+        q[k] = (v ~= false) and v or nil
+    end
+end
+
+function ns.QuestTitle(id, fallback)
+    local title = C_QuestLog.GetTitleForQuestID(id)
+    if title and title ~= "" then
+        return title
+    end
+    C_QuestLog.RequestLoadQuestByID(id)
+    return fallback or ("Quest " .. id)
+end
+
+-- Devuelve "done" | "active" | "available" | "locked", y una lista de razones si esta bloqueada.
+function ns.QuestStatus(q)
+    if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
+        return "done"
+    end
+    if C_QuestLog.IsOnQuest(q.id) then
+        return "active"
+    end
+
+    local reasons = {}
+    if q.minLevel and UnitLevel("player") < q.minLevel then
+        reasons[#reasons + 1] = ns.L["Requires level %d (you are %d)"]:format(q.minLevel, UnitLevel("player"))
+    end
+    for _, reqId in ipairs(q.requires or {}) do
+        if not C_QuestLog.IsQuestFlaggedCompleted(reqId) then
+            local def = ns.FindQuestDef(reqId)
+            reasons[#reasons + 1] = ns.L["Requires: "] .. ns.QuestTitle(reqId, def and def.name)
+        end
+    end
+    if q.requiresAny and #q.requiresAny > 0 then
+        local names, anyDone = {}, false
+        for _, reqId in ipairs(q.requiresAny) do
+            if C_QuestLog.IsQuestFlaggedCompleted(reqId) then anyDone = true break end
+            local def = ns.FindQuestDef(reqId)
+            names[#names + 1] = ns.QuestTitle(reqId, def and def.name)
+        end
+        if not anyDone then
+            reasons[#reasons + 1] = ns.L["Requires one of: "] .. table.concat(names, " / ")
+        end
+    end
+    if #reasons > 0 then
+        return "locked", reasons
+    end
+    return "available"
+end
+
+function ns.FindQuestDef(id)
+    for _, d in ipairs(ns.entryList) do
+        for _, q in ipairs(d.quests) do
+            if q.id == id then
+                return q
+            end
+        end
+    end
+end
+
+function ns.QuestVisible(q)
+    if q.hidden then return false end
+    return not q.faction or q.faction == UnitFactionGroup("player")
+end
+
+function ns.EntryProgress(d)
+    local done, total = 0, 0
+    for _, q in ipairs(d.quests) do
+        if ns.QuestVisible(q) then
+            total = total + 1
+            if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
+                done = done + 1
+            end
+        end
+    end
+    return done, total
+end
+
+local pending
+function ns.RequestRefresh()
+    if pending then return end
+    pending = true
+    C_Timer.After(0.2, function()
+        pending = false
+        if ns.UI and ns.UI:IsShown() then
+            ns.UI_Refresh()
+        end
+    end)
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("QUEST_LOG_UPDATE")
+events:RegisterEvent("QUEST_TURNED_IN")
+events:RegisterEvent("QUEST_DATA_LOAD_RESULT")
+events:SetScript("OnEvent", function(_, event, arg1)
+    if event == "ADDON_LOADED" then
+        if arg1 ~= ADDON then return end
+        CompletaoDB = CompletaoDB or {}
+        ns.db = CompletaoDB
+        CompletaoCharDB = CompletaoCharDB or {}
+        ns.char = CompletaoCharDB
+        ns.Minimap_Init()
+    else
+        ns.RequestRefresh()
+    end
+end)
+
+local function dumpQuestLog()
+    ns.Print(ns.L["Quests in your log (id - title):"])
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        if info and not info.isHeader then
+            print(ns.L["  %d - %s (level %d)"]:format(info.questID, info.title, info.level or 0))
+        end
+    end
+end
+
+SLASH_COMPLETAO1 = "/completao"
+SLASH_COMPLETAO2 = "/cpl"
+SlashCmdList.COMPLETAO = function(msg)
+    msg = strtrim((msg or ""):lower())
+    if msg == "dump" then
+        dumpQuestLog()
+    elseif msg == "minimap" then
+        ns.Minimap_Toggle()
+    elseif msg == "demo" then
+        ns.db.demo = not ns.db.demo
+        ns.Print(ns.db.demo and ns.L["Demo entry enabled. Type /reload."] or ns.L["Demo entry disabled. Type /reload."])
+    elseif msg == "" then
+        ns.UI_Toggle()
+    else
+        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids) | /completao demo (test data)"])
+    end
+end

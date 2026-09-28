@@ -93,6 +93,19 @@ This is a beta: expect gaps, and please report them.
 
 - Classic "Forever" (beta)
 
+## License and credits
+
+Completao!! is free software under the **GNU General Public License v3**.
+Copyright (C) 2026 LechuckThePirate.
+
+- The Classic quest data derives from [Questie](https://www.curseforge.com/wow/addons/questie)'s
+  database -- thanks to its team and contributors.
+- The names, text and locations of the quests Forever adds come from
+  [Wowhead](https://www.wowhead.com/forever).
+- The quests and every game asset belong to Blizzard Entertainment. World of
+  Warcraft is a trademark of Blizzard Entertainment, Inc.; Completao!! is not
+  affiliated with or endorsed by Blizzard, Questie, TomTom or Wowhead.
+
 ## Localization
 
 English and Spanish interface (`esES` / `esMX` clients get Spanish). Missing a

@@ -106,14 +106,36 @@ Early (`0.1.0-beta`); see `CHANGELOG.md`.
   source and fall back gracefully when missing: Blizzard's maximize/restore
   widget, opening the quest log on a quest, and the map marker.
 
-## Data sources and thanks
-
-Classic quest data comes from Questie's database; Forever quest text and
-locations come from Wowhead. This addon is not affiliated with Blizzard
-Entertainment, Questie or Wowhead.
-
 ## License
 
-[GNU General Public License v3.0](LICENSE). Questie declares the same license
-on its CurseForge page (its GitHub repository carries no license file), and the
-generated Classic data derives from its database.
+Copyright (C) 2026 LechuckThePirate.
+
+Completao!! is free software: you can redistribute it and/or modify it under the
+terms of the [GNU General Public License v3.0](LICENSE) as published by the Free
+Software Foundation. It is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.
+
+### Credits and what the GPL does not cover
+
+- **Questie.** The generated Classic data (`Data/Generated/Classic.lua` and
+  `Entrances.lua`) derives from the database that ships with
+  [Questie](https://github.com/Questie/Questie). Questie declares GPLv3 on its
+  CurseForge page (its GitHub repository carries no license file); thanks to
+  the Questie team and its contributors.
+- **Wowhead.** The names, text and locations of the quests Forever adds come from
+  [Wowhead](https://www.wowhead.com/forever) and are used for personal, cached,
+  low-volume downloads. They are Wowhead's compilation, not covered by this
+  license.
+- **Blizzard Entertainment.** The quests, their names and text, and every game
+  asset are Blizzard's. At runtime the addon uses textures and widgets the game
+  client already ships (quest icon, frame and button templates, maximize/restore
+  widget); none are included in this repository.
+- **Artwork.** The addon icon (`Icons/Completao.png`) is cut from AI-generated
+  artwork (`images/`); the map glow (`Icons/Glow.png`) was generated for this
+  addon.
+- **TomTom** is an optional, separate addon that Completao!! only talks to.
+
+World of Warcraft is a trademark of Blizzard Entertainment, Inc. Completao!! is
+not affiliated with or endorsed by Blizzard Entertainment, Questie, TomTom or
+Wowhead.

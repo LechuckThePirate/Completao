@@ -1,4 +1,4 @@
-local ADDON, ns = ...
+local _, ns = ...
 local L = ns.L
 
 -- Ventana de preferencias (se abre con el engranaje de la ventana principal o con /completao prefs).
@@ -134,6 +134,7 @@ local function create()
     end)
 
     prefs:SetScript("OnShow", refreshAll)
+    prefs:Hide() -- un marco nace visible: oculto hasta el primer Prefs_Toggle (si no, el primero lo cerraria)
 end
 
 function ns.Prefs_Toggle()

@@ -1,4 +1,4 @@
-local _, ns = ...
+local _, ns = ... -- luacheck: ignore 211 (sin correcciones por ahora)
 
 -- Correcciones a mano sobre los datos generados (Data/Generated/*). Este archivo no lo pisa ningun
 -- generador. Ejemplos:

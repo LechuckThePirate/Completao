@@ -953,6 +953,7 @@ local function onQuestLogToggled()
     end)
 end
 
+ns.UI_QuestLogChanged = onQuestLogToggled
 if ToggleQuestLog then hooksecurefunc("ToggleQuestLog", onQuestLogToggled) end
 local logFrame = QuestLogFrame or WorldMapFrame
 if logFrame then logFrame:HookScript("OnHide", onQuestLogToggled) end

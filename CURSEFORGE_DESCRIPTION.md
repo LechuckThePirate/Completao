@@ -143,9 +143,10 @@ Quest data is generated, not typed in by hand: the Classic quests come from
 Questie's database; the ones Forever adds, and the rewards of every quest, are
 compiled from public quest databases. That has a consequence you should know about:
 
-- Every Classic dungeon, zone and class has its quests. Forever's own zones and
-  class quests are not covered yet.
-- Of Forever's new content, **The Hall of Thanes** and **Ruins of Lordaeron**
+- Every Classic dungeon, zone, class and profession has its quests, and so do
+  the ~700 quests Forever adds: in their zones and classes, and in the new
+  **Zephras Isle**, **Camping** and **Crafting** entries.
+- Of Forever's new dungeons, **The Hall of Thanes** and **Ruins of Lordaeron**
   have theirs so far; the other new dungeons and the new raids appear as their
   quests are published, and coverage grows with each update.
 - Quest text shipped with the addon is English only; quest titles follow your

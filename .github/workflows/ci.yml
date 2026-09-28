@@ -1,0 +1,42 @@
+name: CI
+
+# Tests (busted) y luacheck en cada push y pull request, como en Questie. Lua 5.1: la version del juego.
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  luacheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run luacheck
+        uses: nebularg/actions-luacheck@v1
+        with:
+          files: Completao.lua Localization Modules Data/Dungeons.lua Data/Raids.lua Data/Overrides.lua Data/Data.test.lua Completao.test.lua test setupTests.lua
+          args: -q
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        uses: leafo/gh-actions-lua@v11
+        with:
+          luaVersion: "5.1"
+
+      - name: Install LuaRocks
+        uses: leafo/gh-actions-luarocks@v5
+
+      - name: Install busted
+        run: luarocks install busted
+
+      - name: Run tests
+        run: busted -p ".test.lua" .

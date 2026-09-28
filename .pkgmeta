@@ -6,3 +6,7 @@ ignore:
   - images
   - tools
   - CURSEFORGE_DESCRIPTION.md
+  - test
+  - setupTests.lua
+  - "*.test.lua"
+  - .luacheckrc

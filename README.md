@@ -117,35 +117,68 @@ Options -> Keybindings, in their own Completao!! section (`Bindings.xml`).
 
 ## Repo layout
 
-The addon files live at the repo root (`Completao.toc`, `Core.lua`, `UI.lua`,
-`Data/`, `Icons/`, `.pkgmeta`) -- this is what release tooling and CurseForge
-expect to package directly as `Completao/`.
+The addon lives at the repo root -- this is what release tooling and CurseForge
+expect to package directly as `Completao/` -- organized in folders like
+[Questie](https://github.com/Questie/Questie), with a `*.test.lua` next to
+every module:
 
-- `tools/` -- the data generators (see below). `tools/local/` is git-ignored.
+```
+Completao.toc  Completao.lua  Bindings.xml     entry point: events, chat, /completao, key bindings
+Localization/Locale.lua                         ns.L
+Modules/Database/Entries.lua                    sections, entries and their quests, hand fixes
+Modules/Quest/QuestState.lua                    status, low/too high, who sees it, titles, description
+Modules/Quest/QuestSteps.lua                    steps of a quest and the one that comes next
+Modules/Settings/Settings.lua                   per character or shared settings
+Modules/Graph/Graph.lua                         tree layout
+Modules/Map/Waypoints.lua                       zone -> map, waypoints, map marker
+Modules/UI/  Layout Menu MainWindow QuestPanel Search Preferences MinimapButton
+Data/          Dungeons.lua  Raids.lua  Overrides.lua  Generated/ (tools output)
+Icons/
+test/          WowApiMock.lua (the game's API, simulated)  Addon.lua (loader)  busted.lua (local runner)
+setupTests.lua
+tools/         data generators (tools/local/ is git-ignored)
+```
+
 - `images/` -- source icon artwork (unprocessed) and the screenshots of the
   CurseForge page (`images/screencaps/`). The addon icon is cut from it into
   `Icons/Completao.png`.
-- `.github/workflows/release.yml` -- manual (`workflow_dispatch` only) release
-  pipeline via [BigWigsMods/packager](https://github.com/BigWigsMods/packager),
-  packaging the repo root and uploading to CurseForge.
-  `.github/workflows/sync-media.yml` -- hosts the page screenshots.
+- `.github/workflows/ci.yml` -- tests and luacheck on every push.
+  `release.yml` -- manual (`workflow_dispatch` only) release pipeline via
+  [BigWigsMods/packager](https://github.com/BigWigsMods/packager), packaging
+  the repo root (without the tests) and uploading to CurseForge.
+  `sync-media.yml` -- hosts the page screenshots.
 
 ## How it works
 
-- `Locale.lua` -- `ns.L`, keyed by the English string; `esES`/`esMX` replace
-  the keys they translate, everything else falls back to English.
-- `Core.lua` -- entries (a dungeon or raid), categories, quest status
-  (`done` / `active` / `available` / `locked` with the reasons), slash
-  commands and per-character saved variables (`CompletaoCharDB`).
+- Every file gets the addon's namespace (`local ADDON, ns = ...`) and adds its
+  functions to it; the TOC loads them in order: localization, the logic
+  modules, the data (which registers entries through `Modules/Database`), the
+  UI and last `Completao.lua`, which starts everything on `ADDON_LOADED`.
+- `Localization/Locale.lua` -- `ns.L`, keyed by the English string;
+  `esES`/`esMX` replace the keys they translate, everything else falls back to
+  English.
 - `Data/Dungeons.lua`, `Data/Raids.lua` -- the list of instances and where their
-  doors are. `Data/Generated/` -- quests and entrances written by the tools.
-  `Data/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no generator
-  overwrites.
-- `Graph.lua` -- lays a quest list out in columns by prerequisite depth.
-- `Waypoints.lua` -- converts an area id to the client's map by zone name,
-  sets waypoints, opens the world map and draws the map marker.
-- `Detail.lua` -- the quest panel; `UI.lua` -- the window, list and tree;
-  `Minimap.lua` -- the minimap button.
+  doors are. `Data/Generated/` -- quests, entrances and rewards written by the
+  tools. `Data/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
+  generator overwrites.
+
+## Tests
+
+Unit tests use [busted](https://lunarmodules.github.io/busted/), as Questie
+does: a `*.test.lua` next to each module, run from the repo root. They load the
+addon's own files against a simulated game API (`test/WowApiMock.lua`: frames,
+`C_QuestLog`, `C_Map`...), so the UI can be exercised too: open the window, tick
+a filter, click a search result.
+
+```
+busted -p ".test.lua" .        # CI (Lua 5.1, like the game)
+lua test/busted.lua            # locally, without installing busted
+lua test/busted.lua Modules/UI/Search.test.lua
+```
+
+`test/busted.lua` is a small runner that understands the part of busted the
+tests use, for machines where busted can't be installed (on Windows it needs
+a C compiler). The CI also runs `luacheck` (`.luacheckrc`).
 
 A quest is `{ id, name, level, minLevel, requires = {ids}, requiresAny = {ids},
 faction, giver, start = {npc, area, x, y}, finish = {...}, objective, desc }`.
@@ -195,12 +228,12 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao/
 
 Early (`0.1.0-beta`); see `CHANGELOG.md`.
 
-- Every Classic zone and class has generated quests too (Forever's own zones
-  and class quests are not covered yet). Every Classic dungeon has generated
-  quests. Of Forever's new instances only
-  The Hall of Thanes and Ruins of Lordaeron have quests so far; the rest are
-  listed (level range, zone of the door) but empty until their quests are
-  published.
+- Every Classic dungeon, zone, class and profession has generated quests.
+  Forever's new quests are in too (`Data/Generated/ForeverNew.lua`, ~700): in
+  their Classic zones and classes, and in the new entries Zephras Isle,
+  Camping and Crafting. Of Forever's new instances only The Hall of Thanes and
+  Ruins of Lordaeron have quests so far; the rest are listed (level range,
+  zone of the door) but empty until their quests are published.
 - Quest text shipped with the addon is English only, and only Forever's quests
   have a long description in it; titles are read from the client, so they
   follow its language, and so does the description of the quests in your log.

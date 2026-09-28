@@ -14,8 +14,12 @@
 ## SavedVariablesPerCharacter: CompletaoCharDB
 ## X-Curse-Project-ID: 1716061
 
-Locale.lua
-Core.lua
+Localization\Locale.lua
+Modules\Database\Entries.lua
+Modules\Quest\QuestState.lua
+Modules\Quest\QuestSteps.lua
+Modules\Settings\Settings.lua
+Modules\UI\Layout.lua
 Data\Dungeons.lua
 Data\Raids.lua
 Data\Generated\Classic.lua
@@ -28,11 +32,12 @@ Data\Generated\ForeverNew.lua
 Data\Generated\Rewards.lua
 Data\Generated\Entrances.lua
 Data\Overrides.lua
-Graph.lua
-Waypoints.lua
-Menu.lua
-Detail.lua
-Search.lua
-UI.lua
-Prefs.lua
-Minimap.lua
+Modules\Graph\Graph.lua
+Modules\Map\Waypoints.lua
+Modules\UI\Menu.lua
+Modules\UI\QuestPanel.lua
+Modules\UI\Search.lua
+Modules\UI\MainWindow.lua
+Modules\UI\Preferences.lua
+Modules\UI\MinimapButton.lua
+Completao.lua

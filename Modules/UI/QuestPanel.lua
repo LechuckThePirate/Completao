@@ -7,10 +7,6 @@ local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interfac
 local detail, parentFrame, treeScroll, current, leftOff
 local maximized = false
 
-local function hex(c)
-    return ("|cff%02x%02x%02x"):format(c[1] * 255, c[2] * 255, c[3] * 255)
-end
-
 local function describeLocation(loc)
     local zone = loc.area and C_Map.GetAreaInfo(loc.area)
     local where

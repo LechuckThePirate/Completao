@@ -52,6 +52,11 @@ Inspired by BtWQuests.
 - Resizable, movable window; its position, size, open section and selected
   dungeon are saved per character.
 - Minimap button (click to open, drag to move) and an icon in the AddOns list.
+- **Fades while you move**, like the world map: the window drops to 50 %
+  opacity while the character is walking or running, so it never hides what is
+  ahead, and comes back when you stop or while the cursor is over it.
+  `/completao fade <10-100>` sets the opacity (100 = no fade), saved per
+  character.
 - Two chat lines, like Embolsao: `Completao!! vX -- initializing...` when the
   addon loads and `... initialization complete (N quests)` once you are in the
   world with everything indexed.

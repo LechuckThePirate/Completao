@@ -472,6 +472,28 @@ local function saveGeometry()
     ns.char.window = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight() }
 end
 
+-- Como el mapa del mundo: mientras el personaje se mueve, la ventana se vuelve semitransparente para no
+-- tapar lo que hay delante (50 % por defecto; `/completao fade <10-100>` lo cambia, 100 = sin efecto), y
+-- vuelve a ser opaca al pararte o mientras el cursor esta encima, para poder usarla en marcha. El cambio es
+-- suave. Solo cambia la transparencia, que el juego permite incluso en combate.
+local DEFAULT_FADE_ALPHA = 0.5
+local function fadeOnUpdate(self, elapsed)
+    local target = 1
+    -- el cliente oculta algunos valores en combate ("secretos"): compararlos da error, asi que en ese caso
+    -- la ventana se deja opaca
+    local speed = GetUnitSpeed("player")
+    local known = speed ~= nil and not (issecretvalue and issecretvalue(speed))
+    if known and speed > 0 and not self:IsMouseOver() then
+        target = ns.char.fadeAlpha or DEFAULT_FADE_ALPHA
+    end
+    local current = self:GetAlpha()
+    if math.abs(current - target) < 0.01 then
+        if current ~= target then self:SetAlpha(target) end
+        return
+    end
+    self:SetAlpha(current + (target - current) * math.min(1, elapsed * 8))
+end
+
 local function createFrame()
     -- Marco con retrato (como Embolsao); si el cliente no tuviera la plantilla, el marco basico de antes.
     local okPortrait, portraitFrame = pcall(CreateFrame, "Frame", "CompletaoFrame", UIParent, "PortraitFrameFlatTemplate")
@@ -504,6 +526,8 @@ local function createFrame()
         saveGeometry()
     end)
     tinsert(UISpecialFrames, "CompletaoFrame")
+    frame:SetScript("OnUpdate", fadeOnUpdate)
+    frame:HookScript("OnHide", function(self) self:SetAlpha(1) end) -- la proxima vez se abre opaca
     frame:Hide()
 
     local grip = CreateFrame("Button", nil, frame)

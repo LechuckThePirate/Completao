@@ -286,9 +286,13 @@ SlashCmdList.COMPLETAO = function(msg)
         dumpQuestLog()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
+    elseif msg:match("^fade") then
+        local percent = tonumber(msg:match("^fade%s+(%d+)"))
+        if percent then ns.char.fadeAlpha = math.max(0.1, math.min(1, percent / 100)) end
+        ns.Print(ns.L["Opacity while moving: %d%%"]:format(math.floor((ns.char.fadeAlpha or 0.5) * 100 + 0.5)))
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids)"])
+        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao fade <10-100> (opacity while moving) | /completao dump (quest log ids)"])
     end
 end

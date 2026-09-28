@@ -62,8 +62,9 @@ local es = {
     ["%d-man"] = "%d jug.",
     ["Quests in your log (id - title):"] = "Quests en tu registro (id - título):",
     ["  %d - %s (level %d)"] = "  %d - %s (nivel %d)",
-    ["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids)"] =
-        "Uso: /completao (abrir) | /completao minimap (mostrar/ocultar botón) | /completao dump (ids del registro de quests)",
+    ["Usage: /completao (open) | /completao minimap (toggle button) | /completao fade <10-100> (opacity while moving) | /completao dump (quest log ids)"] =
+        "Uso: /completao (abrir) | /completao minimap (mostrar/ocultar botón) | /completao fade <10-100> (opacidad al moverte) | /completao dump (ids del registro de quests)",
+    ["Opacity while moving: %d%%"] = "Opacidad al moverte: %d%%",
     ["Left-click: open"] = "Clic izquierdo: abrir",
     ["Drag: move"] = "Arrastrar: mover",
     ["Minimap button hidden."] = "Botón del minimapa oculto.",

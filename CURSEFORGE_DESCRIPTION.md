@@ -89,12 +89,17 @@ Click any quest in the tree to open its panel:
   dungeon are remembered **per character**.
 - A minimap button opens it (drag it wherever you like), and the addon has its
   own icon in the AddOns list and on the window's portrait, next to its version.
+- **Fades while you move**, like the world map: the window goes half transparent
+  while you walk or run, so it never hides what is ahead, and comes back when you
+  stop or when the cursor is over it. `/completao fade <10-100>` changes how
+  much (100 = no fade).
 - Completion is always read live from the game, so it is never out of date.
 
 ![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png)
 
 Commands: `/completao` (or `/cpl`) opens the window, `/completao minimap` shows
-or hides the minimap button.
+or hides the minimap button, `/completao fade <10-100>` sets the opacity while
+you move.
 
 ---
 

@@ -225,7 +225,7 @@ local function layout()
     if not shown then maximized = false end
     detail:ClearAllPoints()
     if maximized then
-        detail:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", leftOff, -62)
+        detail:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", leftOff, -(ns.TREE_TOP or 62))
         detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, 30)
         treeScroll:Hide()
     else

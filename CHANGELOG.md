@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.1.0
+## 0.1.0-beta
 
 First version.
+
+- New: the window uses the same portrait frame as Embolsao, with the addon's
+  icon, and its title shows the version.
 
 - New: a window (`/completao`, `/cpl` or the minimap button) with a
   collapsible **Dungeons** and **Raids** side panel. Every entry shows its level

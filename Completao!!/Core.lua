@@ -172,12 +172,9 @@ SlashCmdList.COMPLETAO = function(msg)
         dumpQuestLog()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
-    elseif msg == "demo" then
-        ns.db.demo = not ns.db.demo
-        ns.Print(ns.db.demo and ns.L["Demo entry enabled. Type /reload."] or ns.L["Demo entry disabled. Type /reload."])
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids) | /completao demo (test data)"])
+        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids)"])
     end
 end

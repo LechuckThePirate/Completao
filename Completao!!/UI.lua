@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 
 local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 40, 60, 14, 20
 
@@ -256,7 +256,13 @@ local function createFrame()
         if a.maxLevel ~= b.maxLevel then return (a.maxLevel or 0) < (b.maxLevel or 0) end
         return a.name < b.name
     end)
-    frame = CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
+    -- Marco con retrato (como Embolsao); si el cliente no tuviera la plantilla, el marco basico de antes.
+    local okPortrait, portraitFrame = pcall(CreateFrame, "Frame", "CompletaoFrame", UIParent, "PortraitFrameFlatTemplate")
+    local hasPortrait = okPortrait and portraitFrame and portraitFrame.SetPortraitToAsset ~= nil
+    frame = okPortrait and portraitFrame or CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
+    -- el contenido empieza por debajo del retrato (que sobresale por arriba a la izquierda)
+    local top = hasPortrait and 66 or 34
+    ns.TREE_TOP = top + 28
     local saved = ns.char.window
     frame:SetSize(saved and math.max(MIN_W, saved.w) or DEFAULT_W, saved and math.max(MIN_H, saved.h) or DEFAULT_H)
     if saved then
@@ -296,18 +302,23 @@ local function createFrame()
         ns.UI_Refresh()
     end)
 
-    local title = frame.TitleText or (frame.TitleContainer and frame.TitleContainer.TitleText)
-    if title then title:SetText("Completao!!") end
+    if hasPortrait then
+        frame:SetPortraitToAsset("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Completao.png")
+    end
+    local getMeta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+    local version = getMeta and getMeta(ADDON, "Version") or "?"
+    local title = (frame.TitleContainer and frame.TitleContainer.TitleText) or frame.TitleText
+    if title then title:SetText(("Completao!! v%s"):format(version)) end
 
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    frame.header:SetPoint("TOPLEFT", LIST_W + 30, -34)
+    frame.header:SetPoint("TOPLEFT", LIST_W + 30, -top)
 
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
     hint:SetText(ns.L["Drag the background to pan  |  Wheel: vertical  |  Shift+wheel: horizontal"])
 
     local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    listScroll:SetPoint("TOPLEFT", 12, -34)
+    listScroll:SetPoint("TOPLEFT", 12, -top)
     listScroll:SetPoint("BOTTOMLEFT", 12, 14)
     listScroll:SetWidth(LIST_W - 22)
     frame.listChild = CreateFrame("Frame", nil, listScroll)
@@ -315,7 +326,7 @@ local function createFrame()
     listScroll:SetScrollChild(frame.listChild)
 
     local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -62)
+    treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
     canvas = CreateFrame("Frame", nil, treeScroll)
     canvas:SetSize(1, 1)

@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Completao!!
 ## Notes: Arbol de cadenas de quests, requisitos y quests por mazmorra para WoW Forever.
-## Version: 0.1.0
+## Version: 0.1.0-beta
 ## SavedVariables: CompletaoDB
 ## SavedVariablesPerCharacter: CompletaoCharDB
 ## Category: Quests
@@ -15,7 +15,6 @@ Data\Generated\Classic.lua
 Data\Generated\Forever.lua
 Data\Generated\Entrances.lua
 Data\Overrides.lua
-Data\Demo.lua
 Graph.lua
 Waypoints.lua
 Detail.lua

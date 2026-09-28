@@ -44,24 +44,12 @@ local es = {
     ["%d-man"] = "%d jug.",
     ["Quests in your log (id - title):"] = "Quests en tu registro (id - título):",
     ["  %d - %s (level %d)"] = "  %d - %s (nivel %d)",
-    ["Demo entry enabled. Type /reload."] = "Entrada demo activada. Escribe /reload.",
-    ["Demo entry disabled. Type /reload."] = "Entrada demo desactivada. Escribe /reload.",
-    ["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids) | /completao demo (test data)"] =
-        "Uso: /completao (abrir) | /completao minimap (mostrar/ocultar botón) | /completao dump (ids del registro de quests) | /completao demo (datos de prueba)",
+    ["Usage: /completao (open) | /completao minimap (toggle button) | /completao dump (quest log ids)"] =
+        "Uso: /completao (abrir) | /completao minimap (mostrar/ocultar botón) | /completao dump (ids del registro de quests)",
     ["Left-click: open"] = "Clic izquierdo: abrir",
     ["Drag: move"] = "Arrastrar: mover",
     ["Minimap button hidden."] = "Botón del minimapa oculto.",
     ["Minimap button shown."] = "Botón del minimapa visible.",
-    ["[Demo] Test chain"] = "[Demo] Cadena de prueba",
-    ["Chain start"] = "Inicio de la cadena",
-    ["Second part"] = "Segunda parte",
-    ["Branch A"] = "Rama A",
-    ["Branch B"] = "Rama B",
-    ["Alliance-only branch"] = "Rama solo Alianza",
-    ["Final (needs A and B)"] = "Final (requiere A y B)",
-    ["Loose quest"] = "Quest suelta",
-    ["Test NPC"] = "NPC de prueba",
-    ["Turn in inside the dungeon."] = "Se entrega dentro de la mazmorra.",
 }
 
 ns.L = setmetatable({}, { __index = function(_, k) return k end })

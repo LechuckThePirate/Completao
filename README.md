@@ -35,7 +35,7 @@ Inspired by BtWQuests.
 
 Commands: `/completao` (or `/cpl`) toggles the window, `/completao minimap`
 shows or hides the minimap button, `/completao dump` lists the quest ids in
-your log, `/completao demo` toggles a synthetic test chain (then `/reload`).
+your log.
 
 ## Repo layout
 
@@ -95,7 +95,7 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao!!/
 
 ## Status
 
-Early (`0.1.0`); see `CHANGELOG.md`.
+Early (`0.1.0-beta`); see `CHANGELOG.md`.
 
 - Every Classic dungeon has generated quests. Of Forever's new instances only
   The Hall of Thanes and Ruins of Lordaeron have quests so far -- the rest are

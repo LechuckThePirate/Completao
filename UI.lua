@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 40, 60, 14, 20
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 40, 60, 20, 20
 
 local STATUS_COLORS = {
     done      = { 0.20, 0.80, 0.20 },
@@ -189,14 +189,48 @@ local function renderTree(d)
         byId[id] = b
     end
 
-    for k, e in ipairs(layout.edges) do
-        local l = getLine(k)
-        local from, to = byId[e.from], byId[e.to]
-        local c = STATUS_COLORS[from.status == "done" and "done" or "locked"]
-        l:SetColorTexture(c[1], c[2], c[3], 0.8)
-        l:SetStartPoint("RIGHT", from)
-        l:SetEndPoint("LEFT", to)
+    -- Las conexiones van por los huecos entre cuadros, nunca por encima de ellos: salen del padre hacia el
+    -- pasillo vertical de su derecha, suben o bajan hasta el hueco entre filas junto al hijo, cruzan por
+    -- ese hueco hasta el pasillo de la izquierda del hijo y entran por su lado izquierdo. Cada fila usa su
+    -- propio carril dentro del pasillo, asi las lineas de un mismo padre (o hacia un mismo hijo) comparten tronco.
+    local segCount = 0
+    local function segment(x1, y1, x2, y2, c)
+        if x1 == x2 and y1 == y2 then return end
+        segCount = segCount + 1
+        local l = getLine(segCount)
+        l:SetColorTexture(c[1], c[2], c[3], 0.85)
+        l:SetStartPoint("TOPLEFT", canvas, x1, -y1)
+        l:SetEndPoint("TOPLEFT", canvas, x2, -y2)
         l:Show()
+    end
+    local function colX(col) return PAD + col * (NODE_W + GAP_X) end
+    local function rowY(row) return PAD + row * (NODE_H + GAP_Y) end
+    local function gutterX(col, row) -- pasillo a la derecha de la columna `col`, en el carril de `row`
+        return colX(col) + NODE_W + GAP_X / 2 + ((row % 8) - 3.5) * 5
+    end
+    for _, e in ipairs(layout.edges) do
+        local a, b = layout.nodes[e.from], layout.nodes[e.to]
+        local c = STATUS_COLORS[byId[e.from].status == "done" and "done" or "locked"]
+        local yA, yB = rowY(a.row) + NODE_H / 2, rowY(b.row) + NODE_H / 2
+        local xA, xB = colX(a.col) + NODE_W, colX(b.col)
+        if b.col <= a.col then
+            segment(xA, yA, xB, yB, c) -- no deberia pasar (hijo a la izquierda o en la misma columna)
+        else
+            local gA = gutterX(a.col, a.row)
+            if b.col == a.col + 1 then
+                segment(xA, yA, gA, yA, c)
+                segment(gA, yA, gA, yB, c)
+                segment(gA, yB, xB, yB, c)
+            else
+                local gB = gutterX(b.col - 1, b.row)
+                local yCh = rowY(b.row) - GAP_Y / 2 + ((a.col % 3) - 1) * 3 -- hueco entre filas, sobre el hijo
+                segment(xA, yA, gA, yA, c)
+                segment(gA, yA, gA, yCh, c)
+                segment(gA, yCh, gB, yCh, c)
+                segment(gB, yCh, gB, yB, c)
+                segment(gB, yB, xB, yB, c)
+            end
+        end
     end
 end
 

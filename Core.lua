@@ -120,10 +120,18 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
--- "Bajo nivel": quest en gris para el nivel del jugador (trivial). Usa el rango verde del cliente.
+-- "Bajo nivel": el titulo de la quest saldria en gris para este personaje (trivial). Se le pregunta al
+-- propio juego por el color de dificultad; si no lo da, se usa el rango verde del cliente.
 function ns.IsLowLevel(q)
     local questLevel = q.level or q.minLevel
     if not questLevel then return false end
+    if GetQuestDifficultyColor then
+        local ok, c = pcall(GetQuestDifficultyColor, questLevel)
+        if ok and type(c) == "table" then
+            local trivial = QuestDifficultyColors and QuestDifficultyColors["trivial"]
+            return c == trivial or (c.r == 0.5 and c.g == 0.5 and c.b == 0.5)
+        end
+    end
     local player = UnitLevel("player")
     local green = (GetQuestGreenRange and GetQuestGreenRange()) or (3 + math.floor(player / 10))
     return questLevel <= player - green

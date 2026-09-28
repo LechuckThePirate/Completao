@@ -82,8 +82,8 @@ local searchText = ""
 local searchBox
 
 -- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos.
--- Devuelve dos conjuntos por id de quest: las que estan en una cadena de mas de una quest
--- (inChain) y las que estan en una cadena con todas sus quests hechas (done; incluye las sueltas hechas).
+-- Devuelve dos conjuntos por id de quest: las que estan en una cadena de mas de una quest (inChain) y las
+-- que estan en una cadena con todas sus quests hechas (done; incluye las sueltas hechas).
 local function chainInfo(d)
     local set, parent = {}, {}
     for _, q in ipairs(d.quests) do

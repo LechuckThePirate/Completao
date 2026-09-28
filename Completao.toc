@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: Completao!!
+## Title: Completao!!: Forever
 ## Notes: Quest chain trees for WoW Forever: requirements, where each quest starts, map markers and TomTom waypoints.
 ## Notes-esES: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
 ## Notes-esMX: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.

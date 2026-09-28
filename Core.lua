@@ -184,9 +184,22 @@ function ns.IsLowLevel(q)
     return questLevel <= player - green
 end
 
--- "Demasiado alto": el nivel minimo de la quest supera el del jugador (aun no puede cogerla).
+-- "Demasiado alto": aun no puede cogerla (el nivel minimo supera el del jugador) o el juego la pinta en rojo
+-- en el registro (demasiado dificil para su nivel). Lo segundo pilla las de nivel minimo bajo y nivel alto,
+-- como "Master Angler" (nivel 60, se coge desde el 1). Se le pregunta al juego por el color, como en
+-- IsLowLevel; si no lo da, rojo es 5 niveles o mas por encima.
 function ns.IsTooHigh(q)
-    return (q.minLevel or 0) > UnitLevel("player")
+    local player = UnitLevel("player")
+    if (q.minLevel or 0) > player then return true end
+    if not q.level then return false end
+    if GetQuestDifficultyColor then
+        local ok, c = pcall(GetQuestDifficultyColor, q.level)
+        if ok and type(c) == "table" then
+            local red = QuestDifficultyColors and QuestDifficultyColors["impossible"]
+            return c == red or (c.r == 1 and c.g < 0.2 and c.b < 0.2)
+        end
+    end
+    return q.level >= player + 5
 end
 
 -- Mascaras de razas y de clases: un bit por raza/clase (razas: 1 humano, 2 orco, 4 enano, 8 elfo de la

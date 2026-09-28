@@ -50,7 +50,7 @@ same table.
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes
 trim the noise: **hide low level** (grey) quests, **hide too high** (quests you
-can't take yet) and **hide completed** chains. Chains are shown or hidden as a
+can't take yet, or red for your level) and **hide completed** chains. Chains are shown or hidden as a
 whole, so they are never cut in half: a chain is hidden as "too high" when
 everything it starts with is above your level (if you can start it, all its
 steps stay, even the higher ones), as "low level" only when every quest in it is

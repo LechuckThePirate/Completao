@@ -13,7 +13,8 @@ local es = {
     ["Hide too high"] = "Ocultar muy alto",
     ["Hide completed"] = "Ocultar completadas",
     ["Hides quests that are grey for your level (trivial)."] = "Oculta las quests en gris para tu nivel (triviales).",
-    ["Hides quests that require a higher level than yours."] = "Oculta las quests que exigen más nivel del que tienes.",
+    ["Hides quests you cannot take yet or that are red (too hard) for your level."] =
+        "Oculta las quests que aún no puedes coger o que salen en rojo (demasiado difíciles) para tu nivel.",
     ["Hides the chains whose quests are all done."] = "Oculta las cadenas cuyas quests están todas hechas.",
     ["No quests match the filters."] = "Ninguna quest coincide con los filtros.",
     ["Dungeons"] = "Mazmorras",

@@ -7,7 +7,7 @@ left, read the tree on the right, click a quest for everything about it -- and
 let the addon walk you to the person who hands it out.
 
 Dungeons and raids are in from day one, with more sections on the way (class
-quests, zones and beyond).
+quests, zones and beyond). Currently in **beta**.
 
 ![Main window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
 
@@ -61,7 +61,7 @@ Click any quest in the tree to open its panel:
 - Move and resize the window; its position, size, open section and selected
   dungeon are remembered **per character**.
 - A minimap button opens it (drag it wherever you like), and the addon has its
-  own icon in the AddOns list.
+  own icon in the AddOns list and on the window's portrait, next to its version.
 - Completion is always read live from the game, so it is never out of date.
 
 ![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png)
@@ -85,7 +85,7 @@ consequence you should know about:
 - Some quests start inside an instance and have no known starting point yet --
   for those the addon shows the entrance instead.
 
-This is an early release: expect gaps, and please report them.
+This is a beta: expect gaps, and please report them.
 
 ---
 

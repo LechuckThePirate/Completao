@@ -52,6 +52,9 @@ Inspired by BtWQuests.
 - Resizable, movable window; its position, size, open section and selected
   dungeon are saved per character.
 - Minimap button (click to open, drag to move) and an icon in the AddOns list.
+- Two chat lines, like Embolsao: `Completao!! vX -- initializing...` when the
+  addon loads and `... initialization complete (N quests)` once you are in the
+  world with everything indexed.
 - English and Spanish UI (`esES`/`esMX` clients get Spanish).
 
 Commands: `/completao` (or `/cpl`) toggles the window, `/completao minimap`

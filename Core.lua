@@ -224,20 +224,45 @@ function ns.RequestRefresh()
     end)
 end
 
+function ns.Version()
+    local getMeta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+    return getMeta and getMeta(ADDON, "Version") or "?"
+end
+
+-- Aviso en el chat, como Embolsao: "Completao!! vX -- initializing..." al cargar el addon y
+-- "... initialization complete" cuando el jugador ya esta en el mundo con los datos indexados.
+local function announce(text)
+    print(("|cff33ff99Completao!!|r v%s -- %s"):format(ns.Version(), text))
+end
+
+local announcedReady = false
+local function announceReady()
+    if announcedReady then return end
+    announcedReady = true
+    local quests = 0
+    for _, d in ipairs(ns.entryList) do quests = quests + #d.quests end
+    announce(ns.L["initialization complete (%d quests)"]:format(quests))
+end
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("QUEST_LOG_UPDATE")
 events:RegisterEvent("QUEST_TURNED_IN")
 events:RegisterEvent("QUEST_DATA_LOAD_RESULT")
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then return end
+        announce(ns.L["initializing..."])
         CompletaoDB = CompletaoDB or {}
         ns.db = CompletaoDB
         CompletaoCharDB = CompletaoCharDB or {}
         ns.char = CompletaoCharDB
         ns.char.filters = ns.char.filters or {}
         ns.Minimap_Init()
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- tambien salta tras /reload; se avisa una sola vez por carga de la interfaz
+        C_Timer.After(1, announceReady)
     else
         ns.RequestRefresh()
     end

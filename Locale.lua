@@ -2,6 +2,8 @@ local _, ns = ...
 
 -- Las claves son el texto en ingles; en clientes esES/esMX se sustituyen por el espanol.
 local es = {
+    ["initializing..."] = "inicializando...",
+    ["initialization complete (%d quests)"] = "inicialización completa (%d quests)",
     ["Races"] = "Razas",
     ["Show other faction"] = "Ver otra facción",
     ["Shows the quests and zones of the opposite faction, hidden by default."] =

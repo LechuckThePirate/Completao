@@ -87,7 +87,9 @@ local function buildText(q)
         local met = UnitLevel("player") >= q.minLevel
         req[#req + 1] = (met and "|cff33cc33" or "|cffff5555") .. L["Level %d required"]:format(q.minLevel) .. "|r"
     end
-    section(L["Requirements"], #req > 0 and table.concat(req, "\n") or L["None"])
+    local requirements = #req > 0 and table.concat(req, "\n") or L["None"]
+    if q.level then requirements = requirements .. "\n|cffbbbbbb" .. L["Level %d recommended"]:format(q.level) .. "|r" end
+    section(L["Requirements"], requirements)
 
     if q.objective then section(L["Objective"], q.objective) end
     if detail.steps and #detail.steps > 0 then section(L["Steps"], stepsText()) end

@@ -157,6 +157,13 @@ describe("QuestPanel", function()
         assert.is_true(WowMock.FindButton("Open quest"):IsShown())
     end)
 
+    it("requirements show the required and the recommended level", function()
+        ns.Detail_Show({ id = 2, name = "y", level = 22, minLevel = 11 })
+        local text = panelText()
+        assert.matches("Level 11 required", text)
+        assert.matches("Level 22 recommended", text)
+    end)
+
     it("the long description goes last, when there is one", function()
         ns.Detail_Show({ id = 1, name = "x", desc = "Long story" })
         local text = panelText()

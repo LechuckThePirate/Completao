@@ -119,6 +119,12 @@ describe("Data", function()
         assert.is_not_nil(ns.entries.vc.entrance)
     end)
 
+    it("Altered Beings' step is at the Stagnant Oasis, not the other pond the Oasis Snapjaw spawns in", function()
+        local q = ns.FindQuestDef(880)
+        assert.near(55.6, q.steps[1].x, 0.5)
+        assert.near(42.6, q.steps[1].y, 0.5)
+    end)
+
     it("hand fixes point at quests that exist", function()
         local code = io.open("Data/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
         for id in code:gmatch("PatchQuest%((%d+)") do

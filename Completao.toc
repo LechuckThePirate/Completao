@@ -1,0 +1,28 @@
+## Interface: 16001
+## Title: Completao!!
+## Notes: Quest chain trees for WoW Forever: requirements, where each quest starts, map markers and TomTom waypoints.
+## Notes-esES: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
+## Notes-esMX: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
+## Category: Quests
+## Category-esES: Misiones
+## Category-esMX: Misiones
+## Author: LechuckThePirate
+## Version: 0.1.0-beta
+## X-License: GPL-3.0
+## IconTexture: Interface\AddOns\Completao\Icons\Completao.png
+## SavedVariables: CompletaoDB
+## SavedVariablesPerCharacter: CompletaoCharDB
+
+Locale.lua
+Core.lua
+Data\Dungeons.lua
+Data\Raids.lua
+Data\Generated\Classic.lua
+Data\Generated\Forever.lua
+Data\Generated\Entrances.lua
+Data\Overrides.lua
+Graph.lua
+Waypoints.lua
+Detail.lua
+UI.lua
+Minimap.lua

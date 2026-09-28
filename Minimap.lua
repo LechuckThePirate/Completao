@@ -1,7 +1,7 @@
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
-local ICON = "Interface\\AddOns\\Completao!!\\Icons\\Completao.png"
+local ICON = "Interface\\AddOns\\" .. ADDON .. "\\Icons\\Completao.png"
 local button
 
 local function updatePosition()

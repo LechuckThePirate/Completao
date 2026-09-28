@@ -39,12 +39,18 @@ your log.
 
 ## Repo layout
 
-- `Completao!!/` -- the addon itself. The folder is named exactly like the
-  addon (`Completao!!`), so it can be copied as is into `AddOns`.
-- `tools/` -- the data generators (see below). `tools/cache/` holds downloaded
-  pages and is git-ignored.
-- `images/` -- source icon artwork (unprocessed). The addon icon is cut from it
-  into `Completao!!/Icons/Completao.png`.
+The addon files live at the repo root (`Completao.toc`, `Core.lua`, `UI.lua`,
+`Data/`, `Icons/`, `.pkgmeta`) -- this is what release tooling and CurseForge
+expect to package directly as `Completao/`.
+
+- `tools/` -- the data generators (see below). `tools/local/` is git-ignored.
+- `images/` -- source icon artwork (unprocessed) and the screenshots of the
+  CurseForge page (`images/screencaps/`). The addon icon is cut from it into
+  `Icons/Completao.png`.
+- `.github/workflows/release.yml` -- manual (`workflow_dispatch` only) release
+  pipeline via [BigWigsMods/packager](https://github.com/BigWigsMods/packager),
+  packaging the repo root and uploading to CurseForge.
+  `.github/workflows/sync-media.yml` -- hosts the page screenshots.
 
 ## How it works
 
@@ -85,10 +91,11 @@ is fetched with a local helper that is not part of this repository
 
 ## Installing (development)
 
-Copy `Completao!!` into the client's AddOns folder:
+Copy or symlink this repo's root as `Completao` into the client's AddOns folder
+(the `tools/`, `images/` and `.github/` folders are not needed there):
 
 ```
-World of Warcraft/_classic_beta_/Interface/AddOns/Completao!!/
+World of Warcraft/_classic_beta_/Interface/AddOns/Completao/
 ```
 
 ## Status

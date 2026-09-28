@@ -1,10 +1,10 @@
 -- Uso: lua tools/questie_classic.lua [entryId ...]     (por defecto: vc wc)
--- Lee la base de datos de Classic que trae Questie y genera Completao!!/Data/Generated/Classic.lua
+-- Lee la base de datos de Classic que trae Questie y genera Data/Generated/Classic.lua
 -- con las quests de cada mazmorra: las de su zona, las que dan/reciben/matan NPCs que solo aparecen
 -- dentro, y las cadenas (prerrequisitos y continuaciones) que las conectan.
 local ROOT = (arg[0]:match("^(.*)[/\\][^/\\]+$") or ".") .. "/.."
 local Q = os.getenv("QUESTIE_DIR") or "D:/Games/World of Warcraft/_classic_beta_/Interface/AddOns/Questie/"
-local OUT = ROOT .. "/Completao!!/Data/Generated/Classic.lua"
+local OUT = ROOT .. "/Data/Generated/Classic.lua"
 
 -- id de entrada del addon -> id de area de la mazmorra en Questie (Database/Zones/data/dungeons.lua)
 local INSTANCE_AREA = {
@@ -12,7 +12,7 @@ local INSTANCE_AREA = {
     sm = 796, rfd = 722, ulda = 1337, zf = 1176, mara = 2100, st = 1477, brd = 1584,
     lbrs = 1583, dm = 2557, scho = 2057, strat = 2017, ony = 2159,
 }
-local ENTRANCES_OUT = ROOT .. "/Completao!!/Data/Generated/Entrances.lua"
+local ENTRANCES_OUT = ROOT .. "/Data/Generated/Entrances.lua"
 
 local function read(p) local f = assert(io.open(p, "rb")); local s = f:read("a"); f:close(); return s end
 local function loadData(path, field)

@@ -112,7 +112,9 @@ Click any quest in the tree to open its panel:
 
 Commands: `/completao` (or `/cpl`) opens the window, `/completao prefs` the
 preferences, `/completao minimap` shows or hides the minimap button,
-`/completao fade <10-100>` sets the opacity while you move.
+`/completao fade <10-100>` sets the opacity while you move. You can also bind
+keys to open the window and the preferences, under **Options -> Keybindings ->
+AddOns -> Completao!!**.
 
 ---
 

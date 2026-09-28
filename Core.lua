@@ -373,6 +373,13 @@ local function dumpQuestLog()
     end
 end
 
+-- Atajos de teclado (Bindings.xml): salen en Opciones -> Atajos de teclado -> AddOns -> Completao!!.
+BINDING_HEADER_COMPLETAO = "Completao!!"
+BINDING_NAME_COMPLETAO_TOGGLE = ns.L["Open / close the window"]
+BINDING_NAME_COMPLETAO_PREFS = ns.L["Open / close the preferences"]
+function Completao_Toggle() ns.UI_Toggle() end
+function Completao_TogglePreferences() ns.Prefs_Toggle() end
+
 SLASH_COMPLETAO1 = "/completao"
 SLASH_COMPLETAO2 = "/cpl"
 SlashCmdList.COMPLETAO = function(msg)

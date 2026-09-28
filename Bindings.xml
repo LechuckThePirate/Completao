@@ -2,7 +2,7 @@
     <Binding name="COMPLETAO_TOGGLE" header="COMPLETAO" category="ADDONS">
         Completao_Toggle()
     </Binding>
-    <Binding name="COMPLETAO_PREFS" header="COMPLETAO" category="ADDONS">
+    <Binding name="COMPLETAO_PREFS" category="ADDONS">
         Completao_TogglePreferences()
     </Binding>
 </Bindings>

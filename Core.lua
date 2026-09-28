@@ -281,7 +281,9 @@ end
 -- Estas claves se leen y escriben en el almacen activo: el del personaje (CompletaoCharDB) o el comun de
 -- la cuenta (CompletaoDB.shared). Lo demas de ns.char (entrada seleccionada, seccion abierta) es siempre
 -- del personaje. El resto del addon usa ns.char sin saber cual de los dos hay detras.
-local SWITCHABLE = { fadeAlpha = true, quiet = true, minimap = true, filters = true, zoom = true, window = true }
+local SWITCHABLE = {
+    fadeAlpha = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
+}
 
 local function deepCopy(value)
     if type(value) ~= "table" then return value end

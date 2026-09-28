@@ -24,6 +24,7 @@ local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 local selectedId, expandedCat, listInitialized
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
 local frame, canvas, emptyText
+local openedWithLog = false -- la ventana la abrio el registro de misiones (ver al final)
 
 local function showNodeTooltip(btn)
     local q, status, reasons = btn.quest, btn.status, btn.reasons
@@ -586,7 +587,10 @@ local function createFrame()
     end)
     tinsert(UISpecialFrames, "CompletaoFrame")
     frame:SetScript("OnUpdate", fadeOnUpdate)
-    frame:HookScript("OnHide", function(self) self:SetAlpha(1) end) -- la proxima vez se abre opaca
+    frame:HookScript("OnHide", function(self)
+        self:SetAlpha(1) -- la proxima vez se abre opaca
+        openedWithLog = false
+    end)
     frame:Hide()
 
     local grip = CreateFrame("Button", nil, frame)
@@ -812,3 +816,30 @@ function ns.UI_Toggle()
     if not frame then createFrame() end
     frame:SetShown(not frame:IsShown())
 end
+
+-- Preferencias -> "Abrir con el registro de misiones": al abrir el registro (tecla L o su boton, que pasan
+-- por ToggleQuestLog) se abre tambien esta ventana, y si se abrio asi se cierra con el. El registro puede
+-- ser el clasico (QuestLogFrame) o el del mapa (QuestMapFrame); se mira despues de que el juego lo muestre.
+local function questLogShown()
+    if QuestLogFrame and QuestLogFrame:IsShown() then return true end
+    return QuestMapFrame ~= nil and QuestMapFrame:IsVisible() and true or false
+end
+
+local function onQuestLogToggled()
+    C_Timer.After(0, function()
+        if not (ns.char and ns.char.openWithQuestLog) then return end
+        if questLogShown() then
+            if not (frame and frame:IsShown()) then
+                if not frame then createFrame() end
+                frame:Show()
+                openedWithLog = true
+            end
+        elseif openedWithLog and frame then
+            frame:Hide()
+        end
+    end)
+end
+
+if ToggleQuestLog then hooksecurefunc("ToggleQuestLog", onQuestLogToggled) end
+local logFrame = QuestLogFrame or WorldMapFrame
+if logFrame then logFrame:HookScript("OnHide", onQuestLogToggled) end

@@ -71,6 +71,7 @@ local es = {
     ["Completao!! Preferences"] = "Preferencias de Completao!!",
     ["Show the minimap button"] = "Mostrar el botón del minimapa",
     ["Show chat messages at startup"] = "Mostrar mensajes en el chat al iniciar",
+    ["Open with the quest log"] = "Abrir con el registro de misiones",
     ["Reset window position"] = "Restablecer posición de la ventana",
     ["Reset zoom"] = "Restablecer zoom",
     ["Reset filters"] = "Restablecer filtros",

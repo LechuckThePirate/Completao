@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Ventana de preferencias (se abre con el engranaje de la ventana principal o con /completao prefs).
 -- Ajustes basicos, en ns.char: por personaje o comunes a la cuenta segun la primera casilla.
-local WIDTH, HEIGHT = 340, 342
+local WIDTH, HEIGHT = 340, 370
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -122,9 +122,13 @@ local function create()
         function() return not ns.char.quiet end,
         function(value) ns.char.quiet = (not value) or nil end)
 
-    makeButton(prefs, -208, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -238, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -268, L["Reset filters"], function()
+    widgets[#widgets + 1] = makeCheck(prefs, -192, L["Open with the quest log"],
+        function() return ns.char.openWithQuestLog end,
+        function(value) ns.char.openWithQuestLog = value or nil end)
+
+    makeButton(prefs, -236, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -266, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -296, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)

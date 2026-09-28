@@ -69,8 +69,8 @@ local function buildText(q)
     if q.finish then section(L["Ends"], describeLocation(q.finish)) end
     if q.note then section(L["Notes"], q.note) end
     -- la descripcion larga, al final: la historia se lee despues de lo practico
-    section(L["Description"], ns.QuestDescription(q)
-        or ("|cff999999" .. L["Not known yet: it is saved here the first time a quest giver offers you the quest."] .. "|r"))
+    local desc = ns.QuestDescription(q)
+    if desc then section(L["Description"], desc) end
     return table.concat(parts, "\n\n")
 end
 

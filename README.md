@@ -46,11 +46,9 @@ Inspired by BtWQuests.
   red), objective, who starts / ends it with zone and coordinates, and the long
   description at the end. It can be maximized over the whole tree with
   Blizzard's maximize/restore button.
-  - The client only gives a quest's text when a quest giver offers it
-    (`QUEST_DETAIL`) or when it is in your log, never by id. The addon saves
-    that text as you see it (in your client's language, account-wide, per
-    locale, in `CompletaoDB.descriptions`) and prefers it over the English
-    text in its data; a quest never seen and with no text in the data says so.
+  - The client only gives a quest's text for quests in your log, never by id:
+    for those the description is read live, in your client's language; for
+    the rest it comes from the addon's data, when it has it. Nothing is saved.
   - **Waypoint: start / turn-in** -- sets a [TomTom](https://www.curseforge.com/wow/addons/tomtom)
     waypoint, or the game's own user waypoint if TomTom is not installed.
   - **Show on map** -- opens the world map on the quest giver and drops a
@@ -165,7 +163,7 @@ Early (`0.1.0-beta`); see `CHANGELOG.md`.
   published.
 - Quest text shipped with the addon is English only, and only Forever's quests
   have a long description in it; titles are read from the client, so they
-  follow its language. Descriptions seen in game are saved in your language.
+  follow its language, and so does the description of the quests in your log.
 - Several integration points could not be checked against the client's own UI
   source and fall back gracefully when missing: Blizzard's maximize/restore
   widget, opening the quest log on a quest, and the map marker.

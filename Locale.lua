@@ -41,8 +41,6 @@ local es = {
     ["None"] = "Ninguno",
     ["Objective"] = "Objetivo",
     ["Description"] = "Descripción",
-    ["Not known yet: it is saved here the first time a quest giver offers you the quest."] =
-        "Aún no se conoce: se guarda aquí la primera vez que un NPC te ofrezca la quest.",
     ["Starts"] = "Empieza",
     ["Ends"] = "Termina",
     ["Notes"] = "Notas",

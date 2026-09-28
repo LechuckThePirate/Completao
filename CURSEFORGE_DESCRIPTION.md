@@ -68,9 +68,8 @@ Click any quest in the tree to open its panel:
   them and red when you don't.
 - **Objective** -- what to do.
 - **Who starts it and who ends it**, with the zone and coordinates.
-- **Description** -- the story behind it, at the end. The game only reveals a
-  quest's text when someone offers it to you or it is in your log, so the addon
-  remembers it from then on, in your language, for all your characters.
+- **Description** -- the story behind it, at the end; for the quests in your
+  log, straight from the game in your language.
 - A **maximize / restore** button (Blizzard's own) to read the text over the
   whole tree.
 
@@ -126,7 +125,7 @@ databases. That has a consequence you should know about:
   have theirs so far; the other new dungeons and the new raids appear as their
   quests are published, and coverage grows with each update.
 - Quest text shipped with the addon is English only; quest titles follow your
-  client's language, and descriptions you see in game are kept in it.
+  client's language, and so does the description of the quests in your log.
 - Some quests start inside an instance and have no known starting point yet --
   for those the addon shows the entrance instead.
 

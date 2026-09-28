@@ -199,47 +199,18 @@ function ns.QuestVisible(q, d)
     return true
 end
 
--- Descripcion larga de una quest. El cliente no da el texto de una quest cualquiera por su id: solo el de
--- la que te ofrece un NPC (QUEST_DETAIL) y el de las que llevas en el registro. Se guarda lo que se ve, por
--- idioma del cliente y para toda la cuenta, con el nombre del personaje cambiado por $N; tiene prioridad
--- sobre el texto que traen los datos del addon (en ingles).
-local function descStore()
-    if not ns.db then return nil end
-    local locale = GetLocale()
-    ns.db.descriptions = ns.db.descriptions or {}
-    ns.db.descriptions[locale] = ns.db.descriptions[locale] or {}
-    return ns.db.descriptions[locale]
-end
-
-local function saveDescription(id, text)
-    if not id or id == 0 or type(text) ~= "string" or strtrim(text) == "" then return end
-    local store = descStore()
-    if not store then return end
-    local name = UnitName("player")
-    if name and name ~= "" then
-        text = text:gsub(name:gsub("%W", "%%%0"), "$N")
-    end
-    if store[id] ~= text then
-        store[id] = text
-        return true
-    end
-end
-
--- QUEST_DETAIL: la quest que el NPC te esta ofreciendo.
-function ns.CaptureOfferedQuest()
-    local id = GetQuestID and GetQuestID()
-    local text = GetQuestText and GetQuestText()
-    if saveDescription(id, text) then ns.RequestRefresh() end
-end
-
--- Quest del registro: el texto es el de la quest seleccionada, asi que se selecciona, se lee y se deja
--- la seleccion como estaba. Una sola vez por quest y sesion, aunque no devuelva nada.
-local triedLog = {}
+-- Descripcion larga de una quest. El cliente no da el texto de una quest cualquiera por su id, solo el de
+-- las que llevas en el registro: para esas se lee en vivo (en el idioma del cliente) y para las demas se usa
+-- el texto de los datos del addon, si lo hay. No se guarda nada en las variables guardadas.
+-- El texto del registro es el de la quest seleccionada: se selecciona, se lee y se deja la seleccion como
+-- estaba. Se recuerda solo en memoria y una vez por quest y sesion, para no tocar la seleccion en cada
+-- refresco de la ventana.
+local fromLog = {}
 local function readFromLog(id)
-    if triedLog[id] then return end
-    triedLog[id] = true
+    if fromLog[id] ~= nil then return fromLog[id] end
+    fromLog[id] = false
     local getSel, setSel = C_QuestLog.GetSelectedQuest, C_QuestLog.SetSelectedQuest
-    if not (getSel and setSel and GetQuestLogQuestText and C_QuestLog.IsOnQuest(id)) then return end
+    if not (getSel and setSel and GetQuestLogQuestText) then return false end
     local previous = getSel()
     local ok, text = pcall(function()
         setSel(id)
@@ -248,16 +219,12 @@ local function readFromLog(id)
         return (GetQuestLogQuestText(index))
     end)
     if previous ~= id then pcall(setSel, previous or 0) end
-    if ok then saveDescription(id, text) end
+    if ok and type(text) == "string" and strtrim(text) ~= "" then fromLog[id] = text end
+    return fromLog[id]
 end
 
 function ns.QuestDescription(q)
-    local store = descStore()
-    local text = store and store[q.id]
-    if not text then
-        readFromLog(q.id)
-        text = store and store[q.id]
-    end
+    local text = C_QuestLog.IsOnQuest(q.id) and readFromLog(q.id) or nil
     text = text or q.desc or (ns.DESC and ns.DESC[q.id])
     if not text then return nil end
     local name = (UnitName("player") or ""):gsub("%%", "%%%%")
@@ -316,13 +283,12 @@ events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("QUEST_LOG_UPDATE")
 events:RegisterEvent("QUEST_TURNED_IN")
 events:RegisterEvent("QUEST_DATA_LOAD_RESULT")
-events:RegisterEvent("QUEST_DETAIL")
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then return end
         CompletaoDB = CompletaoDB or {}
         ns.db = CompletaoDB
-        ns.db.descriptions = ns.db.descriptions or {}
+        ns.db.descriptions = nil -- textos guardados por una version de desarrollo; ya no se guardan
         CompletaoCharDB = CompletaoCharDB or {}
         ns.char = CompletaoCharDB
         ns.char.filters = ns.char.filters or {}
@@ -331,8 +297,6 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- tambien salta tras /reload; se avisa una sola vez por carga de la interfaz
         C_Timer.After(1, announceReady)
-    elseif event == "QUEST_DETAIL" then
-        ns.CaptureOfferedQuest()
     else
         ns.RequestRefresh()
     end

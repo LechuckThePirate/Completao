@@ -32,7 +32,7 @@ local function announce(text)
     print(("|cff33ff99Completao!!|r v%s -- %s"):format(ns.Version(), text))
 end
 
-local announcedReady = false
+local announcedReady, shownWelcome = false, false
 local function announceReady()
     if announcedReady then return end
     announcedReady = true
@@ -62,9 +62,13 @@ events:SetScript("OnEvent", function(_, event, arg1)
         announce(ns.L["initializing..."])
         ns.Minimap_Init()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        -- also fires after /reload; announced once per UI load
+        -- also fires after /reload; announced (and the welcome window shown, if new) once per UI load
         C_Timer.After(1, announceReady)
         ns.RequestRefresh()
+        if not shownWelcome then
+            shownWelcome = true
+            if ns.Welcome_ShowIfNew then ns.Welcome_ShowIfNew() end
+        end
     else
         ns.RequestRefresh()
         if LEVEL_EVENTS[event] then C_Timer.After(1, ns.RequestRefresh) end
@@ -98,6 +102,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Prefs_Toggle()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
+    elseif msg == "changelog" or msg == "whatsnew" then
+        ns.Welcome_Show()
     elseif msg:match("^fade") then
         local percent = tonumber(msg:match("^fade%s+(%d+)"))
         if percent then ns.char.fadeAlpha = math.max(0.1, math.min(1, percent / 100)) end
@@ -105,6 +111,6 @@ SlashCmdList.COMPLETAO = function(msg)
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | fade <10-100> | dump"])
+        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"])
     end
 end

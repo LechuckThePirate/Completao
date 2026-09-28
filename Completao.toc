@@ -41,5 +41,6 @@ Modules\UI\QuestPanel.lua
 Modules\UI\Search.lua
 Modules\UI\MainWindow.lua
 Modules\UI\Preferences.lua
+Modules\UI\Welcome.lua
 Modules\UI\MinimapButton.lua
 Completao.lua

@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 398
+local WIDTH, HEIGHT = 340, 432
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -136,6 +136,7 @@ local function create()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
+    makeButton(prefs, -358, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

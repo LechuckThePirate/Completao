@@ -26,6 +26,8 @@ function ns.InitSettings()
     CompletaoCharDB = CompletaoCharDB or {}
     ns.db = CompletaoDB
     ns.db.descriptions = nil -- texts saved by a development version; no longer saved
+    -- version the welcome window's "Don't show this again" was ticked for; account-wide, like Embolsao's
+    CompletaoDB.welcomeDismissedVersion = CompletaoDB.welcomeDismissedVersion or ""
     -- the first time, the shared settings come from the character that first uses them
     if not CompletaoDB.shared then
         CompletaoDB.shared = {}

@@ -78,8 +78,8 @@ local es = {
     ["%d-man"] = "%d jug.",
     ["Quests in your log (id - title):"] = "Quests en tu registro (id - título):",
     ["  %d - %s (level %d)"] = "  %d - %s (nivel %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | dump"] =
-        "Uso: /completao (abrir) | prefs | minimap | fade <10-100> | dump",
+    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
+        "Uso: /completao (abrir) | prefs | minimap | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Se hace dentro de la instancia: %s",
     ["Instance"] = "Instancia",
     ["done inside the instance"] = "se hace dentro",
@@ -127,6 +127,12 @@ local es = {
     ["Reset window position"] = "Restablecer posición de la ventana",
     ["Reset zoom"] = "Restablecer zoom",
     ["Reset filters"] = "Restablecer filtros",
+    ["What's new"] = "Novedades",
+    ["Welcome to Completao!!"] = "Bienvenido a Completao!!",
+    ["This is a beta version: you may run into bugs. Please report them on GitHub (click to select, then Ctrl+C):"] =
+        "Esto es una versión beta: puedes encontrarte con errores. Repórtalos en GitHub (clic para seleccionar, luego Ctrl+C):",
+    ["What's new in v%s:"] = "Novedades en la v%s:",
+    ["Don't show this message again"] = "No volver a mostrar este mensaje",
     ["Character specific preferences"] = "Preferencias de este personaje",
     ["Settings are saved for this character only."] = "Los ajustes se guardan solo para este personaje.",
     ["Settings are shared by all your characters."] = "Los ajustes son comunes a todos tus personajes.",

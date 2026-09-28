@@ -24,6 +24,20 @@ function ns.IsReadyToTurnIn(id)
     return false
 end
 
+-- Elite/group quest (the client tags it "(Elite)"): usually one whose objectives involve elite
+-- monsters, so it's meant to be done with a group. Asked live to the client, like the title; nil
+-- (not cached yet) counts as no, and a load is requested so a later redraw can pick it up.
+local ELITE_TAG_ID = 1
+function ns.IsEliteQuest(id)
+    if not C_QuestLog.GetQuestTagInfo then return false end
+    local tagId = C_QuestLog.GetQuestTagInfo(id)
+    if tagId == nil then
+        C_QuestLog.RequestLoadQuestByID(id)
+        return false
+    end
+    return tagId == ELITE_TAG_ID
+end
+
 -- Returns "done" | "active" | "available" | "locked", and a list of reasons when locked.
 function ns.QuestStatus(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then

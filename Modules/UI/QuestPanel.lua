@@ -87,6 +87,9 @@ local function buildText(q)
         local met = UnitLevel("player") >= q.minLevel
         req[#req + 1] = (met and "|cff33cc33" or "|cffff5555") .. L["Level %d required"]:format(q.minLevel) .. "|r"
     end
+    if ns.IsEliteQuest(q.id) then
+        req[#req + 1] = "|cffff6666" .. L["Elite: recommended with a group"] .. "|r"
+    end
     local requirements = #req > 0 and table.concat(req, "\n") or L["None"]
     if q.level then requirements = requirements .. "\n" .. ns.QuestLevelColor(q.level) .. L["Level %d recommended"]:format(q.level) .. "|r" end
     section(L["Requirements"], requirements)

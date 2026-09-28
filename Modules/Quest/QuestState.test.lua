@@ -59,6 +59,16 @@ describe("QuestState", function()
         end)
     end)
 
+    describe("IsEliteQuest", function()
+        it("true only when the client tags it Elite, false while unknown", function()
+            assert.is_false(ns.IsEliteQuest(10))
+            WowMock.tagInfo[10] = { 41, "PvP" }
+            assert.is_false(ns.IsEliteQuest(10))
+            WowMock.tagInfo[10] = { 1, "Elite" }
+            assert.is_true(ns.IsEliteQuest(10))
+        end)
+    end)
+
     describe("level", function()
         it("low level: grey for the game", function()
             assert.is_true(ns.IsLowLevel({ level = 10 }))

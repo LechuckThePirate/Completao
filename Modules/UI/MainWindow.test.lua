@@ -152,6 +152,21 @@ describe("MainWindow", function()
         assert.is_false(check())                 -- turned in
     end)
 
+    it("a dragon badge marks elite quests, in place of the dungeon door", function()
+        local id
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if q.dungeon == "vc" then id = q.id break end
+        end
+        local function badge() return (ShownNodes())[id].badge end
+        ns.UI_Refresh()
+        assert.is_true(badge():IsShown())
+        assert.matches("Dungeon%.png$", badge():GetTexture())
+        WowMock.tagInfo[id] = { 1, "Elite" }
+        ns.UI_Refresh()
+        assert.is_true(badge():IsShown())
+        assert.are.equal("Interface\\Icons\\INV_Misc_Head_Dragon_01", badge():GetTexture())
+    end)
+
     it("selecting a quest highlights its chain and dims the rest", function()
         local q = ns.entries.vc.quests[1]
         ns.UI_OpenQuest("vc", q.id)

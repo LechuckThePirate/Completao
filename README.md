@@ -60,6 +60,11 @@ Inspired by BtWQuests.
   inside or has something to do there; the ones of a dungeon's quest line that
   never go in (only talking, or targets all outside) are not. Everything in a
   raid or battleground is marked.
+- **Elite quests**: a quest the client tags "(Elite)", usually meant to be done
+  with a group, carries a dragon head icon on that same top-left corner instead
+  of the doorway one (with a line in the tooltip and the quest panel). This is
+  asked live to the client, like the quest title, so it may take a redraw or
+  two to appear the first time a quest is seen.
 - **Ready to turn in**: a quest in your log with every objective done keeps its
   yellow "in progress" box and gets a green check on the top-right corner.
 - **Follow a chain**: click a quest and its whole chain -- everything to do

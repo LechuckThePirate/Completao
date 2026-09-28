@@ -44,6 +44,9 @@ local function showNodeTooltip(btn)
     if q.giver then
         GameTooltip:AddLine(ns.L["Starts at: "] .. q.giver, 0.8, 0.8, 0.8)
     end
+    if btn.elite then
+        GameTooltip:AddLine(ns.L["Elite: recommended with a group"], 1, 0.4, 0.4)
+    end
     if q.dungeon then
         local e = ns.entries[q.dungeon]
         GameTooltip:AddLine(ns.L["Done inside the instance: %s"]:format(e and ns.EntryName(e) or "?"), 1, 0.82, 0.2)
@@ -68,12 +71,11 @@ local function getNodeButton(i)
     b.text:SetPoint("TOPLEFT", 6, -4)
     b.text:SetPoint("BOTTOMRIGHT", -6, 4)
     b.text:SetJustifyH("LEFT")
-    -- "done inside the instance" badge: on the top-left corner, over the border
+    -- top-left corner badge, over the border: a dragon head for elite quests, or a dungeon door for
+    -- quests done inside an instance (elite takes priority; texture and color are set on each redraw)
     b.badge = b:CreateTexture(nil, "OVERLAY")
     b.badge:SetSize(16, 16)
     b.badge:SetPoint("TOPLEFT", -6, 6)
-    b.badge:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Dungeon.png")
-    b.badge:SetVertexColor(1, 0.82, 0.2)
     b.badge:Hide()
     -- "ready to turn in" check: on the top-right corner, over the border
     b.ready = b:CreateTexture(nil, "OVERLAY")
@@ -265,7 +267,21 @@ local function renderTree(d)
         else
             b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
-        b.badge:SetShown(n.quest.dungeon ~= nil)
+        local elite = ns.IsEliteQuest(n.quest.id)
+        b.elite = elite
+        if elite then
+            b.badge:SetTexture("Interface\\Icons\\INV_Misc_Head_Dragon_01")
+            b.badge:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+            b.badge:SetVertexColor(1, 1, 1)
+            b.badge:Show()
+        elseif n.quest.dungeon then
+            b.badge:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Dungeon.png")
+            b.badge:SetTexCoord(0, 1, 0, 1)
+            b.badge:SetVertexColor(1, 0.82, 0.2)
+            b.badge:Show()
+        else
+            b.badge:Hide()
+        end
         b.readyToTurnIn = status == "active" and ns.IsReadyToTurnIn(n.quest.id)
         b.ready:SetShown(b.readyToTurnIn)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))

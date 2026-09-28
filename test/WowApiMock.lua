@@ -27,6 +27,7 @@ local function resetState()
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
     WowMock.maps = {}          -- [uiMapID] = { name, mapType }: the client's maps
+    WowMock.tagInfo = {}       -- [questID] = { tagID, tagName }: elite/group/PvP/dungeon tag from the client
 end
 resetState()
 WowMock.Reset = resetState
@@ -276,6 +277,11 @@ C_QuestLog = {
     end,
     GetSelectedQuest = function() return WowMock.selectedQuest end,
     SetSelectedQuest = function(id) WowMock.selectedQuest = id end,
+    GetQuestTagInfo = function(id)
+        local t = WowMock.tagInfo[id]
+        if not t then return nil end
+        return t[1], t[2]
+    end,
 }
 C_Map = {
     GetAreaInfo = function(id) return "Area" .. id end,

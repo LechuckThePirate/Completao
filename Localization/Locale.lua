@@ -44,6 +44,7 @@ local es = {
     ["Lv"] = "Nv",
     ["One of: "] = "Una de: ",
     ["Level %d required"] = "Nivel %d requerido",
+    ["Elite: recommended with a group"] = "Élite: se recomienda ir en grupo",
     ["Level %d recommended"] = "Nivel %d recomendado",
     ["Requirements"] = "Requisitos",
     ["None"] = "Ninguno",

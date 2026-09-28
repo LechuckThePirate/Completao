@@ -172,6 +172,12 @@ describe("QuestPanel", function()
         assert.matches("|cff808080Level 5 recommended|r", panelText())
     end)
 
+    it("elite quests get a note recommending a group, in the requirements", function()
+        WowMock.tagInfo[5] = { 1, "Elite" }
+        ns.Detail_Show({ id = 5, name = "v" })
+        assert.matches("Elite: recommended with a group", panelText())
+    end)
+
     it("the long description goes last, when there is one", function()
         ns.Detail_Show({ id = 1, name = "x", desc = "Long story" })
         local text = panelText()

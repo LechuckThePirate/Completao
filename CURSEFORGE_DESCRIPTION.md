@@ -44,6 +44,12 @@ visible is drawn translucent: quests too high for you more, low level ones just
 a little, so they are still easy to read. "Low level" is the grey title you know
 from your quest log. Your choices are remembered per character.
 
+### Follow a chain
+In a crowded tree it is hard to follow a chain by eye. Click a quest and its
+whole chain -- everything to do before and after it -- lights up in green, while
+every other quest and connection fades back. Close the panel to return to the
+full tree.
+
 ### Everything about a quest, one click away
 Click any quest in the tree to open its panel:
 

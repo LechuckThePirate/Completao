@@ -78,6 +78,9 @@ end
 
 -- Filtros del arbol: opciones guardadas por personaje (ns.char.filters) + texto de busqueda.
 local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
+-- con una quest elegida: lo que no forma parte de su cadena se atenua; su camino va en verde
+local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
+local CHAIN_COLOR = { 0.35, 1, 0.35 }
 local searchText = ""
 local searchBox
 
@@ -192,6 +195,31 @@ local function renderTree(d)
         math.max(1, PAD * 2 + layout.cols * NODE_W + (layout.cols - 1) * GAP_X),
         math.max(1, PAD * 2 + layout.rows * NODE_H + (layout.rows - 1) * GAP_Y))
 
+    -- Con una quest elegida: su camino (lo que hay que hacer antes y despues, siguiendo la cadena) se
+    -- resalta en verde y el resto de quests visibles se atenua.
+    local chainSet
+    local selected = ns.Detail_Current()
+    if selected and layout.nodes[selected.id] then
+        local kids, parents = {}, {}
+        for _, e in ipairs(layout.edges) do
+            kids[e.from] = kids[e.from] or {}
+            table.insert(kids[e.from], e.to)
+            parents[e.to] = parents[e.to] or {}
+            table.insert(parents[e.to], e.from)
+        end
+        chainSet = { [selected.id] = true }
+        local function walk(adjacent, id)
+            for _, n in ipairs(adjacent[id] or {}) do
+                if not chainSet[n] then
+                    chainSet[n] = true
+                    walk(adjacent, n)
+                end
+            end
+        end
+        walk(parents, selected.id)
+        walk(kids, selected.id)
+    end
+
     local byId, i = {}, 0
     for id, n in pairs(layout.nodes) do
         i = i + 1
@@ -218,6 +246,7 @@ local function renderTree(d)
             if ns.IsTooHigh(n.quest) then alpha = HIGH_LEVEL_ALPHA
             elseif ns.IsLowLevel(n.quest) then alpha = LOW_LEVEL_ALPHA end
         end
+        if chainSet and not chainSet[id] then alpha = alpha * OFF_CHAIN_ALPHA end
         b:SetAlpha(alpha)
         b:Show()
         byId[id] = b
@@ -228,11 +257,13 @@ local function renderTree(d)
     -- ese hueco hasta el pasillo de la izquierda del hijo y entran por su lado izquierdo. Cada fila usa su
     -- propio carril dentro del pasillo, asi las lineas de un mismo padre (o hacia un mismo hijo) comparten tronco.
     local segCount = 0
+    local lineAlpha, lineThickness = 0.85, 2
     local function segment(x1, y1, x2, y2, c)
         if x1 == x2 and y1 == y2 then return end
         segCount = segCount + 1
         local l = getLine(segCount)
-        l:SetColorTexture(c[1], c[2], c[3], 0.85)
+        l:SetThickness(lineThickness)
+        l:SetColorTexture(c[1], c[2], c[3], lineAlpha)
         l:SetStartPoint("TOPLEFT", canvas, x1, -y1)
         l:SetEndPoint("TOPLEFT", canvas, x2, -y2)
         l:Show()
@@ -242,9 +273,8 @@ local function renderTree(d)
     local function gutterX(col, row) -- pasillo a la derecha de la columna `col`, en el carril de `row`
         return colX(col) + NODE_W + GAP_X / 2 + ((row % 8) - 3.5) * 5
     end
-    for _, e in ipairs(layout.edges) do
+    local function drawEdge(e, c)
         local a, b = layout.nodes[e.from], layout.nodes[e.to]
-        local c = STATUS_COLORS[byId[e.from].status == "done" and "done" or "locked"]
         local yA, yB = rowY(a.row) + NODE_H / 2, rowY(b.row) + NODE_H / 2
         local xA, xB = colX(a.col) + NODE_W, colX(b.col)
         if b.col <= a.col then
@@ -264,6 +294,19 @@ local function renderTree(d)
                 segment(gB, yCh, gB, yB, c)
                 segment(gB, yB, xB, yB, c)
             end
+        end
+    end
+    -- primero las conexiones normales (mas tenues si hay una quest elegida) y encima las del camino, en verde
+    for _, e in ipairs(layout.edges) do
+        if not (chainSet and chainSet[e.from] and chainSet[e.to]) then
+            lineAlpha, lineThickness = chainSet and OFF_CHAIN_LINE_ALPHA or 0.85, 2
+            drawEdge(e, STATUS_COLORS[byId[e.from].status == "done" and "done" or "locked"])
+        end
+    end
+    if chainSet then
+        lineAlpha, lineThickness = 1, 3
+        for _, e in ipairs(layout.edges) do
+            if chainSet[e.from] and chainSet[e.to] then drawEdge(e, CHAIN_COLOR) end
         end
     end
 end

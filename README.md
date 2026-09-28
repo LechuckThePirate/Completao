@@ -31,6 +31,10 @@ Inspired by BtWQuests.
   drawn translucent -- more the quests too high for you, less the low-level
   ones, which stay readable. "Low level" means the title would be grey in your
   quest log, as the game itself decides.
+- **Follow a chain**: click a quest and its whole chain -- everything to do
+  before and after it -- lights up in green (thick lines), while every other
+  visible quest and connection dims, so a long chain is easy to follow in a
+  crowded tree. Close the panel (or click the quest again) to go back.
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
   red), objective, description, and who starts / ends it with zone and
   coordinates. It can be maximized over the whole tree with Blizzard's

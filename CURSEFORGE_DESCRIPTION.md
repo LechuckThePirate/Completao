@@ -37,6 +37,14 @@ Quests of another class, race or faction stay out of your way. If you want to
 see them, look at that class or race in particular -- each has its own entry --
 or tick **Show other faction** to browse the opposite faction's zones.
 
+### Search every quest at once
+**Search quests...**, at the top of the side panel, looks through every
+dungeon, raid, zone and class at the same time. Search by title, choose whether
+to include low-level, too-high and completed quests, or look for a reward type
+-- say, *Weapon > Wands*. Results come as a table with level, location and the
+reward icons (hover for the item tooltip); click one to jump to its tree with
+the quest selected.
+
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes
 trim the noise: **hide low level** (grey) quests, **hide too high** (quests you
@@ -68,8 +76,11 @@ Click any quest in the tree to open its panel:
   them and red when you don't.
 - **Objective** -- what to do.
 - **Who starts it and who ends it**, with the zone and coordinates.
-- **Description** -- the story behind it, at the end; for the quests in your
-  log, straight from the game in your language.
+- **Description** -- the story behind it; for the quests in your log,
+  straight from the game in your language.
+- **Rewards** -- the items you can choose and the ones you always get, with the
+  game's own item tooltip (Shift-click to link one in chat), plus money,
+  experience and reputation.
 - A **maximize / restore** button (Blizzard's own) to read the text over the
   whole tree.
 
@@ -121,8 +132,8 @@ of **Options -> Keybindings**.
 ## Where the data comes from
 
 Quest data is generated, not typed in by hand: the Classic quests come from
-Questie's database and the ones Forever adds are compiled from public quest
-databases. That has a consequence you should know about:
+Questie's database; the ones Forever adds, and the rewards of every quest, are
+compiled from public quest databases. That has a consequence you should know about:
 
 - Every Classic dungeon, zone and class has its quests. Forever's own zones and
   class quests are not covered yet.
@@ -149,8 +160,8 @@ Copyright (C) 2026 LechuckThePirate.
 
 - The Classic quest data derives from [Questie](https://www.curseforge.com/wow/addons/questie)'s
   database -- thanks to its team and contributors.
-- The names, text and locations of the quests Forever adds are compiled from
-  public quest databases.
+- The names, text and locations of the quests Forever adds, and the rewards of
+  every quest, are compiled from public quest databases.
 - The quests and every game asset belong to Blizzard Entertainment. World of
   Warcraft is a trademark of Blizzard Entertainment, Inc.; Completao!! is not
   affiliated with or endorsed by Blizzard, Questie or TomTom.

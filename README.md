@@ -22,6 +22,13 @@ Inspired by BtWQuests.
   (12 rows at most), so a zone with a hundred loose quests reads as a grid.
   Drag the background to pan and use the wheel to zoom (Shift+wheel scrolls
   sideways, Ctrl+wheel vertically); the zoom is remembered (per character or shared, see Preferences).
+- **Search quests...** at the top of the side panel opens a search form in the
+  main area, across every section at once, among the quests meant for your
+  character: quest title; include low-level, too-high and completed quests
+  (off by default); and the reward's item type and subtype as the game names
+  them (Weapon > Wands...). Results are a table -- title in its state color,
+  level, where it is, reward icons with their tooltips -- and clicking one
+  opens its tree with the quest selected and centered (`Search.lua`).
 - **Filters** above the tree, remembered like the zoom: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that require a
   higher level than yours, hide completed chains. Chains are shown or hidden
@@ -43,8 +50,10 @@ Inspired by BtWQuests.
   visible quest and connection dims, so a long chain is easy to follow in a
   crowded tree. Close the panel (or click the quest again) to go back.
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
-  red), objective, who starts / ends it with zone and coordinates, and the long
-  description at the end. It can be maximized over the whole tree with
+  red), objective, who starts / ends it with zone and coordinates, the long
+  description, and the **rewards** at the end: items to choose from and items
+  you always get (icon, count, name in its quality color, the game's own item
+  tooltip on hover, Shift-click to link it), money, experience and reputation. It can be maximized over the whole tree with
   Blizzard's maximize/restore button.
   - The client only gives a quest's text for quests in your log, never by id:
     for those the description is read live, in your client's language; for
@@ -149,6 +158,10 @@ is fetched with a local helper that is not part of this repository
   prerequisites, races and classes match what Questie shows. A quest inherits
   the class or race restriction of the prerequisites it requires (`tools/questie_fixes.lua`).
 - Chain steps that share a name are numbered ("Unending Torment (2/5)").
+- `Data/Generated/Rewards.lua` (`ns.REWARDS`) -- the rewards of every quest in
+  the other generated files, written by a local helper from public quest
+  databases. Only item ids and counts, money, experience and reputation are
+  stored: names, icons and tooltips come from the client.
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 
 ## Installing (development)
@@ -195,8 +208,8 @@ FITNESS FOR A PARTICULAR PURPOSE.
   CurseForge page (its GitHub repository carries no license file); thanks to
   the Questie team and its contributors.
 - **Public quest databases.** The names, text and locations of the quests
-  Forever adds are compiled from public quest databases and are not covered by
-  this license.
+  Forever adds, and the rewards of every quest, are compiled from public quest
+  databases and are not covered by this license.
 - **Blizzard Entertainment.** The quests, their names and text, and every game
   asset are Blizzard's. At runtime the addon uses textures and widgets the game
   client already ships (quest icon, frame and button templates, maximize/restore

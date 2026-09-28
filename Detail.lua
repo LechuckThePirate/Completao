@@ -74,13 +74,175 @@ local function buildText(q)
     return table.concat(parts, "\n\n")
 end
 
+-- Recompensas (Data/Generated/Rewards.lua, ns.REWARDS): debajo del texto, un bloque con lineas de texto
+-- y botones de objeto (icono, cantidad, nombre del color de su calidad y el tooltip del juego). Los nombres
+-- y colores los da el cliente por el id del objeto; si aun no los tiene, se piden y se repinta al llegar.
+local ITEM_W, ITEM_H = 210, 30
+local rewardRows
+local waitingItems = false
+
+local function getItemInfo(id)
+    local f = (C_Item and C_Item.GetItemInfo) or GetItemInfo
+    if f then return f(id) end
+end
+local function getItemIcon(id)
+    local f = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+    return f and f(id)
+end
+local function coinString(copper)
+    local f = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+    return f and f(copper) or (copper .. "c")
+end
+
+local function factionName(id)
+    if C_Reputation and C_Reputation.GetFactionDataByID then
+        local data = C_Reputation.GetFactionDataByID(id)
+        if data and data.name then return data.name end
+    end
+    if GetFactionInfoByID then
+        local name = GetFactionInfoByID(id)
+        if name then return name end
+    end
+    return L["Faction %d"]:format(id)
+end
+
+-- Filas del bloque: { text = "..." } o { items = { id | { id, cantidad } } }. nil si no hay recompensas.
+local function buildRewards(q)
+    local r = ns.REWARDS and ns.REWARDS[q.id]
+    if not r then return nil end
+    local rows = { { text = "|cffffd100" .. (REWARDS or L["Rewards"]) .. "|r" } }
+    if r.choice then
+        rows[#rows + 1] = { text = REWARD_CHOICES or L["You will be able to choose one of these rewards:"] }
+        rows[#rows + 1] = { items = r.choice }
+    end
+    if r.items then
+        rows[#rows + 1] = { text = r.choice and (REWARD_ITEMS or L["You will also receive:"])
+            or (REWARD_ITEMS_ONLY or L["You will receive:"]) }
+        rows[#rows + 1] = { items = r.items }
+    end
+    local lines = {}
+    if r.money then lines[#lines + 1] = L["Money: %s"]:format(coinString(r.money)) end
+    if r.xp then
+        lines[#lines + 1] = L["Experience: %s"]:format(BreakUpLargeNumbers and BreakUpLargeNumbers(r.xp) or r.xp)
+    end
+    for _, rep in ipairs(r.rep or {}) do
+        lines[#lines + 1] = L["Reputation: %s"]:format(("%+d %s"):format(rep[2], factionName(rep[1])))
+    end
+    if #lines > 0 then rows[#rows + 1] = { text = table.concat(lines, "\n") } end
+    if #rows == 1 then return nil end
+    return rows
+end
+
+local function rewardText(i)
+    local block = detail.rewards
+    local fs = block.texts[i]
+    if not fs then
+        fs = block:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(true)
+        block.texts[i] = fs
+    end
+    return fs
+end
+
+local function rewardButton(i)
+    local block = detail.rewards
+    local b = block.buttons[i]
+    if not b then
+        b = CreateFrame("Button", nil, block)
+        b:SetSize(ITEM_W - 6, ITEM_H)
+        b.icon = b:CreateTexture(nil, "ARTWORK")
+        b.icon:SetSize(ITEM_H - 2, ITEM_H - 2)
+        b.icon:SetPoint("LEFT", 0, 0)
+        b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+        b.count:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", -1, 1)
+        b.name = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        b.name:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
+        b.name:SetPoint("RIGHT", 0, 0)
+        b.name:SetJustifyH("LEFT")
+        b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+        b:GetHighlightTexture():SetAllPoints(b.icon)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetItemByID(self.itemID)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", GameTooltip_Hide)
+        -- Shift+clic enlaza el objeto en el chat, Ctrl+clic lo prueba en el probador (como en el registro)
+        b:SetScript("OnClick", function(self)
+            local link = select(2, getItemInfo(self.itemID))
+            if link and HandleModifiedItemClick then HandleModifiedItemClick(link) end
+        end)
+        block.buttons[i] = b
+    end
+    return b
+end
+
+local function setRewardItem(b, entry)
+    local id, count = entry, 1
+    if type(entry) == "table" then id, count = entry[1], entry[2] end
+    b.itemID = id
+    b.icon:SetTexture(getItemIcon(id) or 134400) -- interrogacion si no hay icono
+    b.count:SetText(count > 1 and count or "")
+    local name, _, quality = getItemInfo(id)
+    if not name then
+        waitingItems = true
+        if C_Item and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end
+        name = L["Item %d"]:format(id)
+    end
+    local color = quality and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
+    b.name:SetText(name)
+    if color then b.name:SetTextColor(color.r, color.g, color.b) else b.name:SetTextColor(1, 1, 1) end
+end
+
+-- Coloca las filas para un ancho dado (objetos en columnas de ITEM_W) y devuelve el alto del bloque.
+local function layoutRewards(width)
+    local block = detail.rewards
+    local y, nText, nButton = 0, 0, 0
+    waitingItems = false
+    for _, row in ipairs(rewardRows) do
+        if row.text then
+            nText = nText + 1
+            local fs = rewardText(nText)
+            fs:SetWidth(width)
+            fs:SetText(row.text)
+            fs:ClearAllPoints()
+            fs:SetPoint("TOPLEFT", 0, -y)
+            fs:Show()
+            y = y + fs:GetStringHeight() + 6
+        else
+            local cols = math.max(1, math.floor(width / ITEM_W))
+            for k, entry in ipairs(row.items) do
+                nButton = nButton + 1
+                local b = rewardButton(nButton)
+                setRewardItem(b, entry)
+                b:ClearAllPoints()
+                b:SetPoint("TOPLEFT", ((k - 1) % cols) * ITEM_W, -(y + math.floor((k - 1) / cols) * (ITEM_H + 4)))
+                b:Show()
+            end
+            y = y + math.ceil(#row.items / cols) * (ITEM_H + 4) + 4
+        end
+    end
+    for i = nText + 1, #block.texts do block.texts[i]:Hide() end
+    for i = nButton + 1, #block.buttons do block.buttons[i]:Hide() end
+    block:SetHeight(math.max(1, y))
+    return y
+end
+
 local function relayout()
     local w = detail.scroll:GetWidth()
     if w and w > 0 then
         detail.content:SetWidth(w)
         detail.text:SetWidth(w)
     end
-    detail.content:SetHeight(math.max(1, detail.text:GetStringHeight() + 6))
+    local rewardsH = 0
+    if rewardRows then
+        detail.rewards:Show()
+        rewardsH = layoutRewards(detail.text:GetWidth()) + 16
+    else
+        detail.rewards:Hide()
+    end
+    detail.content:SetHeight(math.max(1, detail.text:GetStringHeight() + rewardsH + 6))
 end
 
 -- Abre el registro de misiones en esa quest. El cliente de Forever usa la interfaz moderna (registro
@@ -127,6 +289,7 @@ local function render()
     meta[#meta + 1] = "ID " .. q.id
     detail.meta:SetText(table.concat(meta, "   |   "))
     detail.text:SetText(buildText(q))
+    rewardRows = buildRewards(q)
     relayout()
     detail.btnStart:SetEnabled(q.start ~= nil and ns.CanWaypoint(q.start))
     detail.btnFinish:SetEnabled(q.finish ~= nil and ns.CanWaypoint(q.finish))
@@ -281,6 +444,25 @@ function ns.Detail_Create(parent, tree, leftOffset)
     detail.text:SetJustifyV("TOP")
     detail.text:SetWordWrap(true)
     detail.scroll:SetScript("OnSizeChanged", function() if current then relayout() end end)
+
+    detail.rewards = CreateFrame("Frame", nil, detail.content)
+    detail.rewards:SetPoint("TOPLEFT", detail.text, "BOTTOMLEFT", 0, -16)
+    detail.rewards:SetPoint("RIGHT", detail.content, "RIGHT", 0, 0)
+    detail.rewards:SetHeight(1)
+    detail.rewards.texts, detail.rewards.buttons = {}, {}
+
+    -- nombres de objetos que el cliente aun no tenia: se repinta cuando llegan (agrupando las llegadas)
+    local itemEvents = CreateFrame("Frame")
+    itemEvents:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+    local pendingRepaint = false
+    itemEvents:SetScript("OnEvent", function()
+        if not (waitingItems and current and detail:IsShown()) or pendingRepaint then return end
+        pendingRepaint = true
+        C_Timer.After(0.2, function()
+            pendingRepaint = false
+            if current and detail:IsShown() then relayout() end
+        end)
+    end)
 
     detail.btnStart = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnStart:SetSize(170, 22)

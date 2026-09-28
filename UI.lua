@@ -25,6 +25,11 @@ local selectedId, expandedCat, listInitialized
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
 local frame, canvas, emptyText
 local openedWithLog = false -- la ventana la abrio el registro de misiones (ver al final)
+-- Buscador global (Search.lua): con searchMode, el area principal muestra el formulario y la tabla de
+-- resultados en vez del arbol; treeWidgets es lo que se oculta entonces.
+local searchMode = false
+local treeWidgets = {}
+local searchButton, nodePos = nil, {}
 
 local function showNodeTooltip(btn)
     local q, status, reasons = btn.quest, btn.status, btn.reasons
@@ -235,7 +240,9 @@ local function renderTree(d)
     end
 
     local byId, i = {}, 0
+    for k in pairs(nodePos) do nodePos[k] = nil end
     for id, n in pairs(layout.nodes) do
+        nodePos[id] = { x = PAD + n.col * (NODE_W + GAP_X), y = PAD + n.row * (NODE_H + GAP_Y) }
         i = i + 1
         local b = getNodeButton(i)
         local status, reasons = ns.QuestStatus(n.quest)
@@ -385,7 +392,8 @@ local function onHeaderClick(self)
     else
         expandedCat = catId
         local cur = ns.entries[selectedId]
-        if not (cur and cur.category == catId) then
+        -- con el buscador abierto, abrir una seccion solo la despliega (el buscador sigue a la vista)
+        if not searchMode and not (cur and cur.category == catId) then
             local items = entriesOf(catId)
             selectEntry(items[1] and items[1].id or nil)
         end
@@ -395,6 +403,7 @@ local function onHeaderClick(self)
 end
 
 local function onEntryClick(self)
+    searchMode = false
     selectEntry(self.entry.id)
     ns.UI_Refresh()
 end
@@ -437,6 +446,15 @@ local function refreshList()
 
     local listW = LIST_W - 26
     local y, hi, ei = 0, 0, 0
+
+    -- primera entrada: el buscador global
+    searchButton:ClearAllPoints()
+    searchButton:SetPoint("TOPLEFT", 0, 0)
+    searchButton:SetWidth(listW)
+    searchButton:SetBackdropColor(searchMode and 0.15 or 0.05, searchMode and 0.25 or 0.05, searchMode and 0.4 or 0.05, 0.9)
+    searchButton:SetBackdropBorderColor(searchMode and 0.35 or 0.4, searchMode and 0.65 or 0.4, searchMode and 1 or 0.4, 1)
+    y = y + searchButton:GetHeight() + 6
+
     for _, cat in ipairs(ns.categories) do
         local items = entriesOf(cat.id)
         local open = cat.id == expandedCat
@@ -469,7 +487,7 @@ local function refreshList()
                 b.sub:SetText(("%s%s%s%d/%d"):format(
                     d.new and ("|cff33ff99" .. ns.L["NEW"] .. "|r  ") or "", level,
                     d.size and (ns.L["%d-man"]:format(d.size) .. "   ") or "", done, total))
-                local sel = d.id == selectedId
+                local sel = d.id == selectedId and not searchMode
                 b:SetBackdropColor(sel and 0.15 or 0.05, sel and 0.25 or 0.05, sel and 0.4 or 0.05, 0.9)
                 b:SetBackdropBorderColor(sel and 0.35 or 0.2, sel and 0.65 or 0.2, sel and 1 or 0.2, 1)
                 b:Show()
@@ -484,10 +502,43 @@ end
 function ns.UI_Refresh()
     if not frame then return end
     refreshList()
+    if searchMode then
+        for _, w in ipairs(treeWidgets) do w:Hide() end
+        frame.searchPanel:Show()
+        ns.Search_Refresh()
+        return
+    end
+    frame.searchPanel:Hide()
+    for _, w in ipairs(treeWidgets) do w:Show() end
     local d = ns.entries[selectedId]
     frame.header:SetText(d and ns.EntryName(d) or "")
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
+end
+
+-- Entrar al buscador (entrada de la barra lateral): el panel de la quest se cierra y el arbol se oculta.
+function ns.UI_SetSearchMode(on)
+    searchMode = on and true or false
+    if searchMode then ns.Detail_Hide() end
+    ns.UI_Refresh()
+    if searchMode then ns.Search_Focus() end
+end
+
+-- Resultado del buscador: abre el arbol de su entrada con la quest elegida (camino en verde, panel abierto)
+-- y la centra en la vista.
+function ns.UI_OpenQuest(entryId, questId)
+    local d = ns.entries[entryId]
+    if not d then return end
+    searchMode = false
+    expandedCat = d.category
+    ns.char.category = expandedCat
+    selectEntry(entryId)
+    ns.UI_Refresh()
+    for _, q in ipairs(d.quests) do
+        if q.id == questId then ns.Detail_Show(q) break end
+    end
+    ns.UI_Refresh()
+    if frame.scrollToQuest then frame.scrollToQuest(questId) end
 end
 
 local function saveGeometry()
@@ -715,6 +766,24 @@ local function createFrame()
     frame.listChild:SetSize(LIST_W - 26, 1)
     listScroll:SetScrollChild(frame.listChild)
 
+    -- "Buscar quests...": primera entrada de la barra lateral; abre el buscador en el area principal
+    searchButton = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
+    searchButton:SetHeight(26)
+    searchButton:SetBackdrop(BACKDROP)
+    local searchIcon = searchButton:CreateTexture(nil, "ARTWORK")
+    searchIcon:SetSize(14, 14)
+    searchIcon:SetPoint("LEFT", 8, 0)
+    searchIcon:SetTexture("Interface\\Common\\UI-Searchbox-Icon")
+    local searchLabel = searchButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    searchLabel:SetPoint("LEFT", searchIcon, "RIGHT", 6, 0)
+    searchLabel:SetText(ns.L["Search quests..."])
+    searchButton:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    searchButton:SetScript("OnClick", function() ns.UI_SetSearchMode(true) end)
+
+    frame.searchPanel = ns.Search_Create(frame)
+    frame.searchPanel:SetPoint("TOPLEFT", LIST_W + 30, -top)
+    frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
+
     local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
@@ -723,6 +792,10 @@ local function createFrame()
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, LIST_W + 26)
+
+    -- lo que se oculta con el buscador abierto
+    treeWidgets = { frame.header, searchBox, hint, treeScroll }
+    for _, cb in pairs(filterChecks) do treeWidgets[#treeWidgets + 1] = cb end
 
     -- Zoom del arbol: se escala el lienzo; se guarda por personaje.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))
@@ -742,6 +815,14 @@ local function createFrame()
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
         scrollTo(treeScroll, 0, 0)
+    end
+
+    -- centra una quest del arbol en la vista (resultados del buscador)
+    function frame.scrollToQuest(id)
+        local p = nodePos[id]
+        if not p then return end
+        local cx, cy = (p.x + NODE_W / 2) * zoom, (p.y + NODE_H / 2) * zoom
+        scrollTo(treeScroll, cx - treeScroll:GetWidth() / 2, cy - treeScroll:GetHeight() / 2)
     end
 
     -- Rueda: zoom, centrado en el cursor (el punto bajo el cursor no se mueve). Shift+rueda: desplaza a los

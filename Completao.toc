@@ -23,11 +23,13 @@ Data\Generated\Zones.lua
 Data\Generated\Classes.lua
 Data\Generated\Races.lua
 Data\Generated\Forever.lua
+Data\Generated\Rewards.lua
 Data\Generated\Entrances.lua
 Data\Overrides.lua
 Graph.lua
 Waypoints.lua
 Detail.lua
+Search.lua
 UI.lua
 Prefs.lua
 Minimap.lua

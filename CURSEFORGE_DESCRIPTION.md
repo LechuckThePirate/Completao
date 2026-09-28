@@ -50,6 +50,11 @@ visible is drawn translucent: quests too high for you more, low level ones just
 a little, so they are still easy to read. "Low level" is the grey title you know
 from your quest log. Your choices are remembered per character.
 
+### Which ones are done inside
+Quests that take place inside a dungeon or raid wear a small **doorway icon** on
+the top-left corner of their box, with a note in the tooltip and the quest
+panel -- so you can tell them from the ones you do outside on the way there.
+
 ### Follow a chain
 In a crowded tree it is hard to follow a chain by eye. Click a quest and its
 whole chain -- everything to do before and after it -- lights up in green, while
@@ -89,6 +94,9 @@ Click any quest in the tree to open its panel:
   dungeon are remembered **per character**.
 - A minimap button opens it (drag it wherever you like), and the addon has its
   own icon in the AddOns list and on the window's portrait, next to its version.
+- A **Preferences** window behind the gear next to the close button, with the
+  basics: opacity while moving, the minimap button, the startup chat messages,
+  and resets for the window position, zoom and filters. More options will come.
 - **Fades while you move**, like the world map: the window goes half transparent
   while you walk or run, so it never hides what is ahead, and comes back when you
   stop or when the cursor is over it. `/completao fade <10-100>` changes how
@@ -97,9 +105,9 @@ Click any quest in the tree to open its panel:
 
 ![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png)
 
-Commands: `/completao` (or `/cpl`) opens the window, `/completao minimap` shows
-or hides the minimap button, `/completao fade <10-100>` sets the opacity while
-you move.
+Commands: `/completao` (or `/cpl`) opens the window, `/completao prefs` the
+preferences, `/completao minimap` shows or hides the minimap button,
+`/completao fade <10-100>` sets the opacity while you move.
 
 ---
 

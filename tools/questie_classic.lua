@@ -226,6 +226,20 @@ local function inheritedMask(field)
 end
 local classMask, raceMask = inheritedMask(7), inheritedMask(6)
 
+-- Quests que se hacen dentro de una mazmorra o raid de las nuestras (su zona, o algun NPC que da, recibe o
+-- mata, solo existe dentro): se marcan con dungeon = "<id de la entrada>", tambien cuando salen en una zona.
+local ENTRY_OF_AREA = {}
+for entry, area in pairs(INSTANCE_AREA) do ENTRY_OF_AREA[area] = entry end
+local dungeonOf = {}
+for area, questIds in pairs(core) do
+    local entry = ENTRY_OF_AREA[area]
+    if entry then
+        for id in pairs(questIds) do
+            if not dungeonOf[id] or entry < dungeonOf[id] then dungeonOf[id] = entry end
+        end
+    end
+end
+
 -- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races;
 -- restricciones de clase -> classes (salvo en las entradas de clase, donde son la razon de estar ahi).
 local function questLine(id, name, comment, noClasses)
@@ -245,6 +259,7 @@ local function questLine(id, name, comment, noClasses)
     elseif races then f[#f + 1] = "races = " .. races end
     local classes = classMask(id)
     if classes and not noClasses then f[#f + 1] = "classes = " .. classes end
+    if dungeonOf[id] then f[#f + 1] = "dungeon = " .. lua(dungeonOf[id]) end
     local giver = q[Q_START] and q[Q_START][1] and q[Q_START][1][1]
     if giver and npcs[giver] then f[#f + 1] = "giver = " .. lua(npcs[giver][N_NAME]) end
     local finisher = q[Q_END] and q[Q_END][1] and q[Q_END][1][1]

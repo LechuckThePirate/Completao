@@ -6,8 +6,8 @@ ns.entryList = {}
 -- Secciones del panel izquierdo, en orden. Para anadir una: anadirla aqui y registrar
 -- entradas con category = "<id>".
 ns.categories = {
-    { id = "dungeons", name = ns.L["Dungeons"] },
-    { id = "raids",    name = ns.L["Raids"] },
+    { id = "dungeons", name = ns.L["Dungeons"], sortByLevel = true },
+    { id = "raids",    name = ns.L["Raids"], sortByLevel = true },
     { id = "zones",    name = ns.L["Zones"] },
     { id = "classes",  name = ns.L["Class Quests"] },
     { id = "races",    name = ns.L["Races"] },
@@ -232,6 +232,7 @@ end
 -- Aviso en el chat, como Embolsao: "Completao!! vX -- initializing..." al cargar el addon y
 -- "... initialization complete" cuando el jugador ya esta en el mundo con los datos indexados.
 local function announce(text)
+    if ns.char and ns.char.quiet then return end -- Preferencias: mensajes del chat desactivados
     print(("|cff33ff99Completao!!|r v%s -- %s"):format(ns.Version(), text))
 end
 
@@ -253,12 +254,12 @@ events:RegisterEvent("QUEST_DATA_LOAD_RESULT")
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON then return end
-        announce(ns.L["initializing..."])
         CompletaoDB = CompletaoDB or {}
         ns.db = CompletaoDB
         CompletaoCharDB = CompletaoCharDB or {}
         ns.char = CompletaoCharDB
         ns.char.filters = ns.char.filters or {}
+        announce(ns.L["initializing..."])
         ns.Minimap_Init()
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- tambien salta tras /reload; se avisa una sola vez por carga de la interfaz
@@ -284,6 +285,8 @@ SlashCmdList.COMPLETAO = function(msg)
     msg = strtrim((msg or ""):lower())
     if msg == "dump" then
         dumpQuestLog()
+    elseif msg == "prefs" or msg == "options" or msg == "config" then
+        ns.Prefs_Toggle()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
     elseif msg:match("^fade") then
@@ -293,6 +296,6 @@ SlashCmdList.COMPLETAO = function(msg)
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | /completao minimap (toggle button) | /completao fade <10-100> (opacity while moving) | /completao dump (quest log ids)"])
+        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | fade <10-100> | dump"])
     end
 end

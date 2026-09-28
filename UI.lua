@@ -37,6 +37,10 @@ local function showNodeTooltip(btn)
     if q.giver then
         GameTooltip:AddLine(ns.L["Starts at: "] .. q.giver, 0.8, 0.8, 0.8)
     end
+    if q.dungeon then
+        local e = ns.entries[q.dungeon]
+        GameTooltip:AddLine(ns.L["Done inside the instance: %s"]:format(e and ns.EntryName(e) or "?"), 1, 0.82, 0.2)
+    end
     for _, r in ipairs(reasons or {}) do
         GameTooltip:AddLine(r, 1, 0.3, 0.3)
     end
@@ -57,6 +61,13 @@ local function getNodeButton(i)
     b.text:SetPoint("TOPLEFT", 6, -4)
     b.text:SetPoint("BOTTOMRIGHT", -6, 4)
     b.text:SetJustifyH("LEFT")
+    -- insignia de "se hace dentro de la mazmorra": en la esquina superior izquierda, sobre el borde
+    b.badge = b:CreateTexture(nil, "OVERLAY")
+    b.badge:SetSize(16, 16)
+    b.badge:SetPoint("TOPLEFT", -6, 6)
+    b.badge:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Dungeon.png")
+    b.badge:SetVertexColor(1, 0.82, 0.2)
+    b.badge:Hide()
     b:SetScript("OnEnter", showNodeTooltip)
     b:SetScript("OnLeave", GameTooltip_Hide)
     b:SetScript("OnClick", function(self)
@@ -84,6 +95,7 @@ local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
 local CHAIN_COLOR = { 0.35, 1, 0.35 }
 local searchText = ""
 local searchBox
+local filterChecks = {}
 
 -- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos. Devuelve, por id de quest, los
 -- datos de su cadena: size (numero de quests), allDone (todas hechas; incluye las sueltas hechas), started
@@ -238,6 +250,7 @@ local function renderTree(d)
         else
             b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
+        b.badge:SetShown(n.quest.dungeon ~= nil)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
         -- translucidas las que no encajan con tu nivel (mas las muy altas que las de bajo nivel);
@@ -336,9 +349,18 @@ local function entriesOf(catId)
             items[#items + 1] = d
         end
     end
+    -- mazmorras y raids por nivel (minimo, maximo); el resto, alfabeticamente; a igualdad, por nombre
+    local byLevel = false
+    for _, c in ipairs(ns.categories) do
+        if c.id == catId then byLevel = c.sortByLevel end
+    end
     local keys = {}
     for _, d in ipairs(items) do keys[d] = sortKey(d) end
     table.sort(items, function(a, b)
+        if byLevel then
+            if a.minLevel ~= b.minLevel then return (a.minLevel or 0) < (b.minLevel or 0) end
+            if a.maxLevel ~= b.maxLevel then return (a.maxLevel or 0) < (b.maxLevel or 0) end
+        end
         if keys[a] ~= keys[b] then return keys[a] < keys[b] end
         return a.id < b.id
     end)
@@ -472,6 +494,26 @@ local function saveGeometry()
     ns.char.window = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight() }
 end
 
+-- Ganchos para las preferencias (Prefs.lua): restablecer ventana, zoom y filtros.
+function ns.UI_ResetWindow()
+    ns.char.window = nil
+    if frame then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER")
+        frame:SetSize(DEFAULT_W, DEFAULT_H)
+    end
+end
+
+-- Se redefine al crear la ventana, cuando ya hay lienzo que escalar.
+function ns.UI_SetZoom(z)
+    ns.char.zoom = z
+end
+
+function ns.UI_SyncFilters()
+    for key, cb in pairs(filterChecks) do cb:SetChecked(ns.char.filters[key] and true or false) end
+    if frame then ns.UI_Refresh() end
+end
+
 -- Como el mapa del mundo: mientras el personaje se mueve, la ventana se vuelve semitransparente para no
 -- tapar lo que hay delante (50 % por defecto; `/completao fade <10-100>` lo cambia, 100 = sin efecto), y
 -- vuelve a ser opaca al pararte o mientras el cursor esta encima, para poder usarla en marcha. El cambio es
@@ -551,6 +593,28 @@ local function createFrame()
     local title = (frame.TitleContainer and frame.TitleContainer.TitleText) or frame.TitleText
     if title then title:SetText(("Completao!! v%s"):format(version)) end
 
+    -- Engranaje junto a la X: abre las preferencias. Icono propio (Icons/Gear.png) teñido de dorado.
+    local gear = CreateFrame("Button", nil, frame)
+    gear:SetSize(20, 20)
+    gear:SetFrameLevel(frame:GetFrameLevel() + 10)
+    local closeButton = frame.CloseButton
+    if closeButton then
+        gear:SetPoint("RIGHT", closeButton, "LEFT", -2, 0)
+    else
+        gear:SetPoint("TOPRIGHT", -32, -5)
+    end
+    local gearTexture = "Interface\\AddOns\\" .. ADDON .. "\\Icons\\Gear.png"
+    gear:SetNormalTexture(gearTexture)
+    gear:GetNormalTexture():SetVertexColor(0.95, 0.82, 0.3)
+    gear:SetHighlightTexture(gearTexture, "ADD")
+    gear:SetScript("OnClick", function() ns.Prefs_Toggle() end)
+    gear:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:SetText(ns.L["Preferences"])
+        GameTooltip:Show()
+    end)
+    gear:SetScript("OnLeave", GameTooltip_Hide)
+
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.header:SetPoint("TOPLEFT", LIST_W + 30, -top)
 
@@ -591,6 +655,7 @@ local function createFrame()
         end
         text:SetText(label)
         cb:SetChecked(ns.char.filters[key] and true or false)
+        filterChecks[key] = cb
         cb:SetScript("OnClick", function(self)
             ns.char.filters[key] = self:GetChecked() and true or false
             ns.UI_Refresh()
@@ -644,6 +709,13 @@ local function createFrame()
         local maxX, maxY = maxScroll(self)
         self:SetHorizontalScroll(math.max(0, math.min(x, maxX)))
         self:SetVerticalScroll(math.max(0, math.min(y, maxY)))
+    end
+
+    function ns.UI_SetZoom(z)
+        zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
+        ns.char.zoom = zoom
+        canvas:SetScale(zoom)
+        scrollTo(treeScroll, 0, 0)
     end
 
     -- Rueda: zoom, centrado en el cursor (el punto bajo el cursor no se mueve). Shift+rueda: desplaza a los

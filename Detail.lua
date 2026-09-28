@@ -52,6 +52,10 @@ local function buildText(q)
     section(L["Requirements"], #req > 0 and table.concat(req, "\n") or L["None"])
 
     if q.objective then section(L["Objective"], q.objective) end
+    if q.dungeon then
+        local inside = ns.entries[q.dungeon]
+        section(L["Instance"], (inside and ns.EntryName(inside) or "?") .. " -- " .. L["done inside the instance"])
+    end
     if q.desc then section(L["Description"], q.desc) end
     if q.start then
         section(L["Starts"], describeLocation(q.start))

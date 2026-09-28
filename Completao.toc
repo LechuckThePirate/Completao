@@ -29,4 +29,5 @@ Graph.lua
 Waypoints.lua
 Detail.lua
 UI.lua
+Prefs.lua
 Minimap.lua

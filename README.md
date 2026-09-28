@@ -34,6 +34,10 @@ Inspired by BtWQuests.
   drawn translucent -- more the quests too high for you, less the low-level
   ones, which stay readable. "Low level" means the title would be grey in your
   quest log, as the game itself decides.
+- **Done inside the instance**: quests that take place inside a dungeon or raid
+  carry a small doorway icon on the top-left corner of their box (and a line in
+  the tooltip and the quest panel), so you can tell them apart from the ones you
+  do outside on the way there.
 - **Follow a chain**: click a quest and its whole chain -- everything to do
   before and after it -- lights up in green (thick lines), while every other
   visible quest and connection dims, so a long chain is easy to follow in a
@@ -57,6 +61,12 @@ Inspired by BtWQuests.
   ahead, and comes back when you stop or while the cursor is over it.
   `/completao fade <10-100>` sets the opacity (100 = no fade), saved per
   character.
+- **Preferences**: a gear next to the window's close button (or `/completao
+  prefs`) opens a small window, as in Embolsao, with the basics: opacity while
+  moving, show the minimap button, show the chat messages at startup, and
+  buttons to reset the window position, the zoom and the filters. More will be
+  added. Saved per character.
+- Dungeons and raids are sorted by level, the other sections alphabetically.
 - Two chat lines, like Embolsao: `Completao!! vX -- initializing...` when the
   addon loads and `... initialization complete (N quests)` once you are in the
   world with everything indexed.

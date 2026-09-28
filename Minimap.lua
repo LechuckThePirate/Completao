@@ -70,9 +70,18 @@ function ns.Minimap_Init()
     button:SetShown(not ns.char.minimap.hide)
 end
 
+function ns.Minimap_SetShown(show)
+    if not button then return end
+    ns.char.minimap.hide = not show
+    button:SetShown(show)
+end
+
+function ns.Minimap_IsShown()
+    return not (ns.char.minimap and ns.char.minimap.hide)
+end
+
 function ns.Minimap_Toggle()
     if not button then return end
-    ns.char.minimap.hide = not ns.char.minimap.hide
-    button:SetShown(not ns.char.minimap.hide)
+    ns.Minimap_SetShown(ns.char.minimap.hide)
     ns.Print(ns.char.minimap.hide and L["Minimap button hidden."] or L["Minimap button shown."])
 end

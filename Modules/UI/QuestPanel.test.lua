@@ -164,6 +164,14 @@ describe("QuestPanel", function()
         assert.matches("Level 22 recommended", text)
     end)
 
+    it("the recommended level is colored like the game does for this character", function()
+        WowMock.level = 19
+        ns.Detail_Show({ id = 3, name = "z", level = 18 })
+        assert.matches("|cffffff00Level 18 recommended|r", panelText())
+        ns.Detail_Show({ id = 4, name = "w", level = 5 })
+        assert.matches("|cff808080Level 5 recommended|r", panelText())
+    end)
+
     it("the long description goes last, when there is one", function()
         ns.Detail_Show({ id = 1, name = "x", desc = "Long story" })
         local text = panelText()

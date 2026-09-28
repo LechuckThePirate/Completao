@@ -60,6 +60,19 @@ function ns.QuestStatus(q)
     return "available"
 end
 
+-- Color escape (|cffRRGGBB) the game gives a quest of this level for this character (grey, green,
+-- yellow, orange, red); plain grey if the client doesn't answer.
+function ns.QuestLevelColor(level)
+    if GetQuestDifficultyColor then
+        local ok, c = pcall(GetQuestDifficultyColor, level)
+        if ok and type(c) == "table" and c.r then
+            local function byte(v) return math.floor(v * 255 + 0.5) end
+            return ("|cff%02x%02x%02x"):format(byte(c.r), byte(c.g), byte(c.b))
+        end
+    end
+    return "|cffbbbbbb"
+end
+
 -- "Low level": the quest's title would be grey for this character (trivial). The game itself is asked
 -- for the difficulty color; if it doesn't answer, the client's green range is used.
 function ns.IsLowLevel(q)

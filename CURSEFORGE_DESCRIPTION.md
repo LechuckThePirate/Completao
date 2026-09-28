@@ -74,8 +74,8 @@ or hides the minimap button.
 ## Where the data comes from
 
 Quest data is generated, not typed in by hand: the Classic quests come from
-Questie's database and the ones Forever adds come from Wowhead. That has a
-consequence you should know about:
+Questie's database and the ones Forever adds are compiled from public quest
+databases. That has a consequence you should know about:
 
 - Every Classic dungeon has its quests.
 - Of Forever's new content, **The Hall of Thanes** and **Ruins of Lordaeron**
@@ -100,11 +100,11 @@ Copyright (C) 2026 LechuckThePirate.
 
 - The Classic quest data derives from [Questie](https://www.curseforge.com/wow/addons/questie)'s
   database -- thanks to its team and contributors.
-- The names, text and locations of the quests Forever adds come from
-  [Wowhead](https://www.wowhead.com/forever).
+- The names, text and locations of the quests Forever adds are compiled from
+  public quest databases.
 - The quests and every game asset belong to Blizzard Entertainment. World of
   Warcraft is a trademark of Blizzard Entertainment, Inc.; Completao!! is not
-  affiliated with or endorsed by Blizzard, Questie, TomTom or Wowhead.
+  affiliated with or endorsed by Blizzard, Questie or TomTom.
 
 ## Localization
 

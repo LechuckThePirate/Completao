@@ -69,7 +69,9 @@ Completion is always read live from the client (`C_QuestLog`), never stored.
 
 ## Data pipeline
 
-Quest data is generated offline, not written by hand:
+Quest data is generated offline, not written by hand. The Forever-only content
+is fetched with a local helper that is not part of this repository
+(`tools/local/`, git-ignored):
 
 - `lua tools/questie_classic.lua [entry ids]` -- reads the Classic database that
   ships with [Questie](https://github.com/Questie/Questie) (Lua 5.4; point
@@ -78,10 +80,6 @@ Quest data is generated offline, not written by hand:
   instance when its zone is the instance, or when an NPC that only ever spawns
   inside it gives, receives or is the target of the quest; its prerequisite
   chain (up to 12 steps back) and continuations (3 steps forward) come along.
-- `node tools/wowhead.mjs` -- downloads, politely and cached, the Forever
-  instances listed in `tools/forever_instances.json` from Wowhead (zone quest
-  list plus each quest's page: level, side, objective, text, start/end
-  locations and its series) and writes `Data/Generated/Forever.lua`.
 - Chain steps that share a name are numbered ("Unending Torment (2/5)").
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 
@@ -98,10 +96,11 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao!!/
 Early (`0.1.0-beta`); see `CHANGELOG.md`.
 
 - Every Classic dungeon has generated quests. Of Forever's new instances only
-  The Hall of Thanes and Ruins of Lordaeron have quests so far -- the rest are
-  empty until Wowhead lists them; the generators pick them up when they do.
-- Quest text is English only (Wowhead / Questie); titles are read from the
-  client, so they follow its language.
+  The Hall of Thanes and Ruins of Lordaeron have quests so far; the rest are
+  listed (level range, zone of the door) but empty until their quests are
+  published.
+- Quest text is English only; titles are read from the client, so they follow
+  its language.
 - Several integration points could not be checked against the client's own UI
   source and fall back gracefully when missing: Blizzard's maximize/restore
   widget, opening the quest log on a quest, and the map marker.
@@ -123,10 +122,9 @@ FITNESS FOR A PARTICULAR PURPOSE.
   [Questie](https://github.com/Questie/Questie). Questie declares GPLv3 on its
   CurseForge page (its GitHub repository carries no license file); thanks to
   the Questie team and its contributors.
-- **Wowhead.** The names, text and locations of the quests Forever adds come from
-  [Wowhead](https://www.wowhead.com/forever) and are used for personal, cached,
-  low-volume downloads. They are Wowhead's compilation, not covered by this
-  license.
+- **Public quest databases.** The names, text and locations of the quests
+  Forever adds are compiled from public quest databases and are not covered by
+  this license.
 - **Blizzard Entertainment.** The quests, their names and text, and every game
   asset are Blizzard's. At runtime the addon uses textures and widgets the game
   client already ships (quest icon, frame and button templates, maximize/restore
@@ -137,5 +135,4 @@ FITNESS FOR A PARTICULAR PURPOSE.
 - **TomTom** is an optional, separate addon that Completao!! only talks to.
 
 World of Warcraft is a trademark of Blizzard Entertainment, Inc. Completao!! is
-not affiliated with or endorsed by Blizzard Entertainment, Questie, TomTom or
-Wowhead.
+not affiliated with or endorsed by Blizzard Entertainment, Questie or TomTom.

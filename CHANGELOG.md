@@ -31,5 +31,5 @@ First version.
 - New: English and Spanish (`esES`/`esMX`) interface.
 - Data: every Classic dungeon has its quests, generated from Questie's
   database; of Forever's new instances The Hall of Thanes and Ruins of
-  Lordaeron have theirs, from Wowhead. The other new dungeons and the new raids
-  are empty until their quests are published.
+  Lordaeron have theirs, from public quest databases. The other new dungeons and
+  the new raids are empty until their quests are published.

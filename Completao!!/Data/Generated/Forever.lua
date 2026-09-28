@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- GENERADO por tools/wowhead.mjs. No editar a mano: usar Data/Overrides.lua.
+-- GENERADO por una herramienta local (no incluida en el repositorio). No editar a mano: usar Data/Overrides.lua.
 
 ns.AddQuests("hot", {
     { id = 96391, name = "Underground Map", level = 15, minLevel = 9, faction = "Alliance", finish = { npc = "Earthseer Farsen", area = 1, x = 64.8, y = 58.4 }, objective = "Deliver the Dark Iron Map to Earthseer Farsen in Dun Morogh.", desc = "<The map you are holding seems to show a complex series of underground tunnels and highways that all seem to converge on a point underneath Ironforge itself.\n\nYou can't be sure what the runes say as they are written in the ugly jagged rune language of the Dark Iron dwarves, but you can guess at the purpose of these tunnels. As you are reading the map, a gust of wind washes over you and you can faintly hear a dwarven voice carried on it. Earthseer Farsen needs to see this.>" }, -- ? (extra/serie)

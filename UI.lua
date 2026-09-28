@@ -596,8 +596,13 @@ local function createFrame()
     -- Engranaje junto a la X: abre las preferencias. Icono propio (Icons/Gear.png) teñido de dorado.
     local gear = CreateFrame("Button", nil, frame)
     gear:SetSize(20, 20)
-    gear:SetFrameLevel(frame:GetFrameLevel() + 10)
+    -- el marco de Blizzard (NineSlice) va muy por encima de su ventana y taparia el engranaje: se pone al
+    -- nivel del boton de cerrar, o por encima del marco
     local closeButton = frame.CloseButton
+    local level = frame:GetFrameLevel() + 10
+    if frame.NineSlice then level = math.max(level, frame.NineSlice:GetFrameLevel() + 10) end
+    if closeButton then level = math.max(level, closeButton:GetFrameLevel()) end
+    gear:SetFrameLevel(level)
     if closeButton then
         gear:SetPoint("RIGHT", closeButton, "LEFT", -2, 0)
     else

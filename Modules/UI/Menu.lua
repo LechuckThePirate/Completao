@@ -1,8 +1,8 @@
 local _, ns = ...
 
--- Menu desplegable propio (lista emergente de botones bajo un control): no depende de los menus de
--- Blizzard, que cambian entre versiones del cliente. options: { { name = , color = {r,g,b}, disabled = } }.
--- Pulsar otra vez el mismo control lo cierra; elegir una opcion lo cierra y llama a onPick(opcion, indice).
+-- Our own dropdown menu (a popup list of buttons under a control): it doesn't depend on Blizzard's menus,
+-- which change between client versions. options: { { name = , color = {r,g,b}, disabled = } }.
+-- Clicking the same control again closes it; picking an option closes it and calls onPick(option, index).
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 local ROW_H, PER_COL = 18, 18
 local popup
@@ -21,7 +21,7 @@ function ns.PopupMenu(anchor, options, onPick, width)
     end
     if popup:IsShown() and popup.anchor == anchor then popup:Hide() return end
     popup.anchor = anchor
-    -- se cierra si el control que lo abrio desaparece (se cierra la ventana, cambia la vista...)
+    -- closes if the control that opened it goes away (the window closes, the view changes...)
     if not anchor.menuHooked then
         anchor.menuHooked = true
         anchor:HookScript("OnHide", function(self) if popup and popup.anchor == self then popup:Hide() end end)

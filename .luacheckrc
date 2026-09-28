@@ -1,4 +1,4 @@
--- luacheck (como en Questie): Lua 5.1, la version del juego. Se ejecuta en la CI; en local:
+-- luacheck (as in Questie): Lua 5.1, the game's version. Runs in CI; locally:
 --   luacheck Completao.lua Localization Modules Data/Dungeons.lua Data/Raids.lua Data/Overrides.lua test setupTests.lua
 std = "lua51"
 max_line_length = 160
@@ -11,7 +11,7 @@ exclude_files = {
     "images/",
 }
 
--- lo que el addon define como global
+-- what the addon defines as globals
 globals = {
     "CompletaoDB", "CompletaoCharDB",
     "SlashCmdList", "SLASH_COMPLETAO1", "SLASH_COMPLETAO2",
@@ -20,7 +20,7 @@ globals = {
     "UISpecialFrames",
 }
 
--- API y marcos del juego que usa
+-- the game's API and frames it uses
 read_globals = {
     "C_AddOns", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
     "C_Texture", "C_Timer", "C_TradeSkillUI",
@@ -35,7 +35,7 @@ read_globals = {
     "hooksecurefunc", "issecretvalue", "strtrim", "tinsert", "wipe",
 }
 
--- tests (busted): definen y cambian globales de la simulacion del juego a proposito
+-- tests (busted): they define and change the simulated game's globals on purpose
 files["**/*.test.lua"] = { std = "+busted", globals = { "_G" }, allow_defined_top = true, ignore = { "111", "112", "113", "121", "122" } }
 files["setupTests.lua"] = { std = "+busted", allow_defined_top = true, ignore = { "111", "112", "113", "121", "122" } }
 files["test/"] = { std = "+busted", allow_defined_top = true, ignore = { "111", "112", "113", "121", "122", "131", "212" } }

@@ -1,9 +1,9 @@
 local _, ns = ...
 
--- Mazmorras de Classic (niveles orientativos, sin verificar contra Forever) + las 9 nuevas de
--- Forever (new = true; niveles de classicwow.gg/forever/dungeons, otras webs discrepan en algunas).
--- Las quests estan vacias a proposito: no se inventan IDs. Se rellenan con datos verificados
--- (p.ej. exportados de la base de datos de Questie o capturados con /completao dump).
+-- Classic dungeons (approximate levels, not checked against Forever) + the 9 new Forever ones
+-- (new = true; levels from classicwow.gg/forever/dungeons, other sites disagree on some).
+-- Quests are empty on purpose: no IDs are invented. They are filled with verified data
+-- (e.g. exported from Questie's database or captured with /completao dump).
 local dungeons = {
     { id = "hot",  name = "The Hall of Thanes",       minLevel = 13, maxLevel = 18, new = true },
     { id = "rol",  name = "Ruins of Lordaeron",       minLevel = 15, maxLevel = 20, new = true },
@@ -40,10 +40,10 @@ for _, d in ipairs(dungeons) do
     ns.RegisterEntry(d)
 end
 
--- Zona donde esta la entrada de las mazmorras nuevas de Forever (sin coordenadas exactas todavia;
--- fuente: classicwow.gg/forever/dungeons). Las de Classic se generan en Data/Generated/Entrances.lua.
--- Ids de area: Ironforge 1537, Tirisfal 85, Wetlands 11, Alterac 36, Stranglethorn 33,
--- Riverglades 16591 (zona nueva de Forever), Dustwallow 15, Azshara 16, Un'Goro 490.
+-- Zone of the entrance of Forever's new dungeons (no exact coordinates yet;
+-- source: classicwow.gg/forever/dungeons). Classic's are generated in Data/Generated/Entrances.lua.
+-- Area ids: Ironforge 1537, Tirisfal 85, Wetlands 11, Alterac 36, Stranglethorn 33,
+-- Riverglades 16591 (a new Forever zone), Dustwallow 15, Azshara 16, Un'Goro 490.
 for entry, area in pairs({ hot = 1537, rol = 85, exw = 11, dal = 36, dc = 33, kds = 16591, alc = 15, bmh = 16, sht = 490 }) do
     ns.SetEntrance(entry, { area = area })
 end

@@ -1,8 +1,8 @@
 local _, ns = ...
 local L = ns.L
 
--- Ventana de preferencias (se abre con el engranaje de la ventana principal o con /completao prefs).
--- Ajustes basicos, en ns.char: por personaje o comunes a la cuenta segun la primera casilla.
+-- Preferences window (opened with the main window's gear or with /completao prefs).
+-- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
 local WIDTH, HEIGHT = 340, 370
 local prefs
 
@@ -27,7 +27,7 @@ local function makeSlider(parent, y, getValue, setValue, labelFor)
 
     local refreshing = false
     slider:SetScript("OnValueChanged", function(_, value)
-        value = math.floor(value * 20 + 0.5) / 20 -- de 5 en 5 %
+        value = math.floor(value * 20 + 0.5) / 20 -- in 5 % steps
         label:SetText(labelFor(value))
         if not refreshing then setValue(value) end
     end)
@@ -101,7 +101,7 @@ local function create()
             or L["Settings are shared by all your characters."])
     end
 
-    -- Como en Embolsao: decide donde se guarda todo lo de abajo (Core.lua, ns.SetPerCharacter).
+    -- As in Embolsao: decides where everything below is kept (Modules/Settings, ns.SetPerCharacter).
     widgets[#widgets + 1] = makeCheck(prefs, -48, L["Character specific preferences"],
         function() return ns.IsPerCharacter() end,
         function(value)
@@ -134,7 +134,7 @@ local function create()
     end)
 
     prefs:SetScript("OnShow", refreshAll)
-    prefs:Hide() -- un marco nace visible: oculto hasta el primer Prefs_Toggle (si no, el primero lo cerraria)
+    prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)
 end
 
 function ns.Prefs_Toggle()

@@ -8,13 +8,13 @@ describe("MainWindow", function()
         ns = OpenAddon("vc")
     end)
 
-    it("se abre en la entrada guardada y dibuja su arbol", function()
+    it("opens on the saved entry and draws its tree", function()
         assert.is_true(ns.UI:IsShown())
         local _, n = ShownNodes()
         assert.is_true(n > 0)
     end)
 
-    it("la barra lateral lleva el buscador, el registro y las secciones con su numero de entradas", function()
+    it("the side panel has the search, the log and the sections with their entry count", function()
         for _, label in ipairs({ "Search quests...", "Quest Log" }) do
             local text = WowMock.FindByText(label)
             assert.is_not_nil(text, label)
@@ -23,11 +23,11 @@ describe("MainWindow", function()
         assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:match("Dungeons %(%d+%)") end))
     end)
 
-    describe("filtros", function()
+    describe("filters", function()
         local parent, child
 
         before_each(function()
-            -- una cadena de dos pasos de la entrada
+            -- a two-step chain of the entry
             local inEntry = {}
             for _, q in ipairs(ns.entries.vc.quests) do inEntry[q.id] = q end
             for _, q in ipairs(ns.entries.vc.quests) do
@@ -41,7 +41,7 @@ describe("MainWindow", function()
             WowMock.level = 20
         end)
 
-        it("ocultar completadas oculta cada quest hecha, aunque su cadena siga", function()
+        it("hide completed hides each done quest, even if its chain goes on", function()
             WowMock.done[parent] = true
             ns.char.filters.hideDone = true
             ns.UI_Refresh()
@@ -53,7 +53,7 @@ describe("MainWindow", function()
             assert.is_not_nil((ShownNodes())[parent])
         end)
 
-        it("demasiado alto oculta las cadenas que aun no puedes empezar", function()
+        it("too high hides the chains you can't start yet", function()
             WowMock.level = 5
             ns.char.filters.hideHigh = true
             ns.UI_Refresh()
@@ -61,8 +61,8 @@ describe("MainWindow", function()
             assert.are.equal(0, n)
         end)
 
-        it("otra faccion: ocultas por defecto, visibles con la casilla", function()
-            ns.UI_OpenQuest("rfc", 5722) -- Ragefire Chasm, de la Horda
+        it("other faction: hidden by default, visible with the checkbox", function()
+            ns.UI_OpenQuest("rfc", 5722) -- Ragefire Chasm, a Horde one
             ns.Detail_Hide(); ns.UI_Refresh()
             local _, hidden = ShownNodes()
             ns.char.filters.otherFaction = true
@@ -73,7 +73,7 @@ describe("MainWindow", function()
         end)
     end)
 
-    it("al elegir una quest su cadena se resalta y el resto se atenua", function()
+    it("selecting a quest highlights its chain and dims the rest", function()
         local q = ns.entries.vc.quests[1]
         ns.UI_OpenQuest("vc", q.id)
         local nodes = ShownNodes()
@@ -85,7 +85,7 @@ describe("MainWindow", function()
         assert.is_true(dimmed)
     end)
 
-    it("el buscador sustituye al arbol y elegir una entrada lo cierra", function()
+    it("the search replaces the tree and picking an entry closes it", function()
         ns.UI_SetSearchMode(true)
         assert.is_false(ns.UI.treeScroll:IsShown())
         assert.is_true(ns.UI.searchPanel:IsShown())
@@ -94,7 +94,7 @@ describe("MainWindow", function()
         assert.is_false(ns.UI.searchPanel:IsShown())
     end)
 
-    it("la rueda cambia el zoom y se guarda; SetZoom lo limita", function()
+    it("the wheel changes the zoom and it is saved; SetZoom clamps it", function()
         local scroll = ns.UI.treeScroll
         scroll._scripts.OnMouseWheel(scroll, 1)
         assert.is_true(ns.char.zoom > 1)
@@ -104,10 +104,10 @@ describe("MainWindow", function()
         assert.are.equal(0.35, ns.char.zoom)
     end)
 
-    describe("transparencia al moverse", function()
+    describe("transparency while moving", function()
         local function tick() for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end end
 
-        it("se vuelve translucida al andar y opaca al parar", function()
+        it("turns translucent when walking and opaque when stopping", function()
             WowMock.speed = 7
             tick()
             assert.near(0.5, ns.UI:GetAlpha(), 0.02)
@@ -116,14 +116,14 @@ describe("MainWindow", function()
             assert.near(1, ns.UI:GetAlpha(), 0.02)
         end)
 
-        it("con el cursor encima se queda opaca", function()
+        it("stays opaque with the cursor over it", function()
             WowMock.speed = 7
             ns.UI._mouseOver = true
             tick()
             assert.near(1, ns.UI:GetAlpha(), 0.02)
         end)
 
-        it("con la velocidad oculta por el juego (combate) no cambia", function()
+        it("with the speed hidden by the game (combat) it doesn't change", function()
             WowMock.speed = 7
             _G.issecretvalue = function() return true end
             tick()
@@ -132,14 +132,14 @@ describe("MainWindow", function()
         end)
     end)
 
-    it("el engranaje queda por encima del marco de la ventana", function()
+    it("the gear sits above the window's border", function()
         local gear = WowMock.Find(function(f) return f._set.SetNormalTexture and tostring(f._set.SetNormalTexture[1]):find("Gear") end)
         assert.is_not_nil(gear)
         gear:Click()
         assert.is_true(_G.CompletaoPreferencesFrame:IsShown())
     end)
 
-    describe("abrir con el registro de misiones", function()
+    describe("open with the quest log", function()
         before_each(function()
             ns.UI:Hide()
             ns.char.openWithQuestLog = true
@@ -152,20 +152,20 @@ describe("MainWindow", function()
             ns.UI_QuestLogChanged()
         end
 
-        it("desactivado no hace nada", function()
+        it("turned off does nothing", function()
             ns.char.openWithQuestLog = nil
             logShown(true)
             assert.is_false(ns.UI:IsShown())
         end)
 
-        it("abrir el registro la abre y cerrarlo la cierra", function()
+        it("opening the log opens it and closing the log closes it", function()
             logShown(true)
             assert.is_true(ns.UI:IsShown())
             logShown(false)
             assert.is_false(ns.UI:IsShown())
         end)
 
-        it("si ya estaba abierta a mano, cerrar el registro no la cierra", function()
+        it("if it was already opened by hand, closing the log doesn't close it", function()
             ns.UI:Show()
             logShown(true)
             logShown(false)

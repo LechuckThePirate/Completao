@@ -12,19 +12,19 @@ describe("Waypoints", function()
         _G.TomTom = nil
     end)
 
-    it("convierte la zona de una ubicacion en el mapa del cliente por su nombre", function()
+    it("turns a location's zone into the client's map by name", function()
         assert.are.equal(1429, ns.ResolveZone({ area = 12 }))
         assert.is_nil(ns.ResolveZone({ area = 999 }))
     end)
 
-    it("hace falta coordenada para un waypoint; para ver el mapa basta la zona", function()
+    it("a waypoint needs coordinates; showing the map only needs the zone", function()
         assert.is_true(ns.CanWaypoint(elwynn))
         assert.is_false(ns.CanWaypoint({ area = 12 }))
         assert.is_true(ns.CanShowMap({ area = 12 }))
         assert.is_false(ns.CanShowMap({ area = 999 }))
     end)
 
-    it("con TomTom, pone el waypoint en TomTom", function()
+    it("with TomTom, sets the waypoint in TomTom", function()
         local got
         _G.TomTom = { AddWaypoint = function(_, map, x, y, opts) got = { map, x, y, opts.title } end }
         assert.is_true(ns.SetWaypoint(elwynn, "Marshal"))
@@ -34,18 +34,18 @@ describe("Waypoints", function()
         assert.are.equal("Marshal", got[4])
     end)
 
-    it("sin TomTom, usa el waypoint del juego", function()
+    it("without TomTom, uses the game's waypoint", function()
         assert.is_true(ns.SetWaypoint(elwynn, "Marshal"))
         assert.are.equal(1429, WowMock.userWaypoint.mapID)
         assert.near(0.421, WowMock.userWaypoint.x, 1e-9)
     end)
 
-    it("sin sitio avisa y no pone nada", function()
+    it("with no place, warns and sets nothing", function()
         assert.is_false(ns.SetWaypoint({ area = 12 }, "x"))
         assert.matches("No map location", WowMock.lastPrint)
     end)
 
-    it("ver en el mapa abre el mapa de la zona y marca el punto", function()
+    it("show on map opens the zone's map and marks the spot", function()
         local opened
         _G.OpenWorldMap = function(map) opened = map end
         ns.ShowOnMap(elwynn, "Marshal")

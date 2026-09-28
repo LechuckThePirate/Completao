@@ -1,13 +1,13 @@
--- Uso: lua tools/questie_classic.lua [entryId ...]     (mazmorras/raids; por defecto: vc wc)
---      lua tools/questie_classic.lua zones             (zonas y clases: Zones.lua y Classes.lua)
--- Lee la base de datos de Classic que trae Questie y genera Data/Generated/Classic.lua
--- con las quests de cada mazmorra: las de su zona, las que dan/reciben/matan NPCs que solo aparecen
--- dentro, y las cadenas (prerrequisitos y continuaciones) que las conectan.
+-- Usage: lua tools/questie_classic.lua [entryId ...]     (dungeons/raids; default: vc wc)
+--        lua tools/questie_classic.lua zones             (zones, classes, professions, races)
+-- Reads the Classic database that ships with Questie and generates Data/Generated/Classic.lua with each
+-- dungeon's quests: those of its zone, those given/received/killed by NPCs that only appear inside, and the
+-- chains (prerequisites and continuations) that connect them.
 local ROOT = (arg[0]:match("^(.*)[/\\][^/\\]+$") or ".") .. "/.."
 local Q = os.getenv("QUESTIE_DIR") or "D:/Games/World of Warcraft/_classic_beta_/Interface/AddOns/Questie/"
 local OUT = ROOT .. "/Data/Generated/Classic.lua"
 
--- id de entrada del addon -> id de area de la mazmorra en Questie (Database/Zones/data/dungeons.lua)
+-- addon entry id -> the dungeon's area id in Questie (Database/Zones/data/dungeons.lua)
 local INSTANCE_AREA = {
     rfc = 2437, wc = 718, vc = 1581, sfk = 209, bfd = 719, stk = 717, gnom = 721, rfk = 491,
     sm = 796, rfd = 722, ulda = 1337, zf = 1176, mara = 2100, st = 1477, brd = 1584,
@@ -24,13 +24,13 @@ end
 local quests = loadData(Q .. "Database/Classic/classicQuestDB.lua", "questData")
 local npcs = loadData(Q .. "Database/Classic/classicNpcDB.lua", "npcData")
 
--- Las correcciones que Questie aplica encima de la base (prerrequisitos, niveles, razas, clases, zonas...)
+-- The corrections Questie applies on top of the base (prerequisites, levels, races, classes, zones...)
 do
     local nFixed, nFields = dofile(ROOT .. "/tools/questie_fixes.lua")(quests, Q)
-    print(("correcciones de Questie aplicadas: %d quests, %d campos"):format(nFixed, nFields))
+    print(("Questie corrections applied: %d quests, %d fields"):format(nFixed, nFields))
 end
 
--- areas de cada mazmorra (id principal + alternativos)
+-- each dungeon's areas (main id + alternates)
 local areaOf, entranceOf = {}, {}
 for line in read(Q .. "Database/Zones/data/dungeons.lua"):gmatch("[^\n]+") do
     local id, _, rest = line:match('^%s*%[(%d+)%] = {"([^"]+)",(.*)$')
@@ -39,7 +39,7 @@ for line in read(Q .. "Database/Zones/data/dungeons.lua"):gmatch("[^\n]+") do
         areaOf[id] = id
         local alts = rest:match("^(%b{})")
         if alts then for a in alts:gmatch("%d+") do areaOf[tonumber(a)] = id end end
-        -- primera entrada: {zona padre, x, y}
+        -- first entrance: {parent zone, x, y}
         local zone, x, y = rest:match(",%s*%d+,%s*{%s*{%s*(%d+),%s*([%d%.]+),%s*([%d%.]+)")
         if zone then entranceOf[id] = { area = tonumber(zone), x = tonumber(x), y = tonumber(y) } end
     end
@@ -50,7 +50,7 @@ local Q_PREGROUP, Q_PRESINGLE, Q_ZONE, Q_NEXT = 12, 13, 17, 22
 local N_NAME, N_SPAWNS, N_ZONE = 1, 7, 9
 local Q_TEXT = 8
 
--- Un NPC "pertenece" a una mazmorra si todas sus zonas de spawn son de esa mazmorra.
+-- An NPC "belongs" to a dungeon if all its spawn zones are that dungeon's.
 local function npcInstance(npcId)
     local n = npcs[npcId]
     local spawns = n and n[N_SPAWNS]
@@ -76,7 +76,7 @@ local function instancesOf(q)
     return found
 end
 
--- indices: nucleo por mazmorra, hijos por prerrequisito
+-- indexes: core per dungeon, children by prerequisite
 local core, children = {}, {}
 for id, q in pairs(quests) do
     for d in pairs(instancesOf(q)) do
@@ -99,9 +99,9 @@ for id, q in pairs(quests) do
     end
 end
 
--- Prerrequisitos: hasta UP_HOPS pasos hacia atras. Continuaciones: solo DOWN_HOPS pasos hacia delante
--- (mas alla se cuelan cadenas de otras zonas, p.ej. Argent Dawn desde Stratholme). Nunca se cruza a
--- quests que son nucleo de otra mazmorra.
+-- Prerequisites: up to UP_HOPS steps back. Continuations: only DOWN_HOPS steps forward (further on,
+-- chains from other zones creep in, e.g. Argent Dawn from Stratholme). It never crosses into quests that
+-- are the core of another dungeon.
 local UP_HOPS, DOWN_HOPS = 12, 3
 
 local function collect(area)
@@ -138,8 +138,8 @@ local function collect(area)
     return set
 end
 
--- Quests con el mismo nombre y facción dentro de la mazmorra (cadenas tipo "The Defias Brotherhood")
--- se numeran por orden de la cadena: "Nombre (2/7)".
+-- Quests with the same name and faction inside the dungeon (chains like "The Defias Brotherhood") are
+-- numbered in chain order: "Name (2/7)".
 local function displayNames(set)
     local depth = {}
     local function depthOf(id)
@@ -176,8 +176,8 @@ end
 local function lua(s) return '"' .. tostring(s):gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n") .. '"' end
 local function ids(list) local t = {} for _, v in ipairs(list) do t[#t + 1] = tostring(v) end return "{ " .. table.concat(t, ", ") .. " }" end
 
--- Ubicacion de un NPC: zona preferida (la mas comun del NPC) y primera coordenada. Los NPCs dentro
--- de una mazmorra tienen coordenadas -1 y se emiten sin posicion.
+-- An NPC's location: preferred zone (the NPC's most common) and first coordinate. NPCs inside a dungeon
+-- have coordinates -1 and are emitted without a position.
 local function location(npcId)
     local n = npcs[npcId]
     local spawns = n[N_SPAWNS]
@@ -197,14 +197,14 @@ end
 
 local ALLIANCE, HORDE, ALL_RACES = 77, 178, 255
 
--- Mascaras efectivas de clase (campo 7) y de raza (campo 6): la propia de la quest o, si no tiene, la que
--- hereda de sus prerrequisitos obligatorios (interseccion). Asi una quest que exige una quest solo de
--- Horda, o de una clase, es tambien solo de esa faccion o clase.
+-- Effective class (field 7) and race (field 6) masks: the quest's own or, if it has none, the one inherited
+-- from its mandatory prerequisites (intersection). So a quest that requires a Horde-only or class-only
+-- quest is also Horde-only or class-only.
 local function inheritedMask(field)
     local memo = {}
     local function mask(id, depth)
         if memo[id] ~= nil then return memo[id] end
-        memo[id] = false -- corta ciclos
+        memo[id] = false -- cuts cycles
         local q = quests[id]
         if not q then return false end
         local m = q[field] and q[field] ~= 0 and q[field] or nil
@@ -226,8 +226,8 @@ local function inheritedMask(field)
 end
 local classMask, raceMask = inheritedMask(7), inheritedMask(6)
 
--- Quests que se hacen dentro de una mazmorra o raid de las nuestras (su zona, o algun NPC que da, recibe o
--- mata, solo existe dentro): se marcan con dungeon = "<id de la entrada>", tambien cuando salen en una zona.
+-- Quests done inside one of our dungeons or raids (their zone, or some NPC that gives, receives or is
+-- killed only exists inside): they are marked dungeon = "<entry id>", also when they show up in a zone.
 local ENTRY_OF_AREA = {}
 for entry, area in pairs(INSTANCE_AREA) do ENTRY_OF_AREA[area] = entry end
 local dungeonOf = {}
@@ -240,10 +240,10 @@ for area, questIds in pairs(core) do
     end
 end
 
--- Pasos intermedios: uno por objetivo (matar, usar un objeto del mundo, recoger un objeto, evento/escolta),
--- con la zona donde mas aparece lo que hay que buscar y el punto mas denso dentro de ella. Para "recoge X"
--- se juntan los sitios de los bichos y objetos que lo sueltan. Dentro de una mazmorra no hay coordenadas:
--- el paso lleva solo la zona (el addon lleva a la entrada).
+-- Intermediate steps: one per objective (kill, use a world object, collect an item, event/escort), with
+-- the zone where what you look for is most common and the densest spot in it. For "collect X" the places
+-- of the creatures and objects that drop it are pooled. Inside a dungeon there are no coordinates: the
+-- step carries only the zone (the addon takes you to the entrance).
 local items = loadData(Q .. "Database/Classic/classicItemDB.lua", "itemData")
 local objects = loadData(Q .. "Database/Classic/classicObjectDB.lua", "objectData")
 local I_NAME, I_NPCDROPS, I_OBJDROPS, O_NAME, O_SPAWNS = 1, 2, 3, 1, 4
@@ -256,7 +256,7 @@ local function addSpawns(acc, spawns)
     end
 end
 
--- misma idea que densestPoint de las herramientas locales: celda de 6x6 (con vecinas) con mas puntos
+-- same idea as densestPoint in the local tools: the 6x6 cell (with its neighbors) with the most points
 local function densest(pts)
     local CELL, grid, cells = 6, {}, {}
     local function cell(v) return math.floor(v / CELL) end
@@ -268,7 +268,7 @@ local function densest(pts)
         grid[k] = grid[k] + 1
     end
     local best, bestN
-    for _, ij in ipairs(cells) do -- en orden de aparicion: resultado estable
+    for _, ij in ipairs(cells) do -- in order of appearance: stable result
         local n = 0
         for di = -1, 1 do for dj = -1, 1 do n = n + (grid[key(ij[1] + di, ij[2] + dj)] or 0) end end
         if not bestN or n > bestN then best, bestN = ij, n end
@@ -321,7 +321,7 @@ local function stepsOf(q)
             add(stepFrom(it[I_NAME], acc))
         end
     end
-    for _, o in ipairs(obj[5] or {}) do -- killCredit: { {npcs}, npc base, texto }
+    for _, o in ipairs(obj[5] or {}) do -- killCredit: { {npcs}, base npc, text }
         local acc = {}
         for _, npcId in ipairs(o[1] or {}) do if npcs[npcId] then addSpawns(acc, npcs[npcId][N_SPAWNS]) end end
         local base = npcs[o[2]]
@@ -336,8 +336,8 @@ local function stepsOf(q)
     return steps
 end
 
--- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races;
--- restricciones de clase -> classes (salvo en las entradas de clase, donde son la razon de estar ahi).
+-- A quest data line (Lua table). Exact factions -> faction; other race restrictions -> races; class
+-- restrictions -> classes (except in class entries, where they are the reason for being there).
 local function questLine(id, name, comment, noClasses)
     local q = quests[id]
     local f = { "id = " .. id, "name = " .. lua(name) }
@@ -368,21 +368,21 @@ local function questLine(id, name, comment, noClasses)
     return ("    { %s },%s"):format(table.concat(f, ", "), comment or "")
 end
 
--- Modo "zones": una entrada por zona y una por clase, cada quest en una sola entrada.
+-- "zones" mode: one entry per zone, class, profession and race, each quest in a single entry.
 if arg[1] == "zones" then
     local OUT_Z, OUT_C = ROOT .. "/Data/Generated/Zones.lua", ROOT .. "/Data/Generated/Classes.lua"
     local OUT_R = ROOT .. "/Data/Generated/Races.lua"
 
-    -- zonas con mapa en Classic (uiMapId 1411..1459) y su nombre, segun Questie
+    -- zones with a map in Classic (uiMapId 1411..1459) and their name, according to Questie
     local zoneName = {}
     for line in read(Q .. "Database/Zones/data/uiMapIdToAreaId.lua"):gmatch("[^\n]+") do
         local ui, area, name = line:match("^%s*%[(%d+)%]%s*=%s*(%d+),%s*%-%-%s*(.-)%s*$")
         ui, area = tonumber(ui), tonumber(area)
         if ui and ui >= 1411 and ui <= 1459 and area > 0 and area < 10000 then zoneName[area] = name end
     end
-    zoneName[2597] = nil -- Alterac Valley: campo de batalla
+    zoneName[2597] = nil -- Alterac Valley: a battleground
 
-    -- subzonas (sobre todo las de inicio) -> su zona
+    -- subzones (mostly starting ones) -> their zone
     local parent = { [9] = 12, [132] = 1, [188] = 141, [154] = 85, [363] = 14, [220] = 215 }
     for line in read(Q .. "Database/Zones/data/subZoneToParentZone.lua"):gmatch("[^\n]+") do
         local s, p = line:match("^%s*%[(%d+)%]%s*=%s*(%d+),")
@@ -396,8 +396,8 @@ if arg[1] == "zones" then
     local CLASS_NAME = { WARRIOR = "Warrior", PALADIN = "Paladin", HUNTER = "Hunter", ROGUE = "Rogue", PRIEST = "Priest",
         SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", DRUID = "Druid" }
 
-    -- Profesiones: por la categoria de Questie (QuestSort negativo) o por la profesion que exige la quest
-    -- (campo requiredSkill, 18). Clave: id de la linea de habilidad del juego.
+    -- Professions: by Questie's category (negative QuestSort) or by the profession the quest requires
+    -- (requiredSkill field, 18). Key: the game's skill line id.
     local PROF_SORT = { [-24] = 182, [-101] = 356, [-121] = 164, [-181] = 171, [-182] = 165, [-201] = 202,
         [-264] = 197, [-304] = 185, [-324] = 129 }
     local PROF_NAME = { [164] = "Blacksmithing", [165] = "Leatherworking", [171] = "Alchemy", [182] = "Herbalism",
@@ -428,7 +428,7 @@ if arg[1] == "zones" then
         end
     end
 
-    -- nivel orientativo de una entrada: percentil 10 del nivel requerido y 90 del nivel de quest
+    -- rough level of an entry: 10th percentile of the required level and 90th of the quest level
     local function levelRange(set)
         local req, lvl = {}, {}
         for id in pairs(set) do
@@ -455,8 +455,8 @@ if arg[1] == "zones" then
         return #sorted
     end
 
-    local zout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
-        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local zout = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua zones from Questie's Classic database.",
+        "-- Do not edit by hand: use Data/Overrides.lua.", "" }
     local zones = {}
     for area, set in pairs(zoneSet) do
         local lo, hi = levelRange(set)
@@ -469,12 +469,12 @@ if arg[1] == "zones" then
         local n = emitEntry(zout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"zones\", area = %d, minLevel = %d, maxLevel = %d })")
             :format(lua(entryId), lua(z.name), z.area, z.lo, z.hi), z.set)
         totalZ = totalZ + n
-        print(("zona  %-24s nv %2d-%2d  %3d quests"):format(z.name, z.lo, z.hi, n))
+        print(("zone   %-24s lv %2d-%2d  %3d quests"):format(z.name, z.lo, z.hi, n))
     end
     local fz = assert(io.open(OUT_Z, "wb")); fz:write(table.concat(zout, "\n")); fz:close()
 
-    local cout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
-        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local cout = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua zones from Questie's Classic database.",
+        "-- Do not edit by hand: use Data/Overrides.lua.", "" }
     local order = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
     local totalC = 0
     for _, class in ipairs(order) do
@@ -483,13 +483,13 @@ if arg[1] == "zones" then
             local n = emitEntry(cout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"classes\", classFile = %s })")
                 :format(lua(entryId), lua(CLASS_NAME[class]), lua(class)), classSet[class], true)
             totalC = totalC + n
-            print(("clase %-24s %3d quests"):format(CLASS_NAME[class], n))
+            print(("class  %-24s %3d quests"):format(CLASS_NAME[class], n))
         end
     end
     local fc = assert(io.open(OUT_C, "wb")); fc:write(table.concat(cout, "\n")); fc:close()
 
-    local pout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
-        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local pout = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua zones from Questie's Classic database.",
+        "-- Do not edit by hand: use Data/Overrides.lua.", "" }
     local skills = {}
     for skill in pairs(profSet) do skills[#skills + 1] = skill end
     table.sort(skills, function(a, b) return PROF_NAME[a] < PROF_NAME[b] end)
@@ -500,14 +500,14 @@ if arg[1] == "zones" then
         local n = emitEntry(pout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"professions\", skillLine = %d, minLevel = %d, maxLevel = %d })")
             :format(lua(entryId), lua(PROF_NAME[skill]), skill, lo, hi), profSet[skill])
         totalP = totalP + n
-        print(("prof. %-24s %3d quests"):format(PROF_NAME[skill], n))
+        print(("prof.  %-24s %3d quests"):format(PROF_NAME[skill], n))
     end
     local OUT_P = ROOT .. "/Data/Generated/Professions.lua"
     local fp = assert(io.open(OUT_P, "wb")); fp:write(table.concat(pout, "\n")); fp:close()
-    print(("escrito %s (%d quests)"):format(OUT_P, totalP))
+    print(("written %s (%d quests)"):format(OUT_P, totalP))
 
-    -- Razas: las quests de una o pocas razas (no las de toda una faccion) aparecen tambien en la entrada de
-    -- cada raza incluida; en las zonas solo las ve quien es de esa raza.
+    -- Races: quests of one or a few races (not of a whole faction) also appear in the entry of each race
+    -- included; in the zones only members of that race see them.
     local RACES = { "Human", "Orc", "Dwarf", "Night Elf", "Undead", "Tauren", "Gnome", "Troll" }
     local raceSet = {}
     for _, set in pairs(zoneSet) do
@@ -527,8 +527,8 @@ if arg[1] == "zones" then
             end
         end
     end
-    local rout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
-        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local rout = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua zones from Questie's Classic database.",
+        "-- Do not edit by hand: use Data/Overrides.lua.", "" }
     local totalR = 0
     for r, name in ipairs(RACES) do
         if raceSet[r] then
@@ -536,19 +536,19 @@ if arg[1] == "zones" then
             local n = emitEntry(rout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"races\", raceId = %d })")
                 :format(lua(entryId), lua(name), r), raceSet[r])
             totalR = totalR + n
-            print(("raza  %-24s %3d quests"):format(name, n))
+            print(("race   %-24s %3d quests"):format(name, n))
         end
     end
     local fr = assert(io.open(OUT_R, "wb")); fr:write(table.concat(rout, "\n")); fr:close()
-    print(("escrito %s (%d zonas, %d quests), %s (%d quests) y %s (%d quests)"):format(OUT_Z, #zones, totalZ, OUT_C, totalC, OUT_R, totalR))
+    print(("written %s (%d zones, %d quests), %s (%d quests) and %s (%d quests)"):format(OUT_Z, #zones, totalZ, OUT_C, totalC, OUT_R, totalR))
     os.exit(0)
 end
 
 local wanted = { table.unpack(arg) }
 if #wanted == 0 then wanted = { "vc", "wc" } end
 
-local out = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua a partir de la base de datos de Classic de Questie.",
-    "-- No editar a mano: usar Data/Overrides.lua.", "" }
+local out = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua from Questie's Classic database.",
+    "-- Do not edit by hand: use Data/Overrides.lua.", "" }
 
 for _, entry in ipairs(wanted) do
     local area = assert(INSTANCE_AREA[entry], "entrada desconocida: " .. entry)
@@ -562,18 +562,18 @@ for _, entry in ipairs(wanted) do
     for _, id in ipairs(sorted) do
         local isCore = core[area] and core[area][id]
         if isCore then nCore = nCore + 1 end
-        out[#out + 1] = questLine(id, names[id], isCore and "" or " -- cadena")
+        out[#out + 1] = questLine(id, names[id], isCore and "" or " -- chain")
     end
     out[#out + 1] = "})"
     out[#out + 1] = ""
-    print(("%-5s %3d quests (%d por zona/NPC, %d de cadena)"):format(entry, #sorted, nCore, #sorted - nCore))
+    print(("%-5s %3d quests (%d by zone/NPC, %d from chains)"):format(entry, #sorted, nCore, #sorted - nCore))
 end
 
 local f = assert(io.open(OUT, "wb")); f:write(table.concat(out, "\n")); f:close()
-print("escrito " .. OUT)
+print("written " .. OUT)
 
--- Entradas de las mazmorras/raids (zona padre + coordenadas del portal), para todas las entradas conocidas.
-local ent = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua (dungeons.lua de Questie). No editar a mano.", "" }
+-- Dungeon/raid entrances (parent zone + the portal's coordinates), for every known entry.
+local ent = { "local _, ns = ...", "", "-- GENERATED by tools/questie_classic.lua (Questie's dungeons.lua). Do not edit by hand.", "" }
 local keys = {}
 for entry in pairs(INSTANCE_AREA) do keys[#keys + 1] = entry end
 table.sort(keys)
@@ -584,4 +584,4 @@ for _, entry in ipairs(keys) do
     end
 end
 local g = assert(io.open(ENTRANCES_OUT, "wb")); g:write(table.concat(ent, "\n") .. "\n"); g:close()
-print("escrito " .. ENTRANCES_OUT)
+print("written " .. ENTRANCES_OUT)

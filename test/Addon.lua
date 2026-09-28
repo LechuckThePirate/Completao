@@ -1,6 +1,6 @@
--- Carga del addon en los tests: los archivos en el orden del TOC (como el juego), cada uno con
--- ("Completao", ns). LoadAddon() carga todo; LoadAddon({ files = {...} }) solo esos archivos (con
--- Localization/Locale.lua delante si no esta). StartAddon(ns) simula la entrada al juego.
+-- Loading the addon in tests: the files in TOC order (like the game), each with ("Completao", ns).
+-- LoadAddon() loads everything; LoadAddon({ files = {...} }) only those files (with Localization/Locale.lua
+-- in front if missing). StartAddon(ns) simulates entering the game.
 
 function TocFiles()
     local files = {}
@@ -33,7 +33,7 @@ function LoadAddon(opts)
     return ns
 end
 
--- Todos los marcos con OnEvent reciben el evento (como si el juego lo disparara).
+-- Every frame with an OnEvent receives the event (as if the game fired it).
 function FireEvent(event, ...)
     for _, f in ipairs(WowMock.frames) do
         local handler = f._scripts.OnEvent
@@ -41,9 +41,9 @@ function FireEvent(event, ...)
     end
 end
 
--- Ayudantes para los tests de interfaz ----------------------------------------------------------
+-- Helpers for the UI tests ----------------------------------------------------------------------
 
--- Carga el addon entero, lo arranca y abre la ventana (en la entrada `entryId`, si se da).
+-- Loads the whole addon, starts it and opens the window (on entry `entryId`, if given).
 function OpenAddon(entryId, charDB)
     local ns = LoadAddon()
     StartAddon(ns, nil, charDB or { selected = entryId })
@@ -51,7 +51,7 @@ function OpenAddon(entryId, charDB)
     return ns
 end
 
--- Cuadros del arbol visibles: { [questID] = boton }.
+-- Visible tree boxes: { [questID] = button }.
 function ShownNodes()
     local byId, n = {}, 0
     for _, f in ipairs(WowMock.frames) do
@@ -60,7 +60,7 @@ function ShownNodes()
     return byId, n
 end
 
--- Filas visibles de la tabla del buscador / registro, en orden.
+-- Visible rows of the search / quest log table, in order.
 function ShownRows()
     local rows = {}
     for _, f in ipairs(WowMock.frames) do
@@ -69,7 +69,7 @@ function ShownRows()
     return rows
 end
 
--- ADDON_LOADED + PLAYER_ENTERING_WORLD, con variables guardadas nuevas (o las que se pasen).
+-- ADDON_LOADED + PLAYER_ENTERING_WORLD, with fresh saved variables (or the ones passed in).
 function StartAddon(ns, db, charDB)
     CompletaoDB, CompletaoCharDB = db, charDB
     FireEvent("ADDON_LOADED", "Completao")

@@ -1,6 +1,6 @@
 name: CI
 
-# Tests (busted) y luacheck en cada push y pull request, como en Questie. Lua 5.1: la version del juego.
+# Tests (busted) and luacheck on every push and pull request, as in Questie. Lua 5.1: the game's version.
 on:
   push:
     branches:

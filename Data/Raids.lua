@@ -1,8 +1,8 @@
 local _, ns = ...
 
--- Raids confirmadas de Forever: primer desbloqueo el 9-dic-2026 (fuente: classicwow.gg/forever/raids).
--- Roadmap: primavera 2027 (1 raid de 10 + 1 de 20), verano 2027 (una raid iconica renovada + otra nueva);
--- aun sin nombres. Quests vacias a proposito: no se inventan IDs.
+-- Raids confirmed for Forever: first unlock on 2026-12-09 (source: classicwow.gg/forever/raids).
+-- Roadmap: spring 2027 (one 10-man + one 20-man raid), summer 2027 (one revamped iconic raid + a new one);
+-- still unnamed. Quests are empty on purpose: no IDs are invented.
 local raids = {
     { id = "bd",   name = "Barrow Deeps",     minLevel = 60, maxLevel = 60, size = 10, new = true },
     { id = "hs",   name = "Hyjal Summit",     minLevel = 60, maxLevel = 60, size = 20, new = true },
@@ -14,6 +14,6 @@ for _, r in ipairs(raids) do
     ns.RegisterEntry(r)
 end
 
--- Hyjal Summit: Mount Hyjal (area 616). Barrow Deeps tiene varias entradas y no se marca ninguna.
--- La de Onyxia's Lair se genera en Data/Generated/Entrances.lua.
+-- Hyjal Summit: Mount Hyjal (area 616). Barrow Deeps has several entrances and none is marked.
+-- Onyxia's Lair's is generated in Data/Generated/Entrances.lua.
 ns.SetEntrance("hs", { area = 616 })

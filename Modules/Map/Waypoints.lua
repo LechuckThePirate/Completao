@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
--- Una ubicacion es { npc = "Nombre", area = <AreaTable id>, x = 44.4, y = 42.8 } (coordenadas 0-100).
--- El id de area se convierte a mapa del cliente por nombre de zona, la primera vez que hace falta.
+-- A location is { npc = "Name", area = <AreaTable id>, x = 44.4, y = 42.8 } (coordinates 0-100).
+-- The area id is turned into the client's map by zone name, the first time it is needed.
 local mapByName
 
 local function buildMapIndex()
@@ -14,7 +14,7 @@ local function buildMapIndex()
     end
 end
 
--- Mapa de la zona de la ubicacion (no hacen falta coordenadas: sirve para abrir el mapa en la zona).
+-- Map of the location's zone (no coordinates needed: enough to open the map on the zone).
 function ns.ResolveZone(loc)
     if not (loc and loc.area) then return nil end
     if loc.map then return loc.map end
@@ -29,7 +29,7 @@ local function hasCoords(loc)
     return loc and loc.x and loc.x > 0
 end
 
--- Mapa donde poner un punto: hace falta zona y coordenadas.
+-- Map to put a point on: needs a zone and coordinates.
 function ns.ResolveMap(loc)
     if not hasCoords(loc) then return nil end
     return ns.ResolveZone(loc)
@@ -43,9 +43,9 @@ function ns.CanShowMap(loc)
     return ns.ResolveZone(loc) ~= nil
 end
 
--- Marcador propio sobre el mapa del mundo: un "!" dorado que rebota con un resplandor que pulsa.
--- Cuelga del lienzo del mapa (se mueve y hace zoom con el) y se contra-escala para mantener su tamano.
--- Se muestra solo cuando el mapa visible es el de la ubicacion, y se borra al cerrar el mapa.
+-- Our own marker on the world map: a bouncing gold "!" with a pulsing glow. It hangs from the map's
+-- canvas (moves and zooms with it) and is counter-scaled to keep its size. Shown only while the visible
+-- map is the location's, and cleared when the map closes.
 local pinState, pinHolder, pinFrame
 
 local function mapCanvas()
@@ -128,7 +128,7 @@ function ns.ClearMapPin()
     pinState = nil
 end
 
--- Abre el mapa del mundo en la zona de la ubicacion y, si hay coordenadas, deja el punto marcado.
+-- Opens the world map on the location's zone and, with coordinates, leaves the spot marked.
 function ns.ShowOnMap(loc, title)
     local map = ns.ResolveZone(loc)
     if not map then

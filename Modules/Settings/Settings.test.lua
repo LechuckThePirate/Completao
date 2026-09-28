@@ -15,7 +15,7 @@ describe("Settings", function()
 
     before_each(function() WowMock.Reset() end)
 
-    it("por defecto, por personaje, conservando lo que ya tenia", function()
+    it("per character by default, keeping what it already had", function()
         local char = { fadeAlpha = 0.3, zoom = 0.8 }
         login(char, {})
         assert.is_true(ns.IsPerCharacter())
@@ -23,19 +23,19 @@ describe("Settings", function()
         assert.are.same({}, ns.char.filters)
     end)
 
-    it("los ajustes comunes se estrenan con los del primer personaje", function()
+    it("the shared settings start with the first character's", function()
         local account = {}
         login({ zoom = 0.8 }, account)
         assert.are.equal(0.8, account.shared.zoom)
     end)
 
-    it("borra las descripciones guardadas por una version anterior", function()
+    it("removes the descriptions saved by an earlier version", function()
         local account = { descriptions = { esES = { [1] = "x" } } }
         login({}, account)
         assert.is_nil(account.descriptions)
     end)
 
-    it("por personaje, los cambios no tocan lo comun", function()
+    it("per character, changes don't touch the shared ones", function()
         local char, account = { zoom = 0.8 }, {}
         login(char, account)
         ns.char.zoom = 1.2
@@ -43,7 +43,7 @@ describe("Settings", function()
         assert.are.equal(0.8, account.shared.zoom)
     end)
 
-    it("al pasar a comunes se leen y escriben los comunes; la copia del personaje se queda", function()
+    it("switching to shared reads and writes the shared ones; the character's copy stays", function()
         local char, account = { fadeAlpha = 0.3, selected = "vc" }, {}
         login(char, account)
         account.shared.zoom = 0.9
@@ -55,7 +55,7 @@ describe("Settings", function()
         assert.are.equal(0.3, char.fadeAlpha)
     end)
 
-    it("la entrada seleccionada es siempre del personaje", function()
+    it("the selected entry always belongs to the character", function()
         local char, account = {}, {}
         login(char, account)
         ns.SetPerCharacter(false)
@@ -64,7 +64,7 @@ describe("Settings", function()
         assert.is_nil(account.shared.selected)
     end)
 
-    it("un personaje nuevo empieza con una copia de los comunes", function()
+    it("a new character starts with a copy of the shared ones", function()
         local account = { shared = { fadeAlpha = 0.6, filters = { hideLow = true } } }
         local char = {}
         login(char, account)
@@ -73,7 +73,7 @@ describe("Settings", function()
         assert.is_true(account.shared.filters.hideLow)
     end)
 
-    it("al volver a por personaje copia lo comun (el cambio no se nota)", function()
+    it("switching back to per character copies the shared ones (the change isn't noticed)", function()
         local char, account = { perCharacter = false }, { shared = { fadeAlpha = 0.6 } }
         login(char, account)
         ns.SetPerCharacter(true)
@@ -82,7 +82,7 @@ describe("Settings", function()
         assert.are.equal(0.6, account.shared.fadeAlpha)
     end)
 
-    it("sin cambio no vuelve a aplicar nada", function()
+    it("with no change nothing is applied again", function()
         login({}, {})
         ns.SetPerCharacter(true)
         assert.are.equal(0, applied)

@@ -1,10 +1,10 @@
 local _, ns = ...
 
--- Coloca controles en filas, de izquierda a derecha, dentro de `width`: cuando uno no cabe, pasa a la fila
--- siguiente. Se vuelve a llamar al cambiar el tamaño, asi nada se sale ni queda tapado. items: { frame = ,
--- w = ancho o funcion que lo da, h = alto (por defecto el del frame), dy = ajuste vertical }. Con
--- skipHidden no cuenta los ocultos; con fromBottom, (x0, y0) es la esquina inferior izquierda y las filas
--- se apilan hacia arriba (la primera, arriba del todo). Devuelve el alto ocupado.
+-- Places controls in rows, left to right, within `width`: when one doesn't fit, it goes to the next row.
+-- Called again on resize, so nothing overflows or gets covered. items: { frame = , w = width or a function
+-- returning it, h = height (the frame's by default), dy = vertical nudge }. With skipHidden, hidden ones
+-- don't count; with fromBottom, (x0, y0) is the bottom-left corner and rows stack upwards (the first one
+-- on top). Returns the height used.
 function ns.FlowLayout(parent, items, x0, y0, width, gapX, gapY, skipHidden, fromBottom)
     local placed, x, y, rowH = {}, 0, 0, 0
     for _, it in ipairs(items) do
@@ -32,7 +32,7 @@ function ns.FlowLayout(parent, items, x0, y0, width, gapX, gapY, skipHidden, fro
     return total
 end
 
--- Ancho de una casilla con su texto (para FlowLayout).
+-- Width of a checkbox with its label (for FlowLayout).
 function ns.CheckWidth(_, label)
     return function() return 24 + math.ceil(label:GetStringWidth()) + 4 end
 end

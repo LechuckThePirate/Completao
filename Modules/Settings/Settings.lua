@@ -1,9 +1,9 @@
 local _, ns = ...
 
--- Preferencias por personaje o para toda la cuenta, como en Embolsao ("Preferencias de este personaje").
--- Estas claves se leen y escriben en el almacen activo: el del personaje (CompletaoCharDB) o el comun de
--- la cuenta (CompletaoDB.shared). Lo demas de ns.char (entrada seleccionada, seccion abierta) es siempre
--- del personaje. El resto del addon usa ns.char sin saber cual de los dos hay detras.
+-- Settings per character or for the whole account, as in Embolsao ("Character specific preferences").
+-- These keys are read from and written to the active store: the character's (CompletaoCharDB) or the
+-- account's shared one (CompletaoDB.shared). The rest of ns.char (selected entry, open section) always
+-- belongs to the character. The rest of the addon uses ns.char without knowing which one is behind it.
 local SWITCHABLE = {
     fadeAlpha = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
 }
@@ -19,18 +19,18 @@ local function activeStore()
     return CompletaoCharDB.perCharacter and CompletaoCharDB or CompletaoDB.shared
 end
 
--- Al cargar el addon (ADDON_LOADED): prepara las variables guardadas y ns.db / ns.char.
+-- On load (ADDON_LOADED): prepares the saved variables and ns.db / ns.char.
 function ns.InitSettings()
     CompletaoDB = CompletaoDB or {}
     CompletaoCharDB = CompletaoCharDB or {}
     ns.db = CompletaoDB
-    ns.db.descriptions = nil -- textos guardados por una version de desarrollo; ya no se guardan
-    -- la primera vez, los ajustes comunes salen del personaje que los estrena
+    ns.db.descriptions = nil -- texts saved by a development version; no longer saved
+    -- the first time, the shared settings come from the character that first uses them
     if not CompletaoDB.shared then
         CompletaoDB.shared = {}
         for key in pairs(SWITCHABLE) do CompletaoDB.shared[key] = deepCopy(CompletaoCharDB[key]) end
     end
-    -- por defecto, por personaje (como hasta ahora); uno nuevo empieza con una copia de los comunes
+    -- per character by default (as before); a new one starts with a copy of the shared ones
     if CompletaoCharDB.perCharacter == nil then
         for key in pairs(SWITCHABLE) do
             if CompletaoCharDB[key] == nil then CompletaoCharDB[key] = deepCopy(CompletaoDB.shared[key]) end
@@ -53,8 +53,8 @@ function ns.IsPerCharacter()
     return CompletaoCharDB.perCharacter and true or false
 end
 
--- Al pasar a "por personaje" se copia lo comun, para que el cambio no se note; al volver a lo comun, la
--- copia del personaje se queda guardada sin usar. Despues se aplica lo que haya en el almacen nuevo.
+-- Switching to per character copies the shared settings, so the change isn't noticed; switching back to
+-- shared leaves the character's copy saved, unused. Then whatever is in the new store is applied.
 function ns.SetPerCharacter(enabled)
     enabled = enabled and true or false
     if enabled == ns.IsPerCharacter() then return end

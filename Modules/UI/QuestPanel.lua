@@ -20,11 +20,11 @@ local function describeLocation(loc)
     return loc.npc and (loc.npc .. " - " .. where) or where
 end
 
--- Pasos de la quest (ns.QuestSteps, Core.lua) para el boton de waypoint, el mapa y la lista del panel.
+-- The quest's steps (ns.QuestSteps, Modules/Quest) for the waypoint button, the map and the panel's list.
 local WAY_W = 230
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t "
 local ARROW = "|TInterface\\RaidFrame\\ReadyCheck-Waiting:12:12|t "
-local picked -- { id = quest, index = paso } elegido en el desplegable; si no, el paso que toca
+local picked -- { id = quest, index = step } picked in the dropdown; otherwise the step that comes next
 
 local function selectedStep()
     local steps = detail.steps
@@ -33,8 +33,8 @@ local function selectedStep()
     return steps[detail.currentStep or 1]
 end
 
--- A donde llevar un paso: su sitio; sin coordenadas (se hace dentro de una mazmorra), la entrada.
--- Devuelve el sitio y si es la entrada.
+-- Where a step takes you: its place; without coordinates (done inside an instance), the entrance.
+-- Returns the place and whether it is the entrance.
 local function stepTarget(q, step)
     if step.loc and step.loc.x and step.loc.x > 0 then return step.loc, false end
     local e = ns.entries[q.dungeon or q.entryId]
@@ -47,8 +47,8 @@ local function stepZone(step)
     return area and C_Map.GetAreaInfo(area) or nil
 end
 
--- Lista de pasos (va detras del objetivo): hechos con marca verde, el que toca en amarillo con flecha,
--- progreso de cada objetivo si llevas la quest y la zona donde se hace.
+-- List of steps (goes after the objective): done ones with a green tick, the next one in yellow with an
+-- arrow, each objective's progress while you carry the quest, and the zone where it is done.
 local function stepsText()
     local lines = {}
     for _, step in ipairs(detail.steps or {}) do
@@ -107,15 +107,15 @@ local function buildText(q)
     end
     if q.finish then section(L["Ends"], describeLocation(q.finish)) end
     if q.note then section(L["Notes"], q.note) end
-    -- la descripcion larga, al final: la historia se lee despues de lo practico
+    -- the long description, at the end: the story is read after the practical parts
     local desc = ns.QuestDescription(q)
     if desc then section(L["Description"], desc) end
     return table.concat(parts, "\n\n")
 end
 
--- Recompensas (Data/Generated/Rewards.lua, ns.REWARDS): debajo del texto, un bloque con lineas de texto
--- y botones de objeto (icono, cantidad, nombre del color de su calidad y el tooltip del juego). Los nombres
--- y colores los da el cliente por el id del objeto; si aun no los tiene, se piden y se repinta al llegar.
+-- Rewards (Data/Generated/Rewards.lua, ns.REWARDS): under the text, a block of text lines and item
+-- buttons (icon, count, name in its quality color and the game's tooltip). Names and colors come from the
+-- client by item id; if it doesn't have them yet, they are requested and redrawn when they arrive.
 local ITEM_W, ITEM_H = 210, 30
 local rewardRows
 local waitingItems = false
@@ -145,7 +145,7 @@ local function factionName(id)
     return L["Faction %d"]:format(id)
 end
 
--- Filas del bloque: { text = "..." } o { items = { id | { id, cantidad } } }. nil si no hay recompensas.
+-- Rows of the block: { text = "..." } or { items = { id | { id, count } } }. nil when there are no rewards.
 local function buildRewards(q)
     local r = ns.REWARDS and ns.REWARDS[q.id]
     if not r then return nil end
@@ -207,7 +207,7 @@ local function rewardButton(i)
             GameTooltip:Show()
         end)
         b:SetScript("OnLeave", GameTooltip_Hide)
-        -- Shift+clic enlaza el objeto en el chat, Ctrl+clic lo prueba en el probador (como en el registro)
+        -- Shift-click links the item in chat, Ctrl-click tries it on in the dressing room (as in the quest log)
         b:SetScript("OnClick", function(self)
             local link = select(2, getItemInfo(self.itemID))
             if link and HandleModifiedItemClick then HandleModifiedItemClick(link) end
@@ -221,7 +221,7 @@ local function setRewardItem(b, entry)
     local id, count = entry, 1
     if type(entry) == "table" then id, count = entry[1], entry[2] end
     b.itemID = id
-    b.icon:SetTexture(getItemIcon(id) or 134400) -- interrogacion si no hay icono
+    b.icon:SetTexture(getItemIcon(id) or 134400) -- question mark when there's no icon
     b.count:SetText(count > 1 and count or "")
     local name, _, quality = getItemInfo(id)
     if not name then
@@ -234,7 +234,7 @@ local function setRewardItem(b, entry)
     if color then b.name:SetTextColor(color.r, color.g, color.b) else b.name:SetTextColor(1, 1, 1) end
 end
 
--- Coloca las filas para un ancho dado (objetos en columnas de ITEM_W) y devuelve el alto del bloque.
+-- Lays the rows out for a given width (items in ITEM_W columns) and returns the block's height.
 local function layoutRewards(width)
     local block = detail.rewards
     local y, nText, nButton = 0, 0, 0
@@ -284,8 +284,8 @@ local function relayout()
     detail.content:SetHeight(math.max(1, detail.text:GetStringHeight() + rewardsH + 6))
 end
 
--- Abre el registro de misiones en esa quest. El cliente de Forever usa la interfaz moderna (registro
--- dentro del mapa); se prueban varias formas por orden y se usa la primera que funcione.
+-- Opens the quest log on that quest. The Forever client uses the modern UI (log inside the map); several
+-- ways are tried in order and the first that works is used.
 local function openQuest(questID)
     if C_QuestLog.SetSelectedQuest then pcall(C_QuestLog.SetSelectedQuest, questID) end
     local attempts = {
@@ -333,7 +333,7 @@ local function render()
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
     detail.btnOpen:SetShown(onQuest)
-    -- waypoint y mapa: el paso elegido
+    -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false
     if step then loc, isEntrance = stepTarget(q, step) end
@@ -345,8 +345,8 @@ local function render()
     detail.layoutButtons()
 end
 
--- Icono dibujado con lineas (sin depender de texturas del cliente): un cuadro con una flecha
--- diagonal. Maximizar: flecha del centro hacia la esquina superior izquierda. Restaurar: al reves.
+-- Icon drawn with lines (no client textures needed): a box with a diagonal arrow. Maximize: arrow from
+-- the center to the top-left corner. Restore: the other way round.
 local function drawMaxIcon(btn, isMaximized)
     local h, a = 6, 4.5
     local segs = {
@@ -374,9 +374,9 @@ local function drawMaxIcon(btn, isMaximized)
     end
 end
 
--- Widget maximizar/restaurar. Preferido: el oficial de Blizzard (el del mapa y el registro de
--- misiones, flecha dorada sobre boton rojo). Alternativas: botones con los mismos atlas, y por
--- ultimo el icono de lineas. Devuelve una funcion que sincroniza el estado mostrado.
+-- Maximize/restore widget. Preferred: Blizzard's own (the one on the map and the quest log, a gold arrow
+-- on a red button). Fallbacks: buttons with the same atlases, and last the line icon. Returns a function
+-- that syncs the shown state.
 local setMaxState
 local syncing = false
 
@@ -423,7 +423,7 @@ local function createMaxWidget(parent, anchorTo, onToggle)
     return set
 end
 
--- Panel abajo (con el arbol encima) o maximizado ocupando todo el area del arbol.
+-- Panel at the bottom (with the tree above) or maximized over the whole tree area.
 local function layout()
     local shown = detail:IsShown()
     if not shown then maximized = false end
@@ -486,7 +486,7 @@ function ns.Detail_Create(parent, tree, leftOffset)
     detail.rewards:SetHeight(1)
     detail.rewards.texts, detail.rewards.buttons = {}, {}
 
-    -- nombres de objetos que el cliente aun no tenia: se repinta cuando llegan (agrupando las llegadas)
+    -- item names the client didn't have yet: redraw when they arrive (batching the arrivals)
     local itemEvents = CreateFrame("Frame")
     itemEvents:RegisterEvent("GET_ITEM_INFO_RECEIVED")
     local pendingRepaint = false
@@ -499,8 +499,8 @@ function ns.Detail_Create(parent, tree, leftOffset)
         end)
     end)
 
-    -- Waypoint: boton partido. La parte principal lleva al paso elegido (por defecto el que toca); la flecha
-    -- abre la lista de todos los pasos para elegir otro.
+    -- Waypoint: a split button. The main part goes to the chosen step (the next one by default); the arrow
+    -- opens the list of every step to pick another.
     detail.wayGroup = CreateFrame("Frame", nil, detail)
     detail.wayGroup:SetSize(WAY_W + 26, 22)
     detail.btnWay = CreateFrame("Button", nil, detail.wayGroup, "UIPanelButtonTemplate")
@@ -552,7 +552,7 @@ function ns.Detail_Create(parent, tree, leftOffset)
         if current then openQuest(current.id) end
     end)
 
-    -- "Ver en el mapa": el paso elegido (dentro de una mazmorra, su entrada)
+    -- "Show on map": the chosen step (inside an instance, its entrance)
     detail.btnMap = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnMap:SetSize(130, 22)
     detail.btnMap:SetText(L["Show on map"])
@@ -569,7 +569,7 @@ function ns.Detail_Create(parent, tree, leftOffset)
         ns.ShowOnMap(loc, title)
     end)
 
-    -- botones abajo, en filas si no caben en una; el texto acaba justo encima
+    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them
     local buttons = {
         { frame = detail.wayGroup, w = WAY_W + 26 },
         { frame = detail.btnOpen, w = 130 }, { frame = detail.btnMap, w = 130 },
@@ -585,13 +585,13 @@ function ns.Detail_Create(parent, tree, leftOffset)
     layout()
 end
 
--- Abre el registro de misiones del juego en esa quest (para las que el addon no tiene en sus datos).
+-- Opens the game's quest log on that quest (for quests the addon doesn't have in its data).
 function ns.OpenQuestInLog(questID)
     return openQuest(questID)
 end
 
 function ns.Detail_Layout()
-    -- solo con el panel abierto: cerrado, layout() volveria a mostrar el arbol (mal con el buscador abierto)
+    -- only with the panel open: when closed, layout() would show the tree again (wrong with the search open)
     if detail and detail:IsShown() then layout() end
 end
 

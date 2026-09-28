@@ -19,7 +19,7 @@ describe("QuestSteps", function()
         return k
     end
 
-    it("sin empezar y con un requisito pendiente: toca el requisito", function()
+    it("not started with a pending requirement: the requirement is next", function()
         local list, current = ns.QuestSteps(q)
         assert.are.same({ "req", "start", "obj", "obj", "finish" }, kinds(list))
         assert.are.equal(1, current)
@@ -27,14 +27,14 @@ describe("QuestSteps", function()
         assert.matches("Before", list[1].label)
     end)
 
-    it("sin empezar con los requisitos hechos: toca el inicio", function()
+    it("not started with requirements done: the start is next", function()
         WowMock.done[900] = true
         local list, current = ns.QuestSteps(q)
         assert.are.equal("start", list[current].kind)
         assert.is_true(list[current].current)
     end)
 
-    it("en curso: el primer objetivo sin terminar, con su progreso", function()
+    it("in progress: the first unfinished objective, with its progress", function()
         WowMock.onQuest[901] = true
         WowMock.objectives[901] = {
             { text = "Tough Wolf Meat: 3/8", finished = false, numFulfilled = 3, numRequired = 8 },
@@ -43,10 +43,10 @@ describe("QuestSteps", function()
         local list, current = ns.QuestSteps(q)
         assert.are.equal("Tough Wolf Meat", list[current].label)
         assert.are.equal("3/8", list[current].progress)
-        assert.is_true(list[1].done) -- el inicio
+        assert.is_true(list[1].done) -- the start
     end)
 
-    it("empareja los objetivos por nombre aunque vengan en otro orden", function()
+    it("matches objectives by name even when they come in another order", function()
         WowMock.onQuest[901] = true
         WowMock.objectives[901] = {
             { text = "Head of VanCleef: 1/1", finished = true, numFulfilled = 1, numRequired = 1 },
@@ -57,7 +57,7 @@ describe("QuestSteps", function()
         assert.is_true(list[3].done)
     end)
 
-    it("los objetivos del juego sin paso en los datos se anaden sin ubicacion", function()
+    it("the game's objectives with no step in the data are added without a location", function()
         WowMock.onQuest[901] = true
         q.steps = nil
         WowMock.objectives[901] = { { text = "Something: 0/2", finished = false, numFulfilled = 0, numRequired = 2 } }
@@ -66,21 +66,21 @@ describe("QuestSteps", function()
         assert.is_nil(list[current].loc)
     end)
 
-    it("lista para entregar: toca la entrega", function()
+    it("ready to turn in: the turn-in is next", function()
         WowMock.onQuest[901] = true
         WowMock.readyForTurnIn[901] = true
         local list, current = ns.QuestSteps(q)
         assert.are.equal("finish", list[current].kind)
     end)
 
-    it("hecha: todo marcado y la entrega", function()
+    it("done: everything ticked, and the turn-in", function()
         WowMock.done[901] = true
         local list, current = ns.QuestSteps(q)
         assert.are.equal(#list, current)
         for _, s in ipairs(list) do assert.is_true(s.done, s.label) end
     end)
 
-    it("un paso dentro de una mazmorra no tiene coordenadas pero si zona", function()
+    it("a step inside a dungeon has no coordinates but has a zone", function()
         local list = ns.QuestSteps(q)
         assert.is_nil(list[4].loc)
         assert.are.equal(1581, list[4].area)

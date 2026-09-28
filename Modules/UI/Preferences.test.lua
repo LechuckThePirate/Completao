@@ -10,15 +10,15 @@ describe("Preferences", function()
         prefs = _G.CompletaoPreferencesFrame
     end)
 
-    it("el primer clic en el engranaje la abre (no hace falta un segundo)", function()
+    it("the first click on the gear opens it (no second click needed)", function()
         assert.is_true(prefs:IsShown())
         ns.Prefs_Toggle()
         assert.is_false(prefs:IsShown())
     end)
 
-    it("las casillas reflejan y cambian los ajustes", function()
+    it("the checkboxes reflect and change the settings", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
-        -- orden: por personaje, minimapa, mensajes, abrir con el registro
+        -- order: per character, minimap, messages, open with the quest log
         assert.are.equal(4, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
@@ -29,20 +29,20 @@ describe("Preferences", function()
         assert.is_false(ns.Minimap_IsShown())
     end)
 
-    it("la opacidad al moverse sale del deslizador", function()
+    it("the opacity while moving comes from the slider", function()
         local slider = WowMock.Find(function(f) return f._kind == "Slider" end)
         slider._scripts.OnValueChanged(slider, 0.3)
         assert.are.equal(0.3, ns.char.fadeAlpha)
     end)
 
-    it("pasar a ajustes comunes cambia el texto de abajo", function()
+    it("switching to shared settings changes the text at the bottom", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
         checks[1]:SetChecked(false); checks[1]:Click()
         assert.is_false(ns.IsPerCharacter())
         assert.is_not_nil(WowMock.FindByText("Settings are shared by all your characters."))
     end)
 
-    it("restablecer zoom, filtros y ventana", function()
+    it("reset zoom, filters and window", function()
         ns.char.zoom = 1.4
         ns.char.filters.hideLow = true
         ns.char.window = { point = "CENTER", w = 700, h = 500 }

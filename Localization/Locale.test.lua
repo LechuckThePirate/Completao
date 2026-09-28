@@ -3,23 +3,23 @@ dofile("setupTests.lua")
 describe("Locale", function()
     before_each(function() WowMock.Reset() end)
 
-    it("en ingles devuelve la propia clave", function()
+    it("in English returns the key itself", function()
         local ns = LoadAddon({ files = { "Localization/Locale.lua" } })
         assert.are.equal("Dungeons", ns.L["Dungeons"])
         assert.are.equal("Any text", ns.L["Any text"])
     end)
 
-    it("en esES y esMX usa el espanol", function()
+    it("on esES and esMX uses Spanish", function()
         for _, locale in ipairs({ "esES", "esMX" }) do
             WowMock.locale = locale
             local ns = LoadAddon({ files = { "Localization/Locale.lua" } })
             assert.are.equal("Mazmorras", ns.L["Dungeons"])
-            assert.are.equal("Texto sin traducir", ns.L["Texto sin traducir"])
+            assert.are.equal("Untranslated text", ns.L["Untranslated text"])
         end
     end)
 
-    it("todas las cadenas que usa el codigo tienen traduccion al espanol", function()
-        -- claves de la tabla de espanol (una traduccion puede ser igual que el ingles: "Waypoint: %s")
+    it("every string the code uses has a Spanish translation", function()
+        -- keys of the Spanish table (a translation can equal the English one: "Waypoint: %s")
         local translated = {}
         for key in io.open("Localization/Locale.lua"):read("*a"):gmatch('%["(.-)"%]%s*=') do translated[key] = true end
         local missing, seen = {}, {}
@@ -34,6 +34,6 @@ describe("Locale", function()
                 end
             end
         end
-        assert.are.same({}, missing, "sin traducir")
+        assert.are.same({}, missing, "untranslated")
     end)
 end)

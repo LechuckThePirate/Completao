@@ -1,7 +1,7 @@
 local _, ns = ...
 
--- Layout por columnas: la columna es la profundidad (camino mas largo desde una raiz dentro
--- de la mazmorra); la fila se ordena por la media de las filas de los padres.
+-- Column layout: the column is the depth (longest path from a root within the entry); rows are
+-- ordered by the average row of the parents.
 ns.MAX_PER_COL = 12
 
 local function parentsOf(q)
@@ -26,7 +26,7 @@ function ns.BuildLayout(quests, visible)
     local depth, visiting = {}, {}
     local function getDepth(id)
         if depth[id] then return depth[id] end
-        if visiting[id] then return 0 end -- ciclo en los datos: se corta
+        if visiting[id] then return 0 end -- a cycle in the data: cut it
         visiting[id] = true
         local d = 0
         for _, reqId in ipairs(parentsOf(set[id])) do
@@ -47,8 +47,8 @@ function ns.BuildLayout(quests, visible)
         maxCol = math.max(maxCol, c)
     end
 
-    -- Una columna con mas de MAX_PER_COL quests se reparte en varias columnas visuales, para que una
-    -- zona con cien quests sueltas no sea una torre de cien filas.
+    -- A column with more than MAX_PER_COL quests is spread over several visual columns, so a zone with a
+    -- hundred loose quests isn't a tower of a hundred rows.
     local nodes, edges, maxRows, visualCols = {}, {}, 0, 0
     for c = 0, maxCol do
         local col = columns[c] or {}

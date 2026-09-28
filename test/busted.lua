@@ -1,10 +1,10 @@
--- Ejecutor local de los tests, para no tener que instalar busted (en Windows necesita compilador de C).
--- Entiende el subconjunto de busted que usan los *.test.lua: describe / it / before_each / after_each /
--- pending y assert.are.equal / are.same / are_not.equal / is_true / is_false / is_nil / is_not_nil /
--- is_truthy / is_falsy / has_error / has_no.errors / matches / near. La CI usa busted de verdad.
+-- Local test runner, so busted doesn't have to be installed (on Windows it needs a C compiler).
+-- It understands the subset of busted the *.test.lua files use: describe / it / before_each / after_each /
+-- pending and assert.are.equal / are.same / are_not.equal / is_true / is_false / is_nil / is_not_nil /
+-- is_truthy / is_falsy / has_error / has_no.errors / matches / near. CI uses the real busted.
 --
--- Uso, desde la raiz del repo:  lua test/busted.lua [archivo.test.lua ...]
--- Sin argumentos busca todos los *.test.lua (salvo en tools/ y .git/).
+-- Usage, from the repo root:  lua test/busted.lua [file.test.lua ...]
+-- With no arguments it finds every *.test.lua (except under tools/ and .git/).
 
 local function listTests()
     local files = {}
@@ -21,7 +21,7 @@ local function listTests()
     return files
 end
 
--- comparacion en profundidad (assert.are.same)
+-- deep comparison (assert.are.same)
 local function deepEqual(a, b, seen)
     if a == b then return true end
     if type(a) ~= "table" or type(b) ~= "table" then return false end
@@ -100,7 +100,7 @@ end
 local results = { passed = 0, failed = 0, pending = 0, errors = {} }
 
 local function runFile(path)
-    -- cada archivo con sus propios globales (como el "insulate" de busted)
+    -- every file with its own globals (like busted's "insulate")
     local saved = {}
     for k, v in pairs(_G) do saved[k] = v end
 
@@ -122,8 +122,9 @@ local function runFile(path)
     _G.setup, _G.teardown = function(fn) fn() end, function() end
     _G.assert = makeAssert()
 
-    -- como busted: el archivo corre en su propio entorno (lee los globales, pero lo que asigna sin _G. se queda
-    -- en el archivo); lo que carga con dofile (setupTests.lua, los mocks) y el addon usan los globales reales
+    -- like busted: the file runs in its own environment (it reads the globals, but what it assigns without
+    -- _G. stays in the file); what it loads with dofile (setupTests.lua, the mocks) and the addon use the real
+    -- globals
     local env = setmetatable({}, { __index = _G })
     local ok, err = pcall(function() return assert(loadfile(path, "t", env))() end)
     if not ok then

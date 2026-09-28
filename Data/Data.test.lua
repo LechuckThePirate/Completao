@@ -1,7 +1,6 @@
 dofile("setupTests.lua")
 
--- Integridad de los datos (Data/ y Data/Generated/): lo generado por las herramientas tiene que tener la
--- forma que espera el addon.
+-- Data integrity (Data/ and Data/Generated/): what the tools generate must have the shape the addon expects.
 describe("Data", function()
     local ns
 
@@ -10,29 +9,29 @@ describe("Data", function()
         ns = LoadAddon()
     end)
 
-    -- una ubicacion puede ser solo el NPC (dentro de una instancia no hay zona ni coordenadas)
+    -- a location can be just the NPC (inside an instance there is no zone or coordinates)
     local function isLoc(loc)
         return type(loc) == "table" and (loc.area == nil or type(loc.area) == "number")
             and (loc.x == nil or (type(loc.area) == "number" and type(loc.x) == "number" and type(loc.y) == "number"))
     end
 
-    it("cada entrada tiene id, nombre y una seccion conocida", function()
+    it("every entry has an id, a name and a known section", function()
         local known = {}
         for _, c in ipairs(ns.categories) do known[c.id] = true end
         for _, d in ipairs(ns.entryList) do
             assert.is_truthy(type(d.id) == "string" and d.id ~= "", "id")
             assert.is_truthy(type(d.name) == "string" and d.name ~= "", d.id)
-            assert.is_true(known[d.category] == true, d.id .. ": seccion " .. tostring(d.category))
+            assert.is_true(known[d.category] == true, d.id .. ": section " .. tostring(d.category))
         end
     end)
 
-    it("cada quest tiene la forma esperada", function()
+    it("every quest has the expected shape", function()
         for _, d in ipairs(ns.entryList) do
             local seen = {}
             for _, q in ipairs(d.quests) do
                 local where = d.id .. "/" .. tostring(q.id)
                 assert.is_truthy(type(q.id) == "number" and q.id > 0, where)
-                assert.is_nil(seen[q.id], where .. ": repetida en la entrada")
+                assert.is_nil(seen[q.id], where .. ": repeated in the entry")
                 seen[q.id] = true
                 assert.is_truthy(type(q.name) == "string" and q.name ~= "", where)
                 for _, k in ipairs({ "level", "minLevel", "races", "classes" }) do
@@ -52,7 +51,7 @@ describe("Data", function()
         end
     end)
 
-    it("las recompensas tienen la forma esperada y son de quests del addon", function()
+    it("rewards have the expected shape and belong to the addon's quests", function()
         local function itemList(list, where)
             for _, e in ipairs(list or {}) do
                 if type(e) == "table" then
@@ -66,7 +65,7 @@ describe("Data", function()
         for id, r in pairs(ns.REWARDS) do
             n = n + 1
             local where = "rewards/" .. id
-            assert.is_not_nil(ns.FindQuestDef(id), where .. ": quest desconocida")
+            assert.is_not_nil(ns.FindQuestDef(id), where .. ": unknown quest")
             itemList(r.items, where); itemList(r.choice, where)
             assert.is_truthy(r.money == nil or (type(r.money) == "number" and r.money > 0), where)
             assert.is_truthy(r.xp == nil or (type(r.xp) == "number" and r.xp > 0), where)
@@ -75,15 +74,15 @@ describe("Data", function()
         assert.is_true(n > 1000)
     end)
 
-    it("las entradas de instancia tienen su puerta", function()
+    it("instance entries have their door", function()
         for _, d in ipairs(ns.entryList) do
             if d.entrance then assert.is_true(isLoc(d.entrance), d.id) end
         end
         assert.is_not_nil(ns.entries.vc.entrance)
     end)
 
-    it("las correcciones a mano apuntan a quests que existen", function()
-        local code = io.open("Data/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- sin los ejemplos comentados
+    it("hand fixes point at quests that exist", function()
+        local code = io.open("Data/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
         for id in code:gmatch("PatchQuest%((%d+)") do
             assert.is_not_nil(ns.FindQuestDef(tonumber(id)), "Overrides: quest " .. id)
         end

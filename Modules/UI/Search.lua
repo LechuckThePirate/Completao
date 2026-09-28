@@ -1,17 +1,17 @@
 local _, ns = ...
 local L = ns.L
 
--- Buscador global ("Buscar quests..." en la barra lateral): un formulario en el area principal de la ventana
--- y los resultados en una tabla debajo. Busca en todas las secciones a la vez, entre las quests que son para
--- este personaje (clase, raza y faccion, como el arbol). Opciones: titulo, incluir las de bajo nivel, las
--- demasiado altas y las completadas (por defecto no), y el tipo de objeto de recompensa (clase y subclase
--- del juego, p. ej. Arma > Varita). Pulsar un resultado abre su arbol con la quest elegida (UI.lua).
+-- Global search ("Search quests..." in the side panel): a form in the window's main area and the results
+-- in a table below. It searches every section at once, among the quests meant for this character (class,
+-- race and faction, as the tree). Options: title, include low-level, too-high and completed quests (off by
+-- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
+-- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
 local LEVEL_W, MONEY_W, MAX_ICONS, MIN_NAME_W = 44, 84, 6, 150
 local MAX_ROWS = 300
 
--- Columnas de la tabla segun el ancho: el titulo se queda al menos con MIN_NAME_W; si no cabe, primero se
--- estrecha "Donde", luego se muestran menos iconos de recompensa y por ultimo se quita "Donde".
+-- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
+-- then fewer reward icons are shown and last "Where" is dropped.
 local cols = { width = 0 }
 local function computeColumns(width)
     if cols.width == width then return false end
@@ -34,7 +34,7 @@ local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interfac
 local panel
 local state = {
     text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
-    sort = "level", desc = false, -- orden de la tabla: "name" | "level" | "money", pulsando la cabecera
+    sort = "level", desc = false, -- table order: "name" | "level" | "money", by clicking the header
 }
 local rows = {}
 
@@ -43,8 +43,8 @@ local function coinString(copper)
     return f and f(copper) or (copper .. "c")
 end
 
--- Clase y subclase de un objeto, con sus nombres en el idioma del cliente. Es informacion "instantanea"
--- del cliente (no hace falta tener el objeto en cache).
+-- An item's class and subclass, with their names in the client's language. This is "instant" client
+-- information (the item doesn't need to be cached).
 local itemClassCache = {}
 local function itemClass(id)
     local c = itemClassCache[id]
@@ -70,7 +70,7 @@ local function rewardIds(r)
     return ids
 end
 
--- Tipos de recompensa que existen en los datos: { {id, name, subs = { {id, name} }} }, por nombre.
+-- Reward types present in the data: { {id, name, subs = { {id, name} }} }, by name.
 local rewardTypes
 local function getRewardTypes()
     if rewardTypes then return rewardTypes end
@@ -111,11 +111,11 @@ local function matchesReward(q)
     return false
 end
 
--- Vista: "search" (formulario + resultados) o "log" (las quests del registro, en la misma tabla).
+-- View: "search" (form + results) or "log" (the quests in the log, in the same table).
 local mode = "search"
 
--- Quests del registro, con la zona (cabecera) bajo la que salen. Las que el addon conoce se abren en su
--- arbol; las demas se listan igual, con su titulo y nivel del registro.
+-- Quests in the log, with the zone (header) they are listed under. The ones the addon knows open in their
+-- tree; the rest are listed anyway, with the log's title and level.
 local function logQuests()
     local found = {}
     local zone
@@ -135,7 +135,7 @@ local function logQuests()
     return found
 end
 
--- Todas las quests (una vez cada una, en la primera entrada donde se ven: mazmorras, bandas, zonas...).
+-- Every quest (once each, in the first entry where it shows up: dungeons, raids, zones...).
 local function search()
     local found, seen = {}, {}
     local needle = state.text ~= "" and state.text or nil
@@ -167,7 +167,7 @@ local function search()
     return found
 end
 
--- orden de la tabla (cabeceras): por titulo (el que se ve), nivel o dinero; a igualdad, nivel y titulo
+-- table order (headers): by title (the one shown), level or money; ties by level and title
 local function sortFound(found)
     local key = {}
     for _, f in ipairs(found) do
@@ -251,7 +251,7 @@ local function getRow(i)
         if self.entry then
             ns.UI_OpenQuest(self.entry.id, self.quest.id)
         elseif C_QuestLog.IsOnQuest(self.quest.id) then
-            ns.OpenQuestInLog(self.quest.id) -- sin datos del addon: el registro del juego muestra sus detalles
+            ns.OpenQuestInLog(self.quest.id) -- not in the addon's data: the game's log shows its details
         end
     end)
     row:SetScript("OnEnter", function(self)
@@ -271,7 +271,7 @@ local function getRow(i)
     return row
 end
 
--- Coloca las columnas de una fila (o de la cabecera) segun `cols`.
+-- Places the columns of a row (or of the header) according to `cols`.
 local function placeRow(row)
     row.name:ClearAllPoints()
     row.name:SetPoint("LEFT", row, "LEFT", 6, 0)
@@ -372,7 +372,7 @@ local function updateDropdowns()
     panel.typeButton:SetText(typeName)
     panel.subButton:SetText(subName)
     panel.subButton:SetEnabled(state.class ~= nil)
-    -- con un tipo de recompensa elegido todas las quests ya dan objeto: la casilla no cambiaria nada
+    -- with a reward type picked every quest already gives an item: the checkbox would change nothing
     local byType = state.class ~= nil
     panel.itemsOnly:SetEnabled(not byType)
     panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
@@ -408,7 +408,7 @@ function ns.Search_Create(parent)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    -- "Incluir:" y sus tres casillas van juntos, en un grupo que se coloca entero
+    -- "Include:" and its three checkboxes go together, in a group placed as a whole
     local include = CreateFrame("Frame", nil, panel)
     include:SetHeight(24)
     include.label = include:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -442,7 +442,7 @@ function ns.Search_Create(parent)
         return x
     end
 
-    -- solo quests que dan algun objeto (fijo o a elegir)
+    -- only quests that give some item (fixed or to choose)
     local itemsOnly = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
     itemsOnly:SetSize(24, 24)
     local itemsOnlyText = itemsOnly.Text or itemsOnly.text
@@ -471,7 +471,7 @@ function ns.Search_Create(parent)
     panel.typeButton = makeDropdown(panel, 150)
     panel.subButton = makeDropdown(panel, 150)
 
-    -- formulario en filas segun el ancho; la cabecera de la tabla va debajo de la ultima fila
+    -- form in rows by width; the table header goes under the last row
     local formItems = {
         { frame = box, w = 244, h = 24, dy = 2 },
         { frame = include, w = includeWidth, h = 24 },
@@ -483,7 +483,7 @@ function ns.Search_Create(parent)
     local function layoutForm()
         local width = panel:GetWidth() - 8
         if width <= 0 then return end
-        -- en la vista del registro no hay formulario: la tabla empieza bajo el titulo
+        -- the log view has no form: the table starts under the title
         for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
         local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -12
         panel.count:ClearAllPoints()
@@ -516,13 +516,13 @@ function ns.Search_Create(parent)
     end)
     panel.count = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 
-    -- cabecera de la tabla, con las mismas columnas que las filas (placeRow)
+    -- table header, with the same columns as the rows (placeRow)
     local head = CreateFrame("Frame", nil, panel, "BackdropTemplate")
     head:SetHeight(20)
     head:SetBackdrop(BACKDROP)
     head:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
     head:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
-    -- columnas ordenables: pulsar ordena por ellas; pulsar otra vez invierte el orden (flecha junto al nombre)
+    -- sortable columns: a click sorts by them; another click reverses the order (arrow next to the name)
     local sortable = {}
     local function updateSortLabels()
         for sortKey, c in pairs(sortable) do
@@ -542,7 +542,7 @@ function ns.Search_Create(parent)
                 if state.sort == sortKey then
                     state.desc = not state.desc
                 else
-                    state.sort, state.desc = sortKey, sortKey == "money" -- el dinero, de mas a menos
+                    state.sort, state.desc = sortKey, sortKey == "money" -- money, most first
                 end
                 updateSortLabels()
                 requestRefresh()
@@ -598,7 +598,7 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
--- "search": buscador; "log": las quests que llevas en el registro.
+-- "search": the search; "log": the quests you carry in your log.
 function ns.Search_SetMode(m)
     mode = m == "log" and "log" or "search"
     if not panel then return end

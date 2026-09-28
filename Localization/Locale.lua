@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- Las claves son el texto en ingles; en clientes esES/esMX se sustituyen por el espanol.
+-- Keys are the English text; on esES/esMX clients they are replaced by the Spanish one.
 local es = {
     ["initializing..."] = "inicializando...",
     ["initialization complete (%d quests)"] = "inicialización completa (%d quests)",

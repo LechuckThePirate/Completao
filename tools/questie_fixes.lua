@@ -1,11 +1,11 @@
--- Aplica a la base de datos de Classic las "correcciones" que Questie aplica encima (niveles, prerrequisitos,
--- razas, clases, zonas...), ejecutando su Database/Corrections/classicQuestFixes.lua fuera del juego con las
--- constantes de Questie simuladas. El fichero devuelve una tabla distinta segun la faccion: se aplican las dos.
--- Uso: local apply = dofile("tools/questie_fixes.lua"); apply(quests, questieDir)
+-- Applies to the Classic database the "corrections" Questie applies on top of it (levels, prerequisites,
+-- races, classes, zones...), by running its Database/Corrections/classicQuestFixes.lua outside the game with
+-- Questie's constants simulated. The file returns a different table per faction: both are applied.
+-- Usage: local apply = dofile("tools/questie_fixes.lua"); apply(quests, questieDir)
 return function(quests, Q)
     local function read(p) local f = assert(io.open(p, "rb")); local s = f:read("a"); f:close(); return s end
 
-    -- enumeraciones simples "NOMBRE = numero" dentro de un bloque `header ... }`
+    -- simple "NAME = number" enumerations inside a `header ... }` block
     local function enum(path, header)
         local src = read(path)
         local s = assert(src:find(header, 1, true), "no se encuentra " .. header)
@@ -15,7 +15,7 @@ return function(quests, Q)
         return t
     end
 
-    -- claves de campo de una quest (questKeys.name = 1, ...)
+    -- a quest's field keys (questKeys.name = 1, ...)
     local questKeys = {}
     do
         local src = read(Q .. "Database/Classic/classicQuestDB.lua")

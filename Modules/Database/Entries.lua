@@ -1,12 +1,12 @@
 local _, ns = ...
 
--- Entradas (una mazmorra, una zona, una clase...) y sus quests. Los archivos de Data/ las registran al
--- cargar: ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Overrides.lua corrige con ns.PatchQuest.
+-- Entries (a dungeon, a zone, a class...) and their quests. The Data/ files register them while loading:
+-- ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Overrides.lua fixes them with ns.PatchQuest.
 ns.entries = {}
 ns.entryList = {}
 
--- Secciones del panel izquierdo, en orden. Para anadir una: anadirla aqui y registrar
--- entradas con category = "<id>".
+-- Sections of the side panel, in order. To add one: add it here and register entries with
+-- category = "<id>".
 ns.categories = {
     { id = "dungeons", name = ns.L["Dungeons"], sortByLevel = true },
     { id = "raids",    name = ns.L["Raids"], sortByLevel = true },
@@ -16,7 +16,7 @@ ns.categories = {
     { id = "races",    name = ns.L["Races"] },
 }
 
--- Nombre a mostrar de una entrada: las clases y zonas usan el nombre que da el cliente (su idioma).
+-- Name shown for an entry: classes, zones, races and professions use the client's name (its language).
 function ns.EntryName(d)
     if d.classFile and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[d.classFile] then
         return LOCALIZED_CLASS_NAMES_MALE[d.classFile]
@@ -35,11 +35,11 @@ function ns.EntryName(d)
     return d.name
 end
 
--- Esquema de una entrada (mazmorra, raid...):
--- { id = "deadmines", name = "...", category = "dungeons" (por defecto), minLevel = 15, maxLevel = 20,
+-- Shape of an entry (dungeon, raid...):
+-- { id = "deadmines", name = "...", category = "dungeons" (default), minLevel = 15, maxLevel = 20,
 --   quests = { { id = 123, name = "fallback", level = 17, minLevel = 15,
 --                requires = { 122 }, faction = "Alliance"|"Horde"|nil,
---                giver = "NPC (zona)", note = "texto libre" }, ... } }
+--                giver = "NPC (zone)", note = "free text" }, ... } }
 function ns.RegisterEntry(d)
     d.quests = d.quests or {}
     d.category = d.category or "dungeons"
@@ -47,8 +47,8 @@ function ns.RegisterEntry(d)
     ns.entryList[#ns.entryList + 1] = d
 end
 
--- Una misma quest puede estar en varias entradas (p.ej. en su zona y en la mazmorra): se guardan
--- todas las copias por id para poder buscarla rapido y corregirlas juntas.
+-- The same quest can be in several entries (e.g. its zone and the dungeon): every copy is kept by id
+-- to find it fast and patch them all together.
 local copies = {}
 
 function ns.AddQuests(entryId, list)
@@ -62,14 +62,14 @@ function ns.AddQuests(entryId, list)
     end
 end
 
--- Donde esta la puerta de la instancia: { area = <AreaTable id>, x = , y = } (x, y opcionales).
+-- Where the instance's door is: { area = <AreaTable id>, x = , y = } (x, y optional).
 function ns.SetEntrance(entryId, loc)
     local e = ns.entries[entryId]
     if e then e.entrance = loc end
 end
 
--- Correcciones a mano sobre datos generados (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
--- Un valor false borra el campo.
+-- Hand fixes over generated data (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
+-- A false value removes the field.
 function ns.PatchQuest(id, fields)
     for _, q in ipairs(copies[id] or {}) do
         for k, v in pairs(fields) do
@@ -83,7 +83,7 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
--- Progreso de una entrada: quests hechas / quests que ve el personaje.
+-- Progress of an entry: quests done / quests the character can see.
 function ns.EntryProgress(d)
     local done, total = 0, 0
     for _, q in ipairs(d.quests) do

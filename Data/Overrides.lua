@@ -1,6 +1,5 @@
-local _, ns = ... -- luacheck: ignore 211 (sin correcciones por ahora)
+local _, ns = ... -- luacheck: ignore 211 (no fixes for now)
 
--- Correcciones a mano sobre los datos generados (Data/Generated/*). Este archivo no lo pisa ningun
--- generador. Ejemplos:
---   ns.PatchQuest(92401, { requires = { 92422 } })   -- anadir/cambiar un requisito
---   ns.PatchQuest(12345, { faction = false })         -- false borra el campo
+-- Hand fixes over the generated data (Data/Generated/*). No generator overwrites this file. Examples:
+--   ns.PatchQuest(92401, { requires = { 92422 } })   -- add/change a requirement
+--   ns.PatchQuest(12345, { faction = false })         -- false removes the field

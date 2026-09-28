@@ -1,10 +1,10 @@
 local _, ns = ...
 
--- Estado de una quest para el personaje: titulo, hecha / en curso / disponible / bloqueada, bajo o
--- demasiado alto nivel, si es para el (clase, raza, faccion) y su descripcion larga.
+-- A quest's state for the character: title, done / in progress / available / locked, low or too high
+-- level, whether it is meant for them (class, race, faction) and its long description.
 
--- Titulo en el idioma del cliente. Los pasos de una cadena que se llaman igual van numerados en los datos
--- ("Hidden Enemies (3/5)"): el numero se conserva tambien con el titulo del juego, que no lo lleva.
+-- Title in the client's language. Chain steps that share a name are numbered in the data
+-- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it.
 function ns.QuestTitle(id, fallback)
     local title = C_QuestLog.GetTitleForQuestID(id)
     if title and title ~= "" then
@@ -16,7 +16,7 @@ function ns.QuestTitle(id, fallback)
     return fallback or ("Quest " .. id)
 end
 
--- Devuelve "done" | "active" | "available" | "locked", y una lista de razones si esta bloqueada.
+-- Returns "done" | "active" | "available" | "locked", and a list of reasons when locked.
 function ns.QuestStatus(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
         return "done"
@@ -52,8 +52,8 @@ function ns.QuestStatus(q)
     return "available"
 end
 
--- "Bajo nivel": el titulo de la quest saldria en gris para este personaje (trivial). Se le pregunta al
--- propio juego por el color de dificultad; si no lo da, se usa el rango verde del cliente.
+-- "Low level": the quest's title would be grey for this character (trivial). The game itself is asked
+-- for the difficulty color; if it doesn't answer, the client's green range is used.
 function ns.IsLowLevel(q)
     local questLevel = q.level or q.minLevel
     if not questLevel then return false end
@@ -69,10 +69,10 @@ function ns.IsLowLevel(q)
     return questLevel <= player - green
 end
 
--- "Demasiado alto": aun no puede cogerla (el nivel minimo supera el del jugador) o el juego la pinta en rojo
--- en el registro (demasiado dificil para su nivel). Lo segundo pilla las de nivel minimo bajo y nivel alto,
--- como "Master Angler" (nivel 60, se coge desde el 1). Se le pregunta al juego por el color, como en
--- IsLowLevel; si no lo da, rojo es 5 niveles o mas por encima.
+-- "Too high": the character can't take it yet (its minimum level is above theirs) or the game colors it
+-- red in the log (too hard for their level). The latter catches quests with a low minimum and a high
+-- level, like "Master Angler" (level 60, can be taken from level 1). The game is asked for the color, as
+-- in IsLowLevel; if it doesn't answer, red is 5 or more levels above.
 function ns.IsTooHigh(q)
     local player = UnitLevel("player")
     if (q.minLevel or 0) > player then return true end
@@ -87,17 +87,16 @@ function ns.IsTooHigh(q)
     return q.level >= player + 5
 end
 
--- Mascaras de razas y de clases: un bit por raza/clase (razas: 1 humano, 2 orco, 4 enano, 8 elfo de la
--- noche, 16 no-muerto, 32 tauren, 64 gnomo, 128 trol; clases: 1 guerrero, 2 paladin, 4 cazador, 8 picaro,
--- 16 sacerdote, 64 chaman, 128 mago, 256 brujo, 1024 druida). El id de raza o clase del cliente es el
--- numero de bit + 1.
+-- Race and class masks: one bit per race/class (races: 1 human, 2 orc, 4 dwarf, 8 night elf, 16 undead,
+-- 32 tauren, 64 gnome, 128 troll; classes: 1 warrior, 2 paladin, 4 hunter, 8 rogue, 16 priest, 64 shaman,
+-- 128 mage, 256 warlock, 1024 druid). The client's race or class id is the bit number + 1.
 local function hasBit(mask, id)
     return math.floor(mask / 2 ^ (id - 1)) % 2 == 1
 end
 
-local ALLIANCE_RACE_BITS = { [1] = true, [3] = true, [4] = true, [7] = true } -- ids de raza: humano, enano, elfo, gnomo
+local ALLIANCE_RACE_BITS = { [1] = true, [3] = true, [4] = true, [7] = true } -- race ids: human, dwarf, night elf, gnome
 
--- Faccion de una quest: la marcada, o la que se deduce de sus razas (todas de una misma faccion).
+-- A quest's faction: the one set, or the one its races imply (all of one faction).
 function ns.QuestFaction(q)
     if q.faction then return q.faction end
     if not q.races then return nil end
@@ -111,9 +110,9 @@ function ns.QuestFaction(q)
     if horde and not alliance then return "Horde" end
 end
 
--- Lo que ve el personaje. Las quests de otra clase, raza o faccion no se ven, salvo que se mire esa clase o
--- esa raza en concreto (su entrada en el panel; `d` es la entrada que se esta mirando) o se active el filtro
--- "otra faccion", que lo permite para la faccion contraria.
+-- What the character sees. Quests of another class, race or faction are hidden, unless that class or
+-- race is being looked at (its entry in the panel; `d` is the entry being looked at) or the "other
+-- faction" filter is on, which allows the opposite faction's.
 local playerRaceId, playerClassId
 function ns.QuestVisible(q, d)
     if q.hidden then return false end
@@ -132,19 +131,18 @@ function ns.QuestVisible(q, d)
     if q.races and not lookingAtRace then
         playerRaceId = playerRaceId or select(3, UnitRace("player"))
         if playerRaceId and not hasBit(q.races, playerRaceId) then
-            -- otra raza: solo se ve si es de la faccion contraria y has pedido verla
+            -- another race: only shown if it is of the opposite faction and that was asked for
             if not (otherFaction and faction and faction ~= mine) then return false end
         end
     end
     return true
 end
 
--- Descripcion larga de una quest. El cliente no da el texto de una quest cualquiera por su id, solo el de
--- las que llevas en el registro: para esas se lee en vivo (en el idioma del cliente) y para las demas se usa
--- el texto de los datos del addon, si lo hay. No se guarda nada en las variables guardadas.
--- El texto del registro es el de la quest seleccionada: se selecciona, se lee y se deja la seleccion como
--- estaba. Se recuerda solo en memoria y una vez por quest y sesion, para no tocar la seleccion en cada
--- refresco de la ventana.
+-- A quest's long description. The client doesn't give the text of any quest by its id, only of the
+-- ones in your log: for those it is read live (in the client's language), for the rest the addon's
+-- data text is used, if any. Nothing is saved in the saved variables.
+-- The log's text is the selected quest's: it is selected, read, and the selection put back. It is kept
+-- in memory only, once per quest and session, so the selection isn't touched on every window refresh.
 local fromLog = {}
 local function readFromLog(id)
     if fromLog[id] ~= nil then return fromLog[id] end

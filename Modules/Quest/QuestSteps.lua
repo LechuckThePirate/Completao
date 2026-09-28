@@ -1,11 +1,11 @@
 local _, ns = ...
 
--- Pasos de una quest, para los waypoints y la lista del panel: el requisito que falte (el inicio de la quest
--- previa sin hacer), el inicio, un paso por objetivo (q.steps: zona y punto de los datos) y la entrega.
--- Con la quest en el registro, cada objetivo lleva su progreso en directo (se casa por nombre con los
--- objetivos del juego y, si no, por orden); los objetivos del juego sin paso en los datos se anaden sin sitio.
--- Devuelve la lista y el indice del paso que toca ahora. Paso: { kind = "req"|"start"|"obj"|"finish",
--- label, loc = { npc, area, x, y } o nil, done, progress = "3/10", current }.
+-- Steps of a quest, for the waypoints and the panel's list: the missing requirement (the start of the
+-- previous quest not done yet), the start, one step per objective (q.steps: zone and spot from the data)
+-- and the turn-in. With the quest in the log each objective carries its live progress (matched by name to
+-- the game's objectives, else by order); the game's objectives with no step in the data are added without
+-- a place. Returns the list and the index of the step that comes next. Step: { kind =
+-- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", current }.
 local function readyForTurnIn(id)
     if C_QuestLog.ReadyForTurnIn then return C_QuestLog.ReadyForTurnIn(id) end
     if C_QuestLog.IsComplete then return C_QuestLog.IsComplete(id) end
@@ -62,8 +62,8 @@ function ns.QuestSteps(q)
     list[#list + 1] = { kind = "finish", loc = q.finish, done = completed,
         label = L["Turn in: %s"]:format(q.finish and q.finish.npc or "?") }
 
-    -- el que toca: sin empezar, el requisito que falte o el inicio; en curso, el primer objetivo sin
-    -- terminar (mejor si tiene sitio) o la entrega si ya esta lista; hecha, la entrega
+    -- the one that comes next: not taken yet, the missing requirement or the start; in progress, the first
+    -- unfinished objective (preferably one with a place) or the turn-in once ready; done, the turn-in
     local current
     if completed then
         current = #list

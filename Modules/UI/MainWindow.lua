@@ -24,9 +24,9 @@ local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 local selectedId, expandedCat, listInitialized
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
 local frame, canvas, emptyText
-local openedWithLog = false -- la ventana la abrio el registro de misiones (ver al final)
--- Buscador global (Search.lua): con searchMode, el area principal muestra el formulario y la tabla de
--- resultados en vez del arbol; treeWidgets es lo que se oculta entonces.
+local openedWithLog = false -- the quest log opened the window (see the end)
+-- Global search (Search.lua): with searchMode, the main area shows the form and the results table
+-- instead of the tree; treeWidgets is what gets hidden then.
 local searchMode = false
 local treeWidgets = {}
 local searchButtons, nodePos = {}, {}
@@ -67,7 +67,7 @@ local function getNodeButton(i)
     b.text:SetPoint("TOPLEFT", 6, -4)
     b.text:SetPoint("BOTTOMRIGHT", -6, 4)
     b.text:SetJustifyH("LEFT")
-    -- insignia de "se hace dentro de la mazmorra": en la esquina superior izquierda, sobre el borde
+    -- "done inside the instance" badge: on the top-left corner, over the border
     b.badge = b:CreateTexture(nil, "OVERLAY")
     b.badge:SetSize(16, 16)
     b.badge:SetPoint("TOPLEFT", -6, 6)
@@ -93,9 +93,9 @@ local function getLine(i)
     return l
 end
 
--- Filtros del arbol: opciones guardadas por personaje (ns.char.filters) + texto de busqueda.
+-- Tree filters: options saved in ns.char.filters + the search text.
 local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
--- con una quest elegida: lo que no forma parte de su cadena se atenua; su camino va en verde
+-- with a quest selected: whatever isn't part of its chain is dimmed; its path goes green
 local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
 local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
 local CHAIN_COLOR = { 0.35, 1, 0.35 }
@@ -103,10 +103,10 @@ local searchText = ""
 local searchBox
 local filterChecks = {}
 
--- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos. Devuelve, por id de quest, los
--- datos de su cadena: size (numero de quests), allDone (todas hechas; incluye las sueltas hechas), started
--- (alguna hecha o en el registro), allLow (todas de bajo nivel) y headsTooHigh (todas las quests con las que
--- empieza la cadena, las que no tienen prerrequisito dentro de ella, estan por encima de tu nivel).
+-- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
+-- data: size (number of quests), allDone (all done; loose done quests included), started (some done or in
+-- the log), allLow (all low level) and headsTooHigh (every quest the chain starts with -- those with no
+-- prerequisite inside it -- is above your level).
 local function chainInfo(d)
     local set, parent = {}, {}
     for _, q in ipairs(d.quests) do
@@ -160,14 +160,13 @@ local function chainInfo(d)
     return info
 end
 
--- Predicado de visibilidad para el arbol de una entrada: faccion/raza + filtros del usuario.
--- Las cadenas se muestran u ocultan enteras, para no cortarlas por la mitad:
---  * "muy alto" oculta una cadena cuando todas las quests con las que empieza estan por encima de tu nivel;
---    si puedes empezarla se ven todos sus pasos, aunque alguno sea mas alto.
---  * "bajo nivel" oculta una cadena solo si todas sus quests estan en gris.
---  * "completadas" oculta las cadenas con todas sus quests hechas.
--- Una cadena que ya has empezado (alguna quest hecha o en el registro) nunca se oculta por nivel, y las
--- quests sueltas se ocultan por su propio nivel salvo que las lleves en el registro.
+-- Visibility predicate for an entry's tree: faction/race + the user's filters.
+-- By level, chains are shown or hidden as a whole, so they are never cut in half:
+--  * "too high" hides a chain when every quest it starts with is above your level; if you can start it,
+--    all its steps show, even higher ones.
+--  * "low level" hides a chain only when all its quests are grey.
+-- A chain you have started (some quest done or in the log) is never hidden by level, and loose quests are
+-- hidden by their own level unless they are in your log. "Completed" hides each completed quest.
 local function makeFilter(d)
     local f = ns.char.filters
     local chains
@@ -177,7 +176,7 @@ local function makeFilter(d)
         if not ns.QuestVisible(q, d) then return false end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
-        -- completadas: cada una por su lado, aunque su cadena siga (para verlas, se quita el filtro)
+        -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
         if f.hideDone and C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
         if c and c.size > 1 then
             if not c.started then
@@ -215,8 +214,8 @@ local function renderTree(d)
         math.max(1, PAD * 2 + layout.cols * NODE_W + (layout.cols - 1) * GAP_X),
         math.max(1, PAD * 2 + layout.rows * NODE_H + (layout.rows - 1) * GAP_Y))
 
-    -- Con una quest elegida: su camino (lo que hay que hacer antes y despues, siguiendo la cadena) se
-    -- resalta en verde y el resto de quests visibles se atenua.
+    -- With a quest selected: its path (what comes before and after, along the chain) is highlighted in
+    -- green and the rest of the visible quests are dimmed.
     local chainSet
     local selected = ns.Detail_Current()
     if selected and layout.nodes[selected.id] then
@@ -262,8 +261,8 @@ local function renderTree(d)
         b.badge:SetShown(n.quest.dungeon ~= nil)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
-        -- translucidas las que no encajan con tu nivel (mas las muy altas que las de bajo nivel);
-        -- las hechas y las que llevas en el registro se ven siempre nitidas
+        -- translucent when they don't fit your level (too high ones more than low level ones);
+        -- done ones and the ones in your log are always shown sharp
         local alpha = 1
         if status ~= "done" and status ~= "active" then
             if ns.IsTooHigh(n.quest) then alpha = HIGH_LEVEL_ALPHA
@@ -275,10 +274,10 @@ local function renderTree(d)
         byId[id] = b
     end
 
-    -- Las conexiones van por los huecos entre cuadros, nunca por encima de ellos: salen del padre hacia el
-    -- pasillo vertical de su derecha, suben o bajan hasta el hueco entre filas junto al hijo, cruzan por
-    -- ese hueco hasta el pasillo de la izquierda del hijo y entran por su lado izquierdo. Cada fila usa su
-    -- propio carril dentro del pasillo, asi las lineas de un mismo padre (o hacia un mismo hijo) comparten tronco.
+    -- Connections run through the gaps between boxes, never over them: they leave the parent towards the
+    -- vertical corridor on its right, go up or down to the gap between rows next to the child, cross along
+    -- that gap to the corridor on the child's left and enter from its left side. Each row uses its own lane
+    -- in the corridor, so lines from the same parent (or into the same child) share a trunk.
     local segCount = 0
     local lineAlpha, lineThickness = 0.85, 2
     local function segment(x1, y1, x2, y2, c)
@@ -293,7 +292,7 @@ local function renderTree(d)
     end
     local function colX(col) return PAD + col * (NODE_W + GAP_X) end
     local function rowY(row) return PAD + row * (NODE_H + GAP_Y) end
-    local function gutterX(col, row) -- pasillo a la derecha de la columna `col`, en el carril de `row`
+    local function gutterX(col, row) -- corridor right of column `col`, in `row`'s lane
         return colX(col) + NODE_W + GAP_X / 2 + ((row % 8) - 3.5) * 5
     end
     local function drawEdge(e, c)
@@ -301,7 +300,7 @@ local function renderTree(d)
         local yA, yB = rowY(a.row) + NODE_H / 2, rowY(b.row) + NODE_H / 2
         local xA, xB = colX(a.col) + NODE_W, colX(b.col)
         if b.col <= a.col then
-            segment(xA, yA, xB, yB, c) -- no deberia pasar (hijo a la izquierda o en la misma columna)
+            segment(xA, yA, xB, yB, c) -- shouldn't happen (child to the left or in the same column)
         else
             local gA = gutterX(a.col, a.row)
             if b.col == a.col + 1 then
@@ -310,7 +309,7 @@ local function renderTree(d)
                 segment(gA, yB, xB, yB, c)
             else
                 local gB = gutterX(b.col - 1, b.row)
-                local yCh = rowY(b.row) - GAP_Y / 2 + ((a.col % 3) - 1) * 3 -- hueco entre filas, sobre el hijo
+                local yCh = rowY(b.row) - GAP_Y / 2 + ((a.col % 3) - 1) * 3 -- gap between rows, above the child
                 segment(xA, yA, gA, yA, c)
                 segment(gA, yA, gA, yCh, c)
                 segment(gA, yCh, gB, yCh, c)
@@ -319,7 +318,7 @@ local function renderTree(d)
             end
         end
     end
-    -- primero las conexiones normales (mas tenues si hay una quest elegida) y encima las del camino, en verde
+    -- first the normal connections (fainter with a quest selected) and on top the path's, in green
     for _, e in ipairs(layout.edges) do
         if not (chainSet and chainSet[e.from] and chainSet[e.to]) then
             lineAlpha, lineThickness = chainSet and OFF_CHAIN_LINE_ALPHA or 0.85, 2
@@ -334,11 +333,11 @@ local function renderTree(d)
     end
 end
 
--- En zonas y clases solo salen las entradas que tienen alguna quest para este personaje
--- (facción y raza); las mazmorras y raids se listan siempre, aunque aun no tengan datos.
+-- In zones, classes and professions only entries with some quest for this character (faction and race)
+-- are listed; dungeons and raids always are, even with no data yet.
 local HIDE_WHEN_EMPTY = { zones = true, classes = true, professions = true }
 
--- Orden alfabetico por el nombre que se muestra (en el idioma del cliente), sin distinguir mayusculas ni acentos.
+-- Alphabetical order by the shown name (in the client's language), ignoring case and accents.
 local ACCENTS = {
     ["á"] = "a", ["é"] = "e", ["í"] = "i", ["ó"] = "o", ["ú"] = "u", ["ü"] = "u", ["ñ"] = "n", ["à"] = "a",
     ["è"] = "e", ["ì"] = "i", ["ò"] = "o", ["ù"] = "u", ["â"] = "a", ["ê"] = "e", ["î"] = "i", ["ô"] = "o",
@@ -358,7 +357,7 @@ local function entriesOf(catId)
             items[#items + 1] = d
         end
     end
-    -- mazmorras y raids por nivel (minimo, maximo); el resto, alfabeticamente; a igualdad, por nombre
+    -- dungeons and raids by level (minimum, maximum); the rest alphabetically; ties by name
     local byLevel = false
     for _, c in ipairs(ns.categories) do
         if c.id == catId then byLevel = c.sortByLevel end
@@ -393,7 +392,7 @@ local function onHeaderClick(self)
     else
         expandedCat = catId
         local cur = ns.entries[selectedId]
-        -- con el buscador abierto, abrir una seccion solo la despliega (el buscador sigue a la vista)
+        -- with the search open, opening a section only expands it (the search stays in view)
         if not searchMode and not (cur and cur.category == catId) then
             local items = entriesOf(catId)
             selectEntry(items[1] and items[1].id or nil)
@@ -448,7 +447,7 @@ local function refreshList()
     local listW = LIST_W - 26
     local y, hi, ei = 0, 0, 0
 
-    -- primeras entradas: el buscador global y el registro de misiones (misma tabla, Search.lua)
+    -- first entries: the global search and the quest log (same table, Search.lua)
     for _, b in ipairs(searchButtons) do
         local on = searchMode and ns.Search_Mode() == b.kind
         b:ClearAllPoints()
@@ -521,7 +520,7 @@ function ns.UI_Refresh()
     ns.Detail_Refresh()
 end
 
--- Entrar al buscador (entrada de la barra lateral): el panel de la quest se cierra y el arbol se oculta.
+-- Entering the search (side panel entry): the quest panel closes and the tree is hidden.
 function ns.UI_SetSearchMode(on, kind)
     searchMode = on and true or false
     if searchMode then
@@ -532,8 +531,8 @@ function ns.UI_SetSearchMode(on, kind)
     if searchMode then ns.Search_Focus() end
 end
 
--- Resultado del buscador: abre el arbol de su entrada con la quest elegida (camino en verde, panel abierto)
--- y la centra en la vista.
+-- A search result: opens its entry's tree with the quest selected (green path, panel open) and centers it
+-- in the view.
 function ns.UI_OpenQuest(entryId, questId)
     local d = ns.entries[entryId]
     if not d then return end
@@ -554,7 +553,7 @@ local function saveGeometry()
     ns.char.window = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight() }
 end
 
--- Ganchos para las preferencias (Prefs.lua): restablecer ventana, zoom y filtros.
+-- Hooks for the preferences (Preferences.lua): reset window, zoom and filters.
 function ns.UI_ResetWindow()
     ns.char.window = nil
     if frame then
@@ -564,7 +563,7 @@ function ns.UI_ResetWindow()
     end
 end
 
--- Se redefine al crear la ventana, cuando ya hay lienzo que escalar.
+-- Redefined when the window is created, once there is a canvas to scale.
 function ns.UI_SetZoom(z)
     ns.char.zoom = z
 end
@@ -574,7 +573,8 @@ function ns.UI_SyncFilters()
     if frame then ns.UI_Refresh() end
 end
 
--- Tras cambiar entre ajustes del personaje y comunes (Core.lua): ventana, zoom y filtros del almacen nuevo.
+-- After switching between character and shared settings (Settings.lua): the new store's window, zoom and
+-- filters.
 function ns.UI_ApplySettings()
     if frame then
         local saved = ns.char.window
@@ -591,15 +591,15 @@ function ns.UI_ApplySettings()
     ns.UI_SyncFilters()
 end
 
--- Como el mapa del mundo: mientras el personaje se mueve, la ventana se vuelve semitransparente para no
--- tapar lo que hay delante (50 % por defecto; `/completao fade <10-100>` lo cambia, 100 = sin efecto), y
--- vuelve a ser opaca al pararte o mientras el cursor esta encima, para poder usarla en marcha. El cambio es
--- suave. Solo cambia la transparencia, que el juego permite incluso en combate.
+-- Like the world map: while the character moves, the window turns semi-transparent so it doesn't hide
+-- what's ahead (50 % by default; `/completao fade <10-100>` changes it, 100 = no effect), and turns opaque
+-- again when you stop or while the cursor is over it, so it can be used on the move. The change is smooth.
+-- Only the transparency changes, which the game allows even in combat.
 local DEFAULT_FADE_ALPHA = 0.5
 local function fadeOnUpdate(self, elapsed)
     local target = 1
-    -- el cliente oculta algunos valores en combate ("secretos"): compararlos da error, asi que en ese caso
-    -- la ventana se deja opaca
+    -- the client hides some values in combat ("secret" values): comparing them errors, so in that case the
+    -- window stays opaque
     local speed = GetUnitSpeed("player")
     local known = speed ~= nil and not (issecretvalue and issecretvalue(speed))
     if known and speed > 0 and not self:IsMouseOver() then
@@ -614,11 +614,11 @@ local function fadeOnUpdate(self, elapsed)
 end
 
 local function createFrame()
-    -- Marco con retrato (como Embolsao); si el cliente no tuviera la plantilla, el marco basico de antes.
+    -- Portrait frame (like Embolsao); if the client lacked the template, the older basic frame.
     local okPortrait, portraitFrame = pcall(CreateFrame, "Frame", "CompletaoFrame", UIParent, "PortraitFrameFlatTemplate")
     local hasPortrait = okPortrait and portraitFrame and portraitFrame.SetPortraitToAsset ~= nil
     frame = okPortrait and portraitFrame or CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
-    -- el contenido empieza por debajo del retrato (que sobresale por arriba a la izquierda)
+    -- the content starts below the portrait (which sticks out at the top left)
     local top = hasPortrait and 66 or 34
     ns.TREE_TOP = top + 104
     local saved = ns.char.window
@@ -647,7 +647,7 @@ local function createFrame()
     tinsert(UISpecialFrames, "CompletaoFrame")
     frame:SetScript("OnUpdate", fadeOnUpdate)
     frame:HookScript("OnHide", function(self)
-        self:SetAlpha(1) -- la proxima vez se abre opaca
+        self:SetAlpha(1) -- opens opaque next time
         openedWithLog = false
     end)
     frame:Hide()
@@ -673,11 +673,11 @@ local function createFrame()
     local title = (frame.TitleContainer and frame.TitleContainer.TitleText) or frame.TitleText
     if title then title:SetText(("Completao!! v%s"):format(version)) end
 
-    -- Engranaje junto a la X: abre las preferencias. Icono propio (Icons/Gear.png) teñido de dorado.
+    -- Gear next to the X: opens the preferences. Our own icon (Icons/Gear.png) tinted gold.
     local gear = CreateFrame("Button", nil, frame)
     gear:SetSize(20, 20)
-    -- el marco de Blizzard (NineSlice) va muy por encima de su ventana y taparia el engranaje: se pone al
-    -- nivel del boton de cerrar, o por encima del marco
+    -- Blizzard's frame border (NineSlice) sits far above its window and would cover the gear: it takes the
+    -- close button's level, or goes above the border
     local closeButton = frame.CloseButton
     local level = frame:GetFrameLevel() + 10
     if frame.NineSlice then level = math.max(level, frame.NineSlice:GetFrameLevel() + 10) end
@@ -706,8 +706,8 @@ local function createFrame()
     frame.header:SetJustifyH("LEFT")
     frame.header:SetWordWrap(false)
 
-    -- Barra de filtros bajo el titulo: buscador por titulo y casillas, colocados en filas que se
-    -- recolocan con el ancho de la ventana (layoutToolbar, mas abajo).
+    -- Filter bar under the title: search by title and checkboxes, placed in rows that rearrange with the
+    -- window's width (layoutToolbar, below).
     local toolbarLeft = LIST_W + 30
     local toolbarItems = {}
     local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
@@ -764,7 +764,7 @@ local function createFrame()
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 
-    -- ayuda de abajo: ocupa el ancho del area del arbol y se recorta ("...") si no cabe
+    -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", LIST_W + 30, 12)
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
@@ -780,8 +780,8 @@ local function createFrame()
     frame.listChild:SetSize(LIST_W - 26, 1)
     listScroll:SetScrollChild(frame.listChild)
 
-    -- "Buscar quests..." y "Quest Log": primeras entradas de la barra lateral; abren la tabla en el area
-    -- principal (buscador con su formulario, o las quests que llevas en el registro)
+    -- "Search quests..." and "Quest Log": first entries of the side panel; they open the table in the main
+    -- area (the search with its form, or the quests you carry in your log)
     local function sideButton(kind, icon, label)
         local b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
         b.kind = kind
@@ -814,7 +814,7 @@ local function createFrame()
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, LIST_W + 26)
 
-    -- filtros en filas segun el ancho; el arbol empieza debajo de la ultima fila
+    -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
         local width = frame:GetWidth() - toolbarLeft - 32
         local h = ns.FlowLayout(frame, toolbarItems, toolbarLeft, top + 26, width, 10, 2)
@@ -825,11 +825,11 @@ local function createFrame()
     layoutToolbar()
     frame:HookScript("OnSizeChanged", layoutToolbar)
 
-    -- lo que se oculta con el buscador abierto
+    -- what is hidden while the search is open
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
     for _, cb in pairs(filterChecks) do treeWidgets[#treeWidgets + 1] = cb end
 
-    -- Zoom del arbol: se escala el lienzo; se guarda por personaje.
+    -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))
     canvas:SetScale(zoom)
 
@@ -849,7 +849,7 @@ local function createFrame()
         scrollTo(treeScroll, 0, 0)
     end
 
-    -- centra una quest del arbol en la vista (resultados del buscador)
+    -- centers a tree quest in the view (search results)
     function frame.scrollToQuest(id)
         local p = nodePos[id]
         if not p then return end
@@ -857,8 +857,8 @@ local function createFrame()
         scrollTo(treeScroll, cx - treeScroll:GetWidth() / 2, cy - treeScroll:GetHeight() / 2)
     end
 
-    -- Rueda: zoom, centrado en el cursor (el punto bajo el cursor no se mueve). Shift+rueda: desplaza a los
-    -- lados; Ctrl+rueda: desplaza en vertical. Mover la vista con el arrastre del fondo.
+    -- Wheel: zoom, centered on the cursor (the point under the cursor doesn't move). Shift+wheel: scrolls
+    -- sideways; Ctrl+wheel: scrolls vertically. Drag the background to move the view.
     treeScroll:SetScript("OnMouseWheel", function(self, delta)
         local x, y = self:GetHorizontalScroll(), self:GetVerticalScroll()
         if IsShiftKeyDown() then
@@ -880,7 +880,7 @@ local function createFrame()
         end
     end)
 
-    -- Arrastrar el fondo con el boton izquierdo para mover la vista.
+    -- Drag the background with the left button to move the view.
     local dragger = CreateFrame("Frame", nil, treeScroll)
     dragger:Hide()
     dragger:SetScript("OnUpdate", function(self)
@@ -930,9 +930,9 @@ function ns.UI_Toggle()
     frame:SetShown(not frame:IsShown())
 end
 
--- Preferencias -> "Abrir con el registro de misiones": al abrir el registro (tecla L o su boton, que pasan
--- por ToggleQuestLog) se abre tambien esta ventana, y si se abrio asi se cierra con el. El registro puede
--- ser el clasico (QuestLogFrame) o el del mapa (QuestMapFrame); se mira despues de que el juego lo muestre.
+-- Preferences -> "Open with the quest log": opening the log (the L key or its button, both through
+-- ToggleQuestLog) also opens this window, and if it was opened that way it closes with it. The log can be
+-- the classic one (QuestLogFrame) or the map's (QuestMapFrame); checked after the game shows it.
 local function questLogShown()
     if QuestLogFrame and QuestLogFrame:IsShown() then return true end
     return QuestMapFrame ~= nil and QuestMapFrame:IsVisible() and true or false

@@ -1,23 +1,23 @@
--- Simulacion de la API del juego para los tests (busted o test/busted.lua). No pretende ser completa:
--- cubre lo que usa el addon. Los marcos son objetos que aceptan cualquier metodo: Set* guarda los
--- argumentos (en frame._set), Get*/Is* devuelven lo guardado o un valor razonable, Create* crea hijos.
--- Estado del "juego" en WowMock: nivel, faccion, quests hechas y en el registro, etc.
--- Compatible con Lua 5.1 (la version del juego y la de la CI).
+-- Simulation of the game's API for the tests (busted or test/busted.lua). It doesn't try to be complete:
+-- it covers what the addon uses. Frames are objects that accept any method: Set* stores its arguments
+-- (in frame._set), Get*/Is* return what was stored or a sensible value, Create* creates children.
+-- The "game" state lives in WowMock: level, faction, quests done and in the log, etc.
+-- Compatible with Lua 5.1 (the game's version and CI's).
 
 WowMock = {}
-local unpackArgs = unpack or table.unpack -- luacheck: ignore 143 (Lua 5.1 no lo tiene; 5.2+ si)
+local unpackArgs = unpack or table.unpack -- luacheck: ignore 143 (Lua 5.1 lacks it; 5.2+ has it)
 
 local function resetState()
     WowMock.level = 20
     WowMock.faction = "Alliance"
     WowMock.race = { "Human", "Human", 1 }
     WowMock.class = { "Mage", "MAGE", 8 }
-    WowMock.done = {}          -- [questID] = true: hecha
-    WowMock.onQuest = {}       -- [questID] = true: en el registro
-    WowMock.titles = {}        -- [questID] = titulo del cliente
+    WowMock.done = {}          -- [questID] = true: completed
+    WowMock.onQuest = {}       -- [questID] = true: in the log
+    WowMock.titles = {}        -- [questID] = the client's title
     WowMock.objectives = {}    -- [questID] = { { text, finished, numFulfilled, numRequired } }
     WowMock.readyForTurnIn = {}
-    WowMock.log = {}           -- entradas del registro: { isHeader, title, questID, level }
+    WowMock.log = {}           -- quest log entries: { isHeader, title, questID, level }
     WowMock.items = {}         -- [itemID] = { name, link, quality, icon, classID, subclassID, typeName, subName }
     WowMock.cursor = { 0, 0 }
     WowMock.speed = 0
@@ -26,16 +26,16 @@ local function resetState()
     WowMock.frames = {}
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
-    WowMock.maps = {}          -- [uiMapID] = { name, mapType }: mapas del cliente
+    WowMock.maps = {}          -- [uiMapID] = { name, mapType }: the client's maps
 end
 resetState()
 WowMock.Reset = resetState
 
--- Temporizadores: por defecto se ejecutan al momento (los tests no esperan).
+-- Timers: run immediately by default (tests don't wait).
 C_Timer = { After = function(_, f) f() end, NewTicker = function() return { Cancel = function() end } end }
 
 ---------------------------------------------------------------------------------------------------
--- Marcos
+-- Frames
 ---------------------------------------------------------------------------------------------------
 local frameMethods = {}
 
@@ -120,8 +120,8 @@ function frameMethods:GetObjectType() return self._kind end
 
 local function methodFor(self, k)
     if frameMethods[k] then return frameMethods[k] end
-    -- solo los metodos (empiezan por un verbo); un campo o hijo no definido (TitleContainer, CloseButton...)
-    -- vale nil, como en el juego
+    -- only methods (they start with a verb); an undefined field or child (TitleContainer, CloseButton...)
+    -- is nil, as in the game
     if type(k) ~= "string" then return nil end
     local verbs = { "Set", "Get", "Is", "Has", "Can", "Create", "Register", "Unregister", "Enable", "Disable",
         "Start", "Stop", "Lock", "Unlock", "Raise", "Lower", "Play", "Add", "Clear", "Hook", "Adjust", "Update" }
@@ -146,7 +146,7 @@ local function methodFor(self, k)
         return function(owner) local v = owner._set["S" .. k:sub(2)]; if v then return unpackArgs(v) end end
     end
     if k:match("^Is") or k:match("^Has") or k:match("^Can") then return function() return false end end
-    -- el resto (Register*, Enable*, Start*, Stop*, Play, Lock*, Raise...): no hacen nada
+    -- the rest (Register*, Enable*, Start*, Stop*, Play, Lock*, Raise...): do nothing
     return function() end
 end
 
@@ -166,7 +166,7 @@ CreateFrame = function(kind, name, parent, template)
     return WowMock.NewFrame(kind, name, parent, template)
 end
 
--- Busca marcos creados: por un predicado, o el primero con ese texto.
+-- Finds created frames: by a predicate, or the first with that text.
 function WowMock.Find(pred)
     for _, f in ipairs(WowMock.frames) do
         if pred(f) then return f end
@@ -197,7 +197,7 @@ GameTooltip_Hide = function() end
 UISpecialFrames = {}
 
 ---------------------------------------------------------------------------------------------------
--- Funciones y tablas del juego
+-- The game's functions and tables
 ---------------------------------------------------------------------------------------------------
 strtrim = function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
 tinsert = table.insert
@@ -240,7 +240,7 @@ QuestDifficultyColors = {
     difficult = { r = 1, g = 1, b = 0 }, verydifficult = { r = 1, g = 0.5, b = 0.25 },
     impossible = { r = 1, g = 0.1, b = 0.1 },
 }
--- como el juego: gris si esta a mas del rango verde por debajo; rojo 5 o mas por encima
+-- like the game: grey when below the green range; red 5 or more levels above
 GetQuestDifficultyColor = function(level)
     local d = level - WowMock.level
     if d >= 5 then return QuestDifficultyColors.impossible end

@@ -21,7 +21,7 @@ describe("QuestPanel", function()
         ns.CanShowMap = ns.CanWaypoint
     end)
 
-    describe("recompensas", function()
+    describe("rewards", function()
         before_each(function()
             WowMock.items[159] = { name = "Refreshing Spring Water", quality = 1 }
             ns.REWARDS = { [166] = { choice = { { 4604, 5 }, 159, 2041 }, items = { 6087 }, money = 25, xp = 1050,
@@ -35,7 +35,7 @@ describe("QuestPanel", function()
             return list
         end
 
-        it("un boton por objeto, con cantidad y nombre del cliente", function()
+        it("one button per item, with count and the client's name", function()
             local items = itemButtons()
             assert.is_not_nil(items[4604]); assert.is_not_nil(items[159]); assert.is_not_nil(items[2041]); assert.is_not_nil(items[6087])
             assert.are.equal(5, items[4604].count:GetText())
@@ -43,12 +43,12 @@ describe("QuestPanel", function()
             assert.are.equal("Refreshing Spring Water", items[159].name:GetText())
         end)
 
-        it("pide al cliente los objetos que aun no conoce", function()
+        it("asks the client for the items it doesn't know yet", function()
             assert.are.equal("Item 4604", itemButtons()[4604].name:GetText())
             assert.is_true((WowMock.requestedItems or 0) >= 3)
         end)
 
-        it("tooltip del objeto y Shift+clic para enlazarlo", function()
+        it("item tooltip and Shift-click to link it", function()
             local b = itemButtons()[159]
             local shown
             GameTooltip.SetItemByID = function(_, id) shown = id end
@@ -58,7 +58,7 @@ describe("QuestPanel", function()
             assert.matches("item:159", WowMock.linked)
         end)
 
-        it("dinero, experiencia y reputacion (con faccion desconocida)", function()
+        it("money, experience and reputation (with an unknown faction)", function()
             local texts = {}
             for _, f in ipairs(WowMock.frames) do if type(f._text) == "string" then texts[#texts + 1] = f._text end end
             local all = table.concat(texts, "\n")
@@ -69,7 +69,7 @@ describe("QuestPanel", function()
         end)
     end)
 
-    describe("pasos y waypoint", function()
+    describe("steps and waypoint", function()
         local q
 
         before_each(function()
@@ -79,7 +79,7 @@ describe("QuestPanel", function()
                 steps = { { name = "Tough Wolf Meat", area = 12, x = 30, y = 31 }, { name = "Head of VanCleef", area = 1581 } } }
         end)
 
-        it("la lista de pasos va detras del objetivo", function()
+        it("the steps list goes after the objective", function()
             q.objective = "Do things."
             ns.Detail_Show(q)
             local text = panelText()
@@ -87,12 +87,12 @@ describe("QuestPanel", function()
             assert.matches("Start: Giver", text)
         end)
 
-        it("sin empezar: el boton lleva al requisito que falta", function()
+        it("not started: the button goes to the missing requirement", function()
             ns.Detail_Show(q)
             assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton():GetText())
         end)
 
-        it("en curso: al primer objetivo sin terminar, con el progreso en la lista", function()
+        it("in progress: to the first unfinished objective, with progress in the list", function()
             WowMock.done[900000] = true
             WowMock.onQuest[900001] = true
             WowMock.objectives[900001] = { { text = "Tough Wolf Meat: 3/8", finished = false, numFulfilled = 3, numRequired = 8 } }
@@ -103,7 +103,7 @@ describe("QuestPanel", function()
             assert.are.equal("Tough Wolf Meat@30", waypoints[#waypoints])
         end)
 
-        it("un paso dentro de una mazmorra lleva a su entrada", function()
+        it("a step inside a dungeon goes to its entrance", function()
             WowMock.done[900000] = true
             WowMock.onQuest[900001] = true
             WowMock.objectives[900001] = {
@@ -116,7 +116,7 @@ describe("QuestPanel", function()
             assert.is_not_nil(WowMock.FindButton("Show entrance"))
         end)
 
-        it("elegir otro paso en el desplegable pone el waypoint y se mantiene al refrescar", function()
+        it("picking another step in the dropdown sets the waypoint and survives a refresh", function()
             ns.Detail_Show(q)
             local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
             arrow:Click()
@@ -130,7 +130,7 @@ describe("QuestPanel", function()
         end)
     end)
 
-    it("el boton Abrir mision solo con la quest en el registro", function()
+    it("the Open quest button only with the quest in the log", function()
         local q = ns.FindQuestDef(166)
         ns.Detail_Show(q)
         assert.is_false(WowMock.FindButton("Open quest"):IsShown())
@@ -139,7 +139,7 @@ describe("QuestPanel", function()
         assert.is_true(WowMock.FindButton("Open quest"):IsShown())
     end)
 
-    it("la descripcion larga va al final, si la hay", function()
+    it("the long description goes last, when there is one", function()
         ns.Detail_Show({ id = 1, name = "x", desc = "Long story" })
         local text = panelText()
         assert.is_truthy(text:find("Description", 1, true))

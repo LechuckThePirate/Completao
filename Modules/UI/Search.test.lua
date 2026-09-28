@@ -25,18 +25,18 @@ describe("Search", function()
         panel = ns.UI.searchPanel
     end)
 
-    it("sin criterios lista las quests de tu nivel sin hacer", function()
+    it("with no criteria lists the quests of your level not done yet", function()
         assert.is_true(#ShownRows() > 50)
     end)
 
-    it("busca por titulo en todas las secciones", function()
+    it("searches by title across all sections", function()
         typeText("defias brother")
         local rows = ShownRows()
         assert.is_true(ids(rows)[166])
         assert.is_true(#rows < 10)
     end)
 
-    it("las completadas no salen salvo con Incluir: completadas", function()
+    it("completed quests only show with Include: Done", function()
         typeText("defias brother")
         WowMock.done[166] = true
         ns.Search_Refresh()
@@ -48,7 +48,7 @@ describe("Search", function()
         assert.is_true(ids(ShownRows())[166])
     end)
 
-    it("filtra por tipo de recompensa (Arma) y desactiva 'solo con objetos'", function()
+    it("filters by reward type (Weapon) and disables 'only with items'", function()
         panel.typeButton:Click()
         local weapon = WowMock.Find(function(f) return f.text and f.text._text == "Weapon" and f._scripts.OnClick end)
         weapon:Click()
@@ -59,13 +59,13 @@ describe("Search", function()
         assert.is_true(panel.subButton:IsEnabled())
     end)
 
-    it("solo con objetos quita las que solo dan dinero", function()
+    it("only with items drops the ones that only give money", function()
         panel.itemsOnly:SetChecked(true); panel.itemsOnly:Click()
         local found = ids(ShownRows())
         assert.is_nil(found[167])
     end)
 
-    it("ordena por dinero (de mas a menos, y al reves) y lo muestra en su columna", function()
+    it("sorts by money (most first, and reversed) and shows it in its column", function()
         panel.head.money:Click()
         local rows = ShownRows()
         local function money(r) return (ns.REWARDS[r.quest.id] or {}).money or 0 end
@@ -76,8 +76,8 @@ describe("Search", function()
         for i = 2, #rows do assert.is_true(money(rows[i - 1]) <= money(rows[i])) end
     end)
 
-    it("ordena por nivel y por titulo", function()
-        panel.head.level:Click() -- ya esta por nivel ascendente: un clic lo invierte
+    it("sorts by level and by title", function()
+        panel.head.level:Click() -- already sorted by ascending level: one click reverses it
         local rows = ShownRows()
         assert.is_true((rows[1].quest.level or 0) >= (rows[#rows].quest.level or 0))
         panel.head.name:Click()
@@ -85,7 +85,7 @@ describe("Search", function()
         assert.is_true(rows[1].quest.name:lower() <= rows[#rows].quest.name:lower())
     end)
 
-    it("pulsar un resultado abre su arbol con la quest elegida", function()
+    it("clicking a result opens its tree with the quest selected", function()
         typeText("defias brother")
         local row = ShownRows()[1]
         row:Click()
@@ -93,7 +93,7 @@ describe("Search", function()
         assert.are.equal(row.quest.id, ns.Detail_Current().id)
     end)
 
-    describe("vista del registro", function()
+    describe("quest log view", function()
         before_each(function()
             WowMock.log = { { isHeader = true, title = "Westfall" }, { questID = 166, title = "The Defias Brotherhood", level = 22 },
                 { isHeader = true, title = "Ashenvale" }, { questID = 999999, title = "Unknown Quest", level = 25 } }
@@ -101,13 +101,13 @@ describe("Search", function()
             ns.UI_SetSearchMode(true, "log")
         end)
 
-        it("lista las quests del registro, sin formulario", function()
+        it("lists the quests in the log, without the form", function()
             local rows = ShownRows()
             assert.are.equal(2, #rows)
             assert.is_false(panel.box:IsShown())
         end)
 
-        it("una quest sin datos del addon sale con su zona y se abre en el registro del juego", function()
+        it("a quest missing from the addon's data shows its zone and opens in the game's log", function()
             local unknown
             for _, r in ipairs(ShownRows()) do if r.quest.id == 999999 then unknown = r end end
             assert.are.equal("Ashenvale", unknown.whereText)

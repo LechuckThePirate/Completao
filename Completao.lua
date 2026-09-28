@@ -1,13 +1,13 @@
 local ADDON, ns = ...
 
--- Arranque del addon: eventos, avisos en el chat, /completao y atajos de teclado. Se carga el ultimo; los
--- modulos (Modules/) y los datos (Data/) ya estan cargados.
+-- Addon entry point: events, chat messages, /completao and key bindings. Loaded last, once the modules
+-- (Modules/) and the data (Data/) are in.
 
 function ns.Print(...)
     print("|cff33ff99Completao!!|r:", ...)
 end
 
--- Repinta la ventana (si esta abierta) poco despues de un cambio, agrupando cambios seguidos.
+-- Redraws the window (if open) shortly after a change, batching changes that come together.
 local pending
 function ns.RequestRefresh()
     if pending then return end
@@ -25,10 +25,10 @@ function ns.Version()
     return getMeta and getMeta(ADDON, "Version") or "?"
 end
 
--- Aviso en el chat, como Embolsao: "Completao!! vX -- initializing..." al cargar el addon y
--- "... initialization complete" cuando el jugador ya esta en el mundo con los datos indexados.
+-- Chat notice, like Embolsao: "Completao!! vX -- initializing..." when the addon loads and
+-- "... initialization complete" once the player is in the world with the data indexed.
 local function announce(text)
-    if ns.char and ns.char.quiet then return end -- Preferencias: mensajes del chat desactivados
+    if ns.char and ns.char.quiet then return end -- Preferences: chat messages turned off
     print(("|cff33ff99Completao!!|r v%s -- %s"):format(ns.Version(), text))
 end
 
@@ -54,7 +54,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
         announce(ns.L["initializing..."])
         ns.Minimap_Init()
     elseif event == "PLAYER_ENTERING_WORLD" then
-        -- tambien salta tras /reload; se avisa una sola vez por carga de la interfaz
+        -- also fires after /reload; announced once per UI load
         C_Timer.After(1, announceReady)
     else
         ns.RequestRefresh()
@@ -71,8 +71,8 @@ local function dumpQuestLog()
     end
 end
 
--- Atajos de teclado (Bindings.xml): salen en Opciones -> Atajos de teclado, en su propia seccion
--- "Completao!!" (como Questie).
+-- Key bindings (Bindings.xml): shown in Options -> Keybindings, in their own "Completao!!" section
+-- (like Questie).
 BINDING_NAME_COMPLETAO_TOGGLE = ns.L["Open / close the window"]
 BINDING_NAME_COMPLETAO_PREFS = ns.L["Open / close the preferences"]
 function Completao_Toggle() ns.UI_Toggle() end

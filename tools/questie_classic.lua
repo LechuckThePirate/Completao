@@ -240,6 +240,102 @@ for area, questIds in pairs(core) do
     end
 end
 
+-- Pasos intermedios: uno por objetivo (matar, usar un objeto del mundo, recoger un objeto, evento/escolta),
+-- con la zona donde mas aparece lo que hay que buscar y el punto mas denso dentro de ella. Para "recoge X"
+-- se juntan los sitios de los bichos y objetos que lo sueltan. Dentro de una mazmorra no hay coordenadas:
+-- el paso lleva solo la zona (el addon lleva a la entrada).
+local items = loadData(Q .. "Database/Classic/classicItemDB.lua", "itemData")
+local objects = loadData(Q .. "Database/Classic/classicObjectDB.lua", "objectData")
+local I_NAME, I_NPCDROPS, I_OBJDROPS, O_NAME, O_SPAWNS = 1, 2, 3, 1, 4
+local MAX_SOURCES, MAX_STEPS = 40, 6
+
+local function addSpawns(acc, spawns)
+    for zone, list in pairs(spawns or {}) do
+        acc[zone] = acc[zone] or {}
+        for _, c in ipairs(list) do acc[zone][#acc[zone] + 1] = c end
+    end
+end
+
+-- misma idea que densestPoint de las herramientas locales: celda de 6x6 (con vecinas) con mas puntos
+local function densest(pts)
+    local CELL, grid, cells = 6, {}, {}
+    local function cell(v) return math.floor(v / CELL) end
+    local function key(i, j) return i * 1000 + j end
+    for _, c in ipairs(pts) do
+        local i, j = cell(c[1]), cell(c[2])
+        local k = key(i, j)
+        if not grid[k] then grid[k] = 0; cells[#cells + 1] = { i, j } end
+        grid[k] = grid[k] + 1
+    end
+    local best, bestN
+    for _, ij in ipairs(cells) do -- en orden de aparicion: resultado estable
+        local n = 0
+        for di = -1, 1 do for dj = -1, 1 do n = n + (grid[key(ij[1] + di, ij[2] + dj)] or 0) end end
+        if not bestN or n > bestN then best, bestN = ij, n end
+    end
+    local sx, sy, n = 0, 0, 0
+    for _, c in ipairs(pts) do
+        if math.abs(cell(c[1]) - best[1]) <= 1 and math.abs(cell(c[2]) - best[2]) <= 1 then
+            sx, sy, n = sx + c[1], sy + c[2], n + 1
+        end
+    end
+    return math.floor(sx / n * 10 + 0.5) / 10, math.floor(sy / n * 10 + 0.5) / 10
+end
+
+local function stepFrom(name, spawnsByZone)
+    local bestZone, bestPts
+    for zone, list in pairs(spawnsByZone) do
+        if not bestPts or #list > #bestPts or (#list == #bestPts and zone < bestZone) then bestZone, bestPts = zone, list end
+    end
+    if not bestZone or not name then return nil end
+    local valid = {}
+    for _, c in ipairs(bestPts) do if c[1] and c[1] >= 0 then valid[#valid + 1] = c end end
+    local zone = (areaOf[bestZone] and areaOf[bestZone]) or bestZone
+    if #valid == 0 then return ("{ name = %s, area = %d }"):format(lua(name), zone) end
+    local x, y = densest(valid)
+    return ("{ name = %s, area = %d, x = %.1f, y = %.1f }"):format(lua(name), bestZone, x, y)
+end
+
+local function stepsOf(q)
+    local steps = {}
+    local function add(s) if s and #steps < MAX_STEPS then steps[#steps + 1] = s end end
+    local obj = q[Q_OBJ] or {}
+    for _, o in ipairs(obj[1] or {}) do
+        local n = npcs[o[1]]
+        if n then local acc = {}; addSpawns(acc, n[N_SPAWNS]); add(stepFrom(o[2] or n[N_NAME], acc)) end
+    end
+    for _, o in ipairs(obj[2] or {}) do
+        local ob = objects[o[1]]
+        if ob then local acc = {}; addSpawns(acc, ob[O_SPAWNS]); add(stepFrom(o[2] or ob[O_NAME], acc)) end
+    end
+    for _, o in ipairs(obj[3] or {}) do
+        local it = items[o[1]]
+        if it then
+            local acc, used = {}, 0
+            for _, npcId in ipairs(it[I_NPCDROPS] or {}) do
+                if used < MAX_SOURCES and npcs[npcId] then addSpawns(acc, npcs[npcId][N_SPAWNS]); used = used + 1 end
+            end
+            for _, objId in ipairs(it[I_OBJDROPS] or {}) do
+                if used < MAX_SOURCES and objects[objId] then addSpawns(acc, objects[objId][O_SPAWNS]); used = used + 1 end
+            end
+            add(stepFrom(it[I_NAME], acc))
+        end
+    end
+    for _, o in ipairs(obj[5] or {}) do -- killCredit: { {npcs}, npc base, texto }
+        local acc = {}
+        for _, npcId in ipairs(o[1] or {}) do if npcs[npcId] then addSpawns(acc, npcs[npcId][N_SPAWNS]) end end
+        local base = npcs[o[2]]
+        add(stepFrom(o[3] or (base and base[N_NAME]), acc))
+    end
+    local trigger = q[9]
+    if type(trigger) == "table" and type(trigger[2]) == "table" then
+        local acc = {}
+        addSpawns(acc, trigger[2])
+        add(stepFrom(trigger[1], acc))
+    end
+    return steps
+end
+
 -- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races;
 -- restricciones de clase -> classes (salvo en las entradas de clase, donde son la razon de estar ahi).
 local function questLine(id, name, comment, noClasses)
@@ -265,6 +361,8 @@ local function questLine(id, name, comment, noClasses)
     local finisher = q[Q_END] and q[Q_END][1] and q[Q_END][1][1]
     if giver and npcs[giver] then f[#f + 1] = "start = " .. location(giver) end
     if finisher and npcs[finisher] then f[#f + 1] = "finish = " .. location(finisher) end
+    local steps = stepsOf(q)
+    if #steps > 0 then f[#f + 1] = "steps = { " .. table.concat(steps, ", ") .. " }" end
     local text = q[Q_TEXT] and table.concat(q[Q_TEXT], " ")
     if text and text ~= "" then f[#f + 1] = "objective = " .. lua(text) end
     return ("    { %s },%s"):format(table.concat(f, ", "), comment or "")

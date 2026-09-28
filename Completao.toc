@@ -24,11 +24,13 @@ Data\Generated\Classes.lua
 Data\Generated\Professions.lua
 Data\Generated\Races.lua
 Data\Generated\Forever.lua
+Data\Generated\ForeverNew.lua
 Data\Generated\Rewards.lua
 Data\Generated\Entrances.lua
 Data\Overrides.lua
 Graph.lua
 Waypoints.lua
+Menu.lua
 Detail.lua
 Search.lua
 UI.lua

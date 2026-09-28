@@ -190,51 +190,7 @@ local function sortFound(found)
     return found
 end
 
--- Desplegable propio (lista emergente de botones): no depende de los menus de Blizzard, que cambian
--- entre versiones del cliente.
-local popup
-local function openMenu(anchor, options, onPick)
-    if not popup then
-        popup = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-        popup:SetBackdrop(BACKDROP)
-        popup:SetBackdropColor(0.05, 0.05, 0.08, 0.98)
-        popup:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
-        popup:SetFrameStrata("DIALOG")
-        popup:EnableMouse(true)
-        popup.buttons = {}
-    end
-    if popup:IsShown() and popup.anchor == anchor then popup:Hide() return end
-    popup.anchor = anchor
-    local perCol = 18
-    local cols = math.max(1, math.ceil(#options / perCol))
-    local colW = 170
-    for i, opt in ipairs(options) do
-        local b = popup.buttons[i]
-        if not b then
-            b = CreateFrame("Button", nil, popup)
-            b:SetSize(colW - 8, 18)
-            b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            b.text:SetPoint("LEFT", 4, 0)
-            b.text:SetPoint("RIGHT", -4, 0)
-            b.text:SetJustifyH("LEFT")
-            b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-            popup.buttons[i] = b
-        end
-        b.text:SetText(opt.name)
-        b:SetScript("OnClick", function()
-            popup:Hide()
-            onPick(opt)
-        end)
-        b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", 4 + math.floor((i - 1) / perCol) * colW, -4 - ((i - 1) % perCol) * 18)
-        b:Show()
-    end
-    for i = #options + 1, #popup.buttons do popup.buttons[i]:Hide() end
-    popup:SetSize(cols * colW, 8 + math.min(#options, perCol) * 18)
-    popup:ClearAllPoints()
-    popup:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
-    popup:Show()
-end
+local function openMenu(anchor, options, onPick) ns.PopupMenu(anchor, options, onPick, 170) end
 
 local function makeDropdown(parent, width)
     local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
@@ -416,6 +372,10 @@ local function updateDropdowns()
     panel.typeButton:SetText(typeName)
     panel.subButton:SetText(subName)
     panel.subButton:SetEnabled(state.class ~= nil)
+    -- con un tipo de recompensa elegido todas las quests ya dan objeto: la casilla no cambiaria nada
+    local byType = state.class ~= nil
+    panel.itemsOnly:SetEnabled(not byType)
+    panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
 end
 
 function ns.Search_Create(parent)
@@ -495,6 +455,15 @@ function ns.Search_Create(parent)
         state.itemsOnly = self:GetChecked() and true or false
         requestRefresh()
     end)
+    itemsOnly:SetMotionScriptsWhileDisabled(true)
+    itemsOnly:SetScript("OnEnter", function(self)
+        if self:IsEnabled() then return end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(L["A reward type is selected: every result already gives an item."], 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
+    itemsOnly.label = itemsOnlyText
     panel.itemsOnly = itemsOnly
 
     local rewardLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -621,7 +590,7 @@ function ns.Search_Create(parent)
         updateDropdowns()
         refresh()
     end)
-    panel:SetScript("OnHide", function() if popup then popup:Hide() end end)
+    panel:SetScript("OnHide", ns.PopupMenu_Hide)
     return panel
 end
 
@@ -633,7 +602,7 @@ end
 function ns.Search_SetMode(m)
     mode = m == "log" and "log" or "search"
     if not panel then return end
-    if popup then popup:Hide() end
+    ns.PopupMenu_Hide()
     panel.title:SetText(mode == "log" and L["Quest Log"] or L["Search quests"])
     panel.empty:SetText(mode == "log" and L["Your quest log is empty."] or L["No quests match the search."])
     panel.layoutForm()

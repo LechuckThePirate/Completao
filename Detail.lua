@@ -24,6 +24,48 @@ local function describeLocation(loc)
     return loc.npc and (loc.npc .. " - " .. where) or where
 end
 
+-- Pasos de la quest (ns.QuestSteps, Core.lua) para el boton de waypoint, el mapa y la lista del panel.
+local WAY_W = 230
+local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t "
+local ARROW = "|TInterface\\RaidFrame\\ReadyCheck-Waiting:12:12|t "
+local picked -- { id = quest, index = paso } elegido en el desplegable; si no, el paso que toca
+
+local function selectedStep()
+    local steps = detail.steps
+    if not (current and steps and #steps > 0) then return nil end
+    if picked and picked.id == current.id and steps[picked.index] then return steps[picked.index] end
+    return steps[detail.currentStep or 1]
+end
+
+-- A donde llevar un paso: su sitio; sin coordenadas (se hace dentro de una mazmorra), la entrada.
+-- Devuelve el sitio y si es la entrada.
+local function stepTarget(q, step)
+    if step.loc and step.loc.x and step.loc.x > 0 then return step.loc, false end
+    local e = ns.entries[q.dungeon or q.entryId]
+    if (step.loc or step.area or step.kind ~= "obj") and e and e.entrance then return e.entrance, true end
+    return nil
+end
+
+local function stepZone(step)
+    local area = (step.loc and step.loc.area) or step.area
+    return area and C_Map.GetAreaInfo(area) or nil
+end
+
+-- Lista de pasos (va detras del objetivo): hechos con marca verde, el que toca en amarillo con flecha,
+-- progreso de cada objetivo si llevas la quest y la zona donde se hace.
+local function stepsText()
+    local lines = {}
+    for _, step in ipairs(detail.steps or {}) do
+        local mark = step.done and CHECK or step.current and ARROW or "    "
+        local color = step.done and "|cff88bb88" or step.current and "|cffffd100" or "|cffffffff"
+        local zone = stepZone(step)
+        local where = zone and (" |cff999999- " .. zone .. "|r") or (step.kind == "obj" and not step.loc
+            and (" |cff777777(" .. L["no location"] .. ")|r") or "")
+        lines[#lines + 1] = mark .. color .. step.label .. (step.progress and ("  " .. step.progress) or "") .. "|r" .. where
+    end
+    return table.concat(lines, "\n")
+end
+
 local function buildText(q)
     local parts = {}
     local function section(title, body)
@@ -52,6 +94,7 @@ local function buildText(q)
     section(L["Requirements"], #req > 0 and table.concat(req, "\n") or L["None"])
 
     if q.objective then section(L["Objective"], q.objective) end
+    if detail.steps and #detail.steps > 0 then section(L["Steps"], stepsText()) end
     if q.dungeon then
         local inside = ns.entries[q.dungeon]
         section(L["Instance"], (inside and ns.EntryName(inside) or "?") .. " -- " .. L["done inside the instance"])
@@ -288,25 +331,20 @@ local function render()
     if q.level then meta[#meta + 1] = L["Level %d%s"]:format(q.level, q.minLevel and L[" (min %d)"]:format(q.minLevel) or "") end
     meta[#meta + 1] = "ID " .. q.id
     detail.meta:SetText(table.concat(meta, "   |   "))
+    detail.steps, detail.currentStep = ns.QuestSteps(q)
     detail.text:SetText(buildText(q))
     rewardRows = buildRewards(q)
     relayout()
-    detail.btnStart:SetEnabled(q.start ~= nil and ns.CanWaypoint(q.start))
-    detail.btnFinish:SetEnabled(q.finish ~= nil and ns.CanWaypoint(q.finish))
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
     detail.btnOpen:SetShown(onQuest)
-    -- "Ver en el mapa": donde se coge; si no se sabe, la entrada de la instancia.
-    local entry = ns.entries[q.entryId]
-    local mapLoc, isEntrance
-    if q.start and ns.CanShowMap(q.start) then
-        mapLoc = q.start
-    elseif entry and entry.entrance and ns.CanShowMap(entry.entrance) then
-        mapLoc, isEntrance = entry.entrance, true
-    end
-    detail.mapLoc, detail.mapIsEntrance = mapLoc, isEntrance
-    local canMap = not onQuest and status ~= "done"
-    detail.btnMap:SetShown(canMap)
-    detail.btnMap:SetEnabled(canMap and mapLoc ~= nil)
+    -- waypoint y mapa: el paso elegido
+    local step = selectedStep()
+    local loc, isEntrance = nil, false
+    if step then loc, isEntrance = stepTarget(q, step) end
+    detail.btnWay:SetText(step and L["Waypoint: %s"]:format(step.label) or L["Waypoint: start"])
+    detail.btnWay:SetEnabled(loc ~= nil and ns.CanWaypoint(loc))
+    detail.btnWayMenu:SetEnabled(detail.steps and #detail.steps > 0)
+    detail.btnMap:SetEnabled(loc ~= nil and ns.CanShowMap(loc))
     detail.btnMap:SetText(isEntrance and L["Show entrance"] or L["Show on map"])
     detail.layoutButtons()
 end
@@ -465,49 +503,79 @@ function ns.Detail_Create(parent, tree, leftOffset)
         end)
     end)
 
-    detail.btnStart = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnStart:SetSize(170, 22)
-    detail.btnStart:SetPoint("BOTTOMLEFT", 8, 8)
-    detail.btnStart:SetText(L["Waypoint: start"])
-    detail.btnStart:SetScript("OnClick", function()
-        if current and current.start then ns.SetWaypoint(current.start, current.start.npc or ns.QuestTitle(current.id, current.name)) end
+    -- Waypoint: boton partido. La parte principal lleva al paso elegido (por defecto el que toca); la flecha
+    -- abre la lista de todos los pasos para elegir otro.
+    detail.wayGroup = CreateFrame("Frame", nil, detail)
+    detail.wayGroup:SetSize(WAY_W + 26, 22)
+    detail.btnWay = CreateFrame("Button", nil, detail.wayGroup, "UIPanelButtonTemplate")
+    detail.btnWay:SetSize(WAY_W, 22)
+    detail.btnWay:SetPoint("LEFT", 0, 0)
+    local wayText = detail.btnWay:GetFontString()
+    if wayText then
+        wayText:ClearAllPoints()
+        wayText:SetPoint("LEFT", 8, 0)
+        wayText:SetPoint("RIGHT", -8, 0)
+        wayText:SetWordWrap(false)
+    end
+    detail.btnWay:SetScript("OnClick", function()
+        local step = selectedStep()
+        if not step then return end
+        local loc = stepTarget(current, step)
+        if loc then ns.SetWaypoint(loc, step.label) end
     end)
-
-    detail.btnFinish = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnFinish:SetSize(170, 22)
-    detail.btnFinish:SetPoint("LEFT", detail.btnStart, "RIGHT", 6, 0)
-    detail.btnFinish:SetText(L["Waypoint: turn-in"])
-    detail.btnFinish:SetScript("OnClick", function()
-        if current and current.finish then ns.SetWaypoint(current.finish, current.finish.npc or ns.QuestTitle(current.id, current.name)) end
+    detail.btnWayMenu = CreateFrame("Button", nil, detail.wayGroup, "UIPanelButtonTemplate")
+    detail.btnWayMenu:SetSize(24, 22)
+    detail.btnWayMenu:SetPoint("LEFT", detail.btnWay, "RIGHT", 2, 0)
+    detail.btnWayMenu:SetText("v")
+    detail.btnWayMenu:SetScript("OnClick", function(self)
+        if not current then return end
+        local options = {}
+        for i, step in ipairs(detail.steps or {}) do
+            local zone = stepZone(step)
+            local target = stepTarget(current, step)
+            options[i] = {
+                name = (step.done and CHECK or "") .. step.label .. (step.progress and (" " .. step.progress) or "")
+                    .. (zone and (" |cff999999(" .. zone .. ")|r") or ""),
+                color = step.current and { 1, 0.82, 0 } or step.done and { 0.6, 0.8, 0.6 } or { 1, 1, 1 },
+                disabled = target == nil,
+            }
+        end
+        ns.PopupMenu(self, options, function(_, i)
+            picked = { id = current.id, index = i }
+            local step = detail.steps[i]
+            local loc = stepTarget(current, step)
+            if loc then ns.SetWaypoint(loc, step.label) end
+            render()
+        end, 300)
     end)
 
     detail.btnOpen = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnOpen:SetSize(130, 22)
-    detail.btnOpen:SetPoint("LEFT", detail.btnFinish, "RIGHT", 6, 0)
     detail.btnOpen:SetText(L["Open quest"])
     detail.btnOpen:SetScript("OnClick", function()
         if current then openQuest(current.id) end
     end)
 
+    -- "Ver en el mapa": el paso elegido (dentro de una mazmorra, su entrada)
     detail.btnMap = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnMap:SetSize(130, 22)
-    detail.btnMap:SetPoint("LEFT", detail.btnFinish, "RIGHT", 6, 0)
     detail.btnMap:SetText(L["Show on map"])
     detail.btnMap:SetScript("OnClick", function()
-        if not (current and detail.mapLoc) then return end
-        local title
-        if detail.mapIsEntrance then
-            local e = ns.entries[current.entryId]
-            title = (e and e.name or "") .. " - " .. L["Entrance"]
-        else
-            title = current.start.npc or ns.QuestTitle(current.id, current.name)
+        local step = current and selectedStep()
+        if not step then return end
+        local loc, isEntrance = stepTarget(current, step)
+        if not loc then return end
+        local title = step.label
+        if isEntrance then
+            local e = ns.entries[current.dungeon or current.entryId]
+            title = (e and ns.EntryName(e) or "") .. " - " .. L["Entrance"]
         end
-        ns.ShowOnMap(detail.mapLoc, title)
+        ns.ShowOnMap(loc, title)
     end)
 
     -- botones abajo, en filas si no caben en una; el texto acaba justo encima
     local buttons = {
-        { frame = detail.btnStart, w = 170 }, { frame = detail.btnFinish, w = 170 },
+        { frame = detail.wayGroup, w = WAY_W + 26 },
         { frame = detail.btnOpen, w = 130 }, { frame = detail.btnMap, w = 130 },
     }
     function detail.layoutButtons()

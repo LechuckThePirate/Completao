@@ -64,12 +64,22 @@ Inspired by BtWQuests.
   - The client only gives a quest's text for quests in your log, never by id:
     for those the description is read live, in your client's language; for
     the rest it comes from the addon's data, when it has it. Nothing is saved.
-  - **Waypoint: start / turn-in** -- sets a [TomTom](https://www.curseforge.com/wow/addons/tomtom)
-    waypoint, or the game's own user waypoint if TomTom is not installed.
-  - **Show on map** -- opens the world map on the quest giver and drops a
-    bouncing gold "!" marker on the exact spot. When the quest has no known
-    starting point (it starts inside the instance) the button becomes **Show
-    entrance** and points at the instance's door.
+  - **Steps**, right after the objective: the missing requirement (if any),
+    the start, one step per objective with the zone where it is done, and
+    the turn-in. With the quest in your log each objective shows its live
+    progress (`3/8`); done steps are ticked and the next one is highlighted.
+    Objective places come from the data (`steps`): for each objective, the
+    zone where its targets (or whatever drops the item) are most common and
+    the densest spot in it.
+  - **Waypoint: <step>** -- a split button: the main part sets a
+    [TomTom](https://www.curseforge.com/wow/addons/tomtom) waypoint (or the
+    game's own user waypoint) to the step that comes next -- the requirement
+    or the start if you haven't taken the quest, the first unfinished
+    objective while you are on it, the turn-in once it is complete -- and the
+    arrow lists every step to pick another one.
+  - **Show on map** -- opens the world map on the chosen step and drops a
+    bouncing gold "!" marker on the exact spot. For a step inside an instance
+    the button becomes **Show entrance** and points at the instance's door.
   - **Open quest** -- for quests in your log, opens the quest log on that quest.
 - Resizable, movable window; its position, size, open section and selected
   dungeon are saved (the position and size per character or shared, see

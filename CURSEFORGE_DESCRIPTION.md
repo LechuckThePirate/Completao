@@ -91,13 +91,18 @@ Click any quest in the tree to open its panel:
 ![The quest panel maximized, with the requirement still missing](https://media.joanvilarino.online/completao/images/screencaps/maximize_pane_unavailable_quest.png)
 
 ### Find it, go there
-- **Waypoint: start / turn-in** sets a [TomTom](https://www.curseforge.com/wow/addons/tomtom)
-  waypoint to the quest giver or the turn-in, or the game's own waypoint if you
-  don't use TomTom.
-- **Show on map** opens the world map on the quest giver and drops a bouncing
-  gold **!** marker on the exact spot, easy to see even on a busy map.
-- Quest starts inside the instance? **Show entrance** takes you to the door of
-  the dungeon instead.
+- **Steps**, under the objective: requirement, start, each objective with the
+  zone where it is done, and turn-in. On a quest you carry, every objective
+  shows its live progress and the next step is highlighted.
+- **Waypoint** is a split button that already points at the next step: the
+  quest giver (or the quest you still need first), the first objective you
+  haven't finished, or the turn-in when you're done. The arrow lists every step
+  to pick another. It uses [TomTom](https://www.curseforge.com/wow/addons/tomtom),
+  or the game's own waypoint if you don't use it.
+- **Show on map** opens the world map on that step and drops a bouncing gold
+  **!** marker on the exact spot, easy to see even on a busy map.
+- A step inside an instance? **Show entrance** takes you to the door of the
+  dungeon instead.
 - Already have the quest? **Open quest** opens your quest log right on it.
 
 ![The gold marker on the world map](https://media.joanvilarino.online/completao/images/screencaps/map_marker.png)

@@ -76,13 +76,84 @@ local function getLine(i)
     return l
 end
 
+-- Filtros del arbol: opciones guardadas por personaje (ns.char.filters) + texto de busqueda.
+local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
+local searchText = ""
+local searchBox
+
+-- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos.
+-- Devuelve dos conjuntos por id de quest: las que estan en una cadena de mas de una quest
+-- (inChain) y las que estan en una cadena con todas sus quests hechas (done; incluye las sueltas hechas).
+local function chainInfo(d)
+    local set, parent = {}, {}
+    for _, q in ipairs(d.quests) do
+        if ns.QuestVisible(q) then set[q.id] = q; parent[q.id] = q.id end
+    end
+    local function find(x)
+        while parent[x] ~= x do parent[x] = parent[parent[x]]; x = parent[x] end
+        return x
+    end
+    for id, q in pairs(set) do
+        for _, p in ipairs(ns.ParentsOf(q)) do
+            if set[p] then
+                local a, b = find(id), find(p)
+                if a ~= b then parent[a] = b end
+            end
+        end
+    end
+    local allDone, size = {}, {}
+    for id in pairs(set) do
+        local root = find(id)
+        size[root] = (size[root] or 0) + 1
+        if allDone[root] == nil then allDone[root] = true end
+        if not C_QuestLog.IsQuestFlaggedCompleted(id) then allDone[root] = false end
+    end
+    local inChain, done = {}, {}
+    for id in pairs(set) do
+        local root = find(id)
+        if size[root] > 1 then inChain[id] = true end
+        if allDone[root] then done[id] = true end
+    end
+    return inChain, done
+end
+
+-- Predicado de visibilidad para el arbol de una entrada: faccion/raza + filtros del usuario.
+-- Las quests de nivel alto o bajo que forman parte de una cadena sin completar se muestran siempre
+-- (para no romperla), igual que las que llevas en el registro; solo se ocultan las sueltas.
+local function makeFilter(d)
+    local f = ns.char.filters
+    local inChain, doneChain
+    if f.hideLow or f.hideHigh or f.hideDone then inChain, doneChain = chainInfo(d) end
+    local needle = searchText ~= "" and searchText or nil
+    return function(q)
+        if not ns.QuestVisible(q) then return false end
+        local keep = C_QuestLog.IsOnQuest(q.id) or (inChain and inChain[q.id] and not doneChain[q.id])
+        if f.hideLow and not keep and ns.IsLowLevel(q) then return false end
+        if f.hideHigh and not keep and ns.IsTooHigh(q) then return false end
+        if f.hideDone and doneChain[q.id] then return false end
+        if needle then
+            local cached = C_QuestLog.GetTitleForQuestID(q.id)
+            local hit = (cached and cached:lower():find(needle, 1, true)) or q.name:lower():find(needle, 1, true)
+            if not hit then return false end
+        end
+        return true
+    end
+end
+
 local function renderTree(d)
-    local layout = ns.BuildLayout(d.quests, ns.QuestVisible)
+    local layout = ns.BuildLayout(d.quests, makeFilter(d))
 
     for _, b in ipairs(nodeButtons) do b:Hide() end
     for _, l in ipairs(lines) do l:Hide() end
 
     emptyText:SetShown(layout.count == 0)
+    if layout.count == 0 then
+        local hasData = false
+        for _, q in ipairs(d.quests) do
+            if ns.QuestVisible(q) then hasData = true break end
+        end
+        emptyText:SetText(hasData and ns.L["No quests match the filters."] or ns.L["No quest data yet."])
+    end
     canvas:SetSize(
         math.max(1, PAD * 2 + layout.cols * NODE_W + (layout.cols - 1) * GAP_X),
         math.max(1, PAD * 2 + layout.rows * NODE_H + (layout.rows - 1) * GAP_Y))
@@ -106,6 +177,14 @@ local function renderTree(d)
         end
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
+        -- translucidas las que no encajan con tu nivel (mas las muy altas que las de bajo nivel);
+        -- las hechas y las que llevas en el registro se ven siempre nitidas
+        local alpha = 1
+        if status ~= "done" and status ~= "active" then
+            if ns.IsTooHigh(n.quest) then alpha = HIGH_LEVEL_ALPHA
+            elseif ns.IsLowLevel(n.quest) then alpha = LOW_LEVEL_ALPHA end
+        end
+        b:SetAlpha(alpha)
         b:Show()
         byId[id] = b
     end
@@ -137,6 +216,8 @@ end
 
 local function selectEntry(id)
     ns.Detail_Hide()
+    searchText = ""
+    if searchBox then searchBox:SetText("") end
     selectedId = id
     ns.char.selected = id
     frame.treeScroll:SetHorizontalScroll(0)
@@ -276,7 +357,7 @@ local function createFrame()
     frame = okPortrait and portraitFrame or CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
     -- el contenido empieza por debajo del retrato (que sobresale por arriba a la izquierda)
     local top = hasPortrait and 66 or 34
-    ns.TREE_TOP = top + 28
+    ns.TREE_TOP = top + 80
     local saved = ns.char.window
     frame:SetSize(saved and math.max(MIN_W, saved.w) or DEFAULT_W, saved and math.max(MIN_H, saved.h) or DEFAULT_H)
     if saved then
@@ -326,6 +407,61 @@ local function createFrame()
 
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.header:SetPoint("TOPLEFT", LIST_W + 30, -top)
+
+    -- Barra de filtros bajo el titulo: buscador por titulo y tres casillas.
+    local toolbarLeft = LIST_W + 30
+    local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
+    if not okSearch or not box then
+        box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        box:SetTextInsets(6, 6, 0, 0)
+    end
+    searchBox = box
+    box:SetSize(200, 20)
+    box:SetPoint("TOPLEFT", toolbarLeft + 4, -(top + 26))
+    box:SetAutoFocus(false)
+    local placeholder = box.Instructions
+    if placeholder then
+        placeholder:SetText(ns.L["Search by title"])
+    else
+        placeholder = box:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+        placeholder:SetPoint("LEFT", 8, 0)
+        placeholder:SetText(ns.L["Search by title"])
+    end
+    box:HookScript("OnTextChanged", function(self)
+        searchText = strtrim(self:GetText() or ""):lower()
+        if placeholder and not box.Instructions then placeholder:SetShown(searchText == "") end
+        ns.RequestRefresh()
+    end)
+    box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
+
+    local function makeCheck(key, label, tip, x)
+        local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+        cb:SetSize(24, 24)
+        cb:SetPoint("TOPLEFT", toolbarLeft + x, -(top + 48))
+        local text = cb.Text or cb.text
+        if not text then
+            text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            text:SetPoint("LEFT", cb, "RIGHT", 0, 1)
+        end
+        text:SetText(label)
+        cb:SetChecked(ns.char.filters[key] and true or false)
+        cb:SetScript("OnClick", function(self)
+            ns.char.filters[key] = self:GetChecked() and true or false
+            ns.UI_Refresh()
+        end)
+        cb:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(label)
+            GameTooltip:AddLine(tip, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        cb:SetScript("OnLeave", GameTooltip_Hide)
+        return x + 24 + text:GetStringWidth() + 10
+    end
+    local x = 0
+    x = makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."], x)
+    x = makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests that require a higher level than yours."], x)
+    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the chains whose quests are all done."], x)
 
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMRIGHT", -26, 12)

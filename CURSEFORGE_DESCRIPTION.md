@@ -31,6 +31,16 @@ and classes only list what you can actually do -- entries with nothing for your
 faction and race are hidden, and your own class comes first. More sections slot
 into the same panel as they are added.
 
+### Filters that keep the tree readable
+Above the tree, a **search box** finds a quest by title and three checkboxes
+trim the noise: **hide low level** (grey) quests, **hide too high** (quests you
+can't take yet) and **hide completed** chains. A low- or high-level quest that
+belongs to a chain you haven't finished is always shown, so a chain is never
+cut in half -- only loose quests are hidden -- and so is anything in your quest
+log. What stays visible is drawn translucent: quests too high for you more, low
+level ones just a little, so they are still easy to read. Your choices are
+remembered per character.
+
 ### Everything about a quest, one click away
 Click any quest in the tree to open its panel:
 

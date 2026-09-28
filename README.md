@@ -19,6 +19,13 @@ Inspired by BtWQuests.
   faction and race are shown. Long columns are split (12 rows at most), so a
   zone with a hundred loose quests reads as a grid. Drag the background to pan,
   wheel to scroll (Shift+wheel sideways).
+- **Filters** above the tree, saved per character: a search box by title, and
+  three checkboxes -- hide low-level (grey) quests, hide quests that require a
+  higher level than yours, hide completed chains. Low- and high-level quests
+  that belong to a chain you have not finished are always shown, so chains are
+  never broken (only loose quests are hidden), and so are the ones in your
+  quest log. The ones that stay visible are drawn translucent -- more the ones
+  too high for you, less the low-level ones, which stay readable.
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
   red), objective, description, and who starts / ends it with zone and
   coordinates. It can be maximized over the whole tree with Blizzard's

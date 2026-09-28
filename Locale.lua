@@ -2,6 +2,14 @@ local _, ns = ...
 
 -- Las claves son el texto en ingles; en clientes esES/esMX se sustituyen por el espanol.
 local es = {
+    ["Search by title"] = "Buscar por título",
+    ["Hide low level"] = "Ocultar bajo nivel",
+    ["Hide too high"] = "Ocultar muy alto",
+    ["Hide completed"] = "Ocultar completadas",
+    ["Hides quests that are grey for your level (trivial)."] = "Oculta las quests en gris para tu nivel (triviales).",
+    ["Hides quests that require a higher level than yours."] = "Oculta las quests que exigen más nivel del que tienes.",
+    ["Hides the chains whose quests are all done."] = "Oculta las cadenas cuyas quests están todas hechas.",
+    ["No quests match the filters."] = "Ninguna quest coincide con los filtros.",
     ["Dungeons"] = "Mazmorras",
     ["Raids"] = "Bandas",
     ["Zones"] = "Zonas",

@@ -120,6 +120,20 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
+-- "Bajo nivel": quest en gris para el nivel del jugador (trivial). Usa el rango verde del cliente.
+function ns.IsLowLevel(q)
+    local questLevel = q.level or q.minLevel
+    if not questLevel then return false end
+    local player = UnitLevel("player")
+    local green = (GetQuestGreenRange and GetQuestGreenRange()) or (3 + math.floor(player / 10))
+    return questLevel <= player - green
+end
+
+-- "Demasiado alto": el nivel minimo de la quest supera el del jugador (aun no puede cogerla).
+function ns.IsTooHigh(q)
+    return (q.minLevel or 0) > UnitLevel("player")
+end
+
 -- races: mascara de razas permitidas (1 humano, 2 orco, 4 enano, 8 elfo de la noche, 16 no-muerto,
 -- 32 tauren, 64 gnomo, 128 trol); el id de raza del cliente es el numero de bit + 1.
 local playerRaceId
@@ -170,6 +184,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
         ns.db = CompletaoDB
         CompletaoCharDB = CompletaoCharDB or {}
         ns.char = CompletaoCharDB
+        ns.char.filters = ns.char.filters or {}
         ns.Minimap_Init()
     else
         ns.RequestRefresh()

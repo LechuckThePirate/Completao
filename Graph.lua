@@ -12,6 +12,8 @@ local function parentsOf(q)
     return all
 end
 
+ns.ParentsOf = parentsOf
+
 function ns.BuildLayout(quests, visible)
     local set, list = {}, {}
     for _, q in ipairs(quests) do

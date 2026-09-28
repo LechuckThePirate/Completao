@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 
 -- Una ubicacion es { npc = "Nombre", area = <AreaTable id>, x = 44.4, y = 42.8 } (coordenadas 0-100).
 -- El id de area se convierte a mapa del cliente por nombre de zona, la primera vez que hace falta.
@@ -67,9 +67,9 @@ local function ensurePin()
     pinFrame:SetPoint("CENTER", pinHolder, "CENTER", 0, 0)
 
     local glow = pinFrame:CreateTexture(nil, "BACKGROUND")
-    glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    glow:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Glow.png")
     glow:SetBlendMode("ADD")
-    glow:SetSize(84, 84)
+    glow:SetSize(76, 76)
     glow:SetPoint("CENTER")
     glow:SetVertexColor(1, 0.85, 0.2)
 

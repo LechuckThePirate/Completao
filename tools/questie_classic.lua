@@ -1,4 +1,5 @@
--- Uso: lua tools/questie_classic.lua [entryId ...]     (por defecto: vc wc)
+-- Uso: lua tools/questie_classic.lua [entryId ...]     (mazmorras/raids; por defecto: vc wc)
+--      lua tools/questie_classic.lua zones             (zonas y clases: Zones.lua y Classes.lua)
 -- Lee la base de datos de Classic que trae Questie y genera Data/Generated/Classic.lua
 -- con las quests de cada mazmorra: las de su zona, las que dan/reciben/matan NPCs que solo aparecen
 -- dentro, y las cadenas (prerrequisitos y continuaciones) que las conectan.
@@ -188,7 +189,139 @@ local function location(npcId)
     return "{ " .. table.concat(parts, ", ") .. " }"
 end
 
-local ALLIANCE, HORDE = 77, 178
+local ALLIANCE, HORDE, ALL_RACES = 77, 178, 255
+
+-- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races.
+local function questLine(id, name, comment)
+    local q = quests[id]
+    local f = { "id = " .. id, "name = " .. lua(name) }
+    if q[Q_LVL] and q[Q_LVL] > 0 then f[#f + 1] = "level = " .. q[Q_LVL] end
+    if q[Q_MINLVL] and q[Q_MINLVL] > 0 then f[#f + 1] = "minLevel = " .. q[Q_MINLVL] end
+    local group, single = {}, {}
+    for _, p in ipairs(q[Q_PREGROUP] or {}) do group[#group + 1] = p end
+    for _, p in ipairs(q[Q_PRESINGLE] or {}) do single[#single + 1] = p end
+    if #single == 1 then group[#group + 1] = single[1]; single = {} end
+    if #group > 0 then f[#f + 1] = "requires = " .. ids(group) end
+    if #single > 1 then f[#f + 1] = "requiresAny = " .. ids(single) end
+    local races = q[Q_RACES]
+    if races == ALLIANCE then f[#f + 1] = 'faction = "Alliance"'
+    elseif races == HORDE then f[#f + 1] = 'faction = "Horde"'
+    elseif races and races > 0 and races ~= ALL_RACES then f[#f + 1] = "races = " .. races end
+    local giver = q[Q_START] and q[Q_START][1] and q[Q_START][1][1]
+    if giver and npcs[giver] then f[#f + 1] = "giver = " .. lua(npcs[giver][N_NAME]) end
+    local finisher = q[Q_END] and q[Q_END][1] and q[Q_END][1][1]
+    if giver and npcs[giver] then f[#f + 1] = "start = " .. location(giver) end
+    if finisher and npcs[finisher] then f[#f + 1] = "finish = " .. location(finisher) end
+    local text = q[Q_TEXT] and table.concat(q[Q_TEXT], " ")
+    if text and text ~= "" then f[#f + 1] = "objective = " .. lua(text) end
+    return ("    { %s },%s"):format(table.concat(f, ", "), comment or "")
+end
+
+-- Modo "zones": una entrada por zona y una por clase, cada quest en una sola entrada.
+if arg[1] == "zones" then
+    local OUT_Z, OUT_C = ROOT .. "/Data/Generated/Zones.lua", ROOT .. "/Data/Generated/Classes.lua"
+
+    -- zonas con mapa en Classic (uiMapId 1411..1459) y su nombre, segun Questie
+    local zoneName = {}
+    for line in read(Q .. "Database/Zones/data/uiMapIdToAreaId.lua"):gmatch("[^\n]+") do
+        local ui, area, name = line:match("^%s*%[(%d+)%]%s*=%s*(%d+),%s*%-%-%s*(.-)%s*$")
+        ui, area = tonumber(ui), tonumber(area)
+        if ui and ui >= 1411 and ui <= 1459 and area > 0 and area < 10000 then zoneName[area] = name end
+    end
+    zoneName[2597] = nil -- Alterac Valley: campo de batalla
+
+    -- subzonas (sobre todo las de inicio) -> su zona
+    local parent = { [9] = 12, [132] = 1, [188] = 141, [154] = 85, [363] = 14, [220] = 215 }
+    for line in read(Q .. "Database/Zones/data/subZoneToParentZone.lua"):gmatch("[^\n]+") do
+        local s, p = line:match("^%s*%[(%d+)%]%s*=%s*(%d+),")
+        if s and not parent[tonumber(s)] then parent[tonumber(s)] = tonumber(p) end
+    end
+
+    local CLASS_SORT = { [-61] = "WARLOCK", [-81] = "WARRIOR", [-82] = "SHAMAN", [-141] = "PALADIN", [-161] = "MAGE",
+        [-162] = "ROGUE", [-261] = "HUNTER", [-262] = "PRIEST", [-263] = "DRUID" }
+    local CLASS_MASK = { [1] = "WARRIOR", [2] = "PALADIN", [4] = "HUNTER", [8] = "ROGUE", [16] = "PRIEST",
+        [64] = "SHAMAN", [128] = "MAGE", [256] = "WARLOCK", [1024] = "DRUID" }
+    local CLASS_NAME = { WARRIOR = "Warrior", PALADIN = "Paladin", HUNTER = "Hunter", ROGUE = "Rogue", PRIEST = "Priest",
+        SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", DRUID = "Druid" }
+
+    local zoneSet, classSet = {}, {}
+    for id, q in pairs(quests) do
+        local z = q[Q_ZONE]
+        local class = CLASS_SORT[z or 0] or CLASS_MASK[q[7] or 0]
+        if class then
+            classSet[class] = classSet[class] or {}
+            classSet[class][id] = true
+        elseif z and z > 0 and not areaOf[z] then
+            local area = zoneName[z] and z or parent[z]
+            if area and zoneName[area] then
+                zoneSet[area] = zoneSet[area] or {}
+                zoneSet[area][id] = true
+            end
+        end
+    end
+
+    -- nivel orientativo de una entrada: percentil 10 del nivel requerido y 90 del nivel de quest
+    local function levelRange(set)
+        local req, lvl = {}, {}
+        for id in pairs(set) do
+            local q = quests[id]
+            if q[Q_MINLVL] and q[Q_MINLVL] > 0 then req[#req + 1] = q[Q_MINLVL] end
+            if q[Q_LVL] and q[Q_LVL] > 0 then lvl[#lvl + 1] = q[Q_LVL] end
+        end
+        table.sort(req); table.sort(lvl)
+        local lo = req[math.max(1, math.ceil(#req * 0.1))] or 1
+        local hi = lvl[math.max(1, math.ceil(#lvl * 0.9))] or lo
+        return lo, math.max(lo, hi)
+    end
+
+    local function emitEntry(out, entryId, header, set)
+        local sorted = {}
+        for id in pairs(set) do sorted[#sorted + 1] = id end
+        table.sort(sorted)
+        local names = displayNames(set)
+        out[#out + 1] = header
+        out[#out + 1] = ("ns.AddQuests(%s, {"):format(lua(entryId))
+        for _, id in ipairs(sorted) do out[#out + 1] = questLine(id, names[id]) end
+        out[#out + 1] = "})"
+        out[#out + 1] = ""
+        return #sorted
+    end
+
+    local zout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
+        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local zones = {}
+    for area, set in pairs(zoneSet) do
+        local lo, hi = levelRange(set)
+        zones[#zones + 1] = { area = area, name = zoneName[area], set = set, lo = lo, hi = hi }
+    end
+    table.sort(zones, function(a, b) if a.lo ~= b.lo then return a.lo < b.lo end return a.name < b.name end)
+    local totalZ = 0
+    for _, z in ipairs(zones) do
+        local entryId = "z" .. z.area
+        local n = emitEntry(zout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"zones\", area = %d, minLevel = %d, maxLevel = %d })")
+            :format(lua(entryId), lua(z.name), z.area, z.lo, z.hi), z.set)
+        totalZ = totalZ + n
+        print(("zona  %-24s nv %2d-%2d  %3d quests"):format(z.name, z.lo, z.hi, n))
+    end
+    local fz = assert(io.open(OUT_Z, "wb")); fz:write(table.concat(zout, "\n")); fz:close()
+
+    local cout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
+        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local order = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
+    local totalC = 0
+    for _, class in ipairs(order) do
+        if classSet[class] then
+            local entryId = "c_" .. class
+            local n = emitEntry(cout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"classes\", classFile = %s })")
+                :format(lua(entryId), lua(CLASS_NAME[class]), lua(class)), classSet[class])
+            totalC = totalC + n
+            print(("clase %-24s %3d quests"):format(CLASS_NAME[class], n))
+        end
+    end
+    local fc = assert(io.open(OUT_C, "wb")); fc:write(table.concat(cout, "\n")); fc:close()
+    print(("escrito %s (%d zonas, %d quests) y %s (%d quests)"):format(OUT_Z, #zones, totalZ, OUT_C, totalC))
+    os.exit(0)
+end
 
 local wanted = { table.unpack(arg) }
 if #wanted == 0 then wanted = { "vc", "wc" } end
@@ -206,28 +339,9 @@ for _, entry in ipairs(wanted) do
     out[#out + 1] = ("ns.AddQuests(%s, {"):format(lua(entry))
     local nCore = 0
     for _, id in ipairs(sorted) do
-        local q = quests[id]
-        local f = { "id = " .. id, "name = " .. lua(names[id]) }
-        if q[Q_LVL] and q[Q_LVL] > 0 then f[#f + 1] = "level = " .. q[Q_LVL] end
-        if q[Q_MINLVL] and q[Q_MINLVL] > 0 then f[#f + 1] = "minLevel = " .. q[Q_MINLVL] end
-        local group, single = {}, {}
-        for _, p in ipairs(q[Q_PREGROUP] or {}) do group[#group + 1] = p end
-        for _, p in ipairs(q[Q_PRESINGLE] or {}) do single[#single + 1] = p end
-        if #single == 1 then group[#group + 1] = single[1]; single = {} end
-        if #group > 0 then f[#f + 1] = "requires = " .. ids(group) end
-        if #single > 1 then f[#f + 1] = "requiresAny = " .. ids(single) end
-        if q[Q_RACES] == ALLIANCE then f[#f + 1] = 'faction = "Alliance"'
-        elseif q[Q_RACES] == HORDE then f[#f + 1] = 'faction = "Horde"' end
-        local giver = q[Q_START] and q[Q_START][1] and q[Q_START][1][1]
-        if giver and npcs[giver] then f[#f + 1] = "giver = " .. lua(npcs[giver][N_NAME]) end
-        local finisher = q[Q_END] and q[Q_END][1] and q[Q_END][1][1]
-        if giver and npcs[giver] then f[#f + 1] = "start = " .. location(giver) end
-        if finisher and npcs[finisher] then f[#f + 1] = "finish = " .. location(finisher) end
-        local text = q[Q_TEXT] and table.concat(q[Q_TEXT], " ")
-        if text and text ~= "" then f[#f + 1] = "objective = " .. lua(text) end
         local isCore = core[area] and core[area][id]
         if isCore then nCore = nCore + 1 end
-        out[#out + 1] = ("    { %s },%s"):format(table.concat(f, ", "), isCore and "" or " -- cadena")
+        out[#out + 1] = questLine(id, names[id], isCore and "" or " -- cadena")
     end
     out[#out + 1] = "})"
     out[#out + 1] = ""

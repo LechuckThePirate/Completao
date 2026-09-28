@@ -2,6 +2,10 @@ local _, ns = ...
 
 -- Las claves son el texto en ingles; en clientes esES/esMX se sustituyen por el espanol.
 local es = {
+    ["Dungeons"] = "Mazmorras",
+    ["Raids"] = "Bandas",
+    ["Zones"] = "Zonas",
+    ["Class Quests"] = "Misiones de clase",
     ["Completed"] = "Completada",
     ["In progress"] = "En curso",
     ["Available"] = "Disponible",

@@ -2,6 +2,8 @@ local _, ns = ...
 
 -- Layout por columnas: la columna es la profundidad (camino mas largo desde una raiz dentro
 -- de la mazmorra); la fila se ordena por la media de las filas de los padres.
+ns.MAX_PER_COL = 12
+
 local function parentsOf(q)
     if not q.requiresAny then return q.requires or {} end
     local all = {}
@@ -43,14 +45,16 @@ function ns.BuildLayout(quests, visible)
         maxCol = math.max(maxCol, c)
     end
 
-    local nodes, edges, maxRows = {}, {}, 0
+    -- Una columna con mas de MAX_PER_COL quests se reparte en varias columnas visuales, para que una
+    -- zona con cien quests sueltas no sea una torre de cien filas.
+    local nodes, edges, maxRows, visualCols = {}, {}, 0, 0
     for c = 0, maxCol do
         local col = columns[c] or {}
         local function key(q)
             local sum, n = 0, 0
             for _, reqId in ipairs(parentsOf(q)) do
                 if nodes[reqId] then
-                    sum = sum + nodes[reqId].row
+                    sum = sum + nodes[reqId].lrow
                     n = n + 1
                 end
             end
@@ -62,16 +66,21 @@ function ns.BuildLayout(quests, visible)
             if keys[a] ~= keys[b] then return keys[a] < keys[b] end
             return a.id < b.id
         end)
-        for row, q in ipairs(col) do
-            nodes[q.id] = { quest = q, col = c, row = row - 1 }
+        for i, q in ipairs(col) do
+            local lrow = i - 1
+            nodes[q.id] = {
+                quest = q, lrow = lrow,
+                col = visualCols + math.floor(lrow / ns.MAX_PER_COL), row = lrow % ns.MAX_PER_COL,
+            }
             for _, reqId in ipairs(parentsOf(q)) do
                 if set[reqId] then
                     edges[#edges + 1] = { from = reqId, to = q.id }
                 end
             end
         end
-        maxRows = math.max(maxRows, #col)
+        visualCols = visualCols + math.max(1, math.ceil(#col / ns.MAX_PER_COL))
+        maxRows = math.max(maxRows, math.min(#col, ns.MAX_PER_COL))
     end
 
-    return { nodes = nodes, edges = edges, cols = maxCol + 1, rows = maxRows, count = #list }
+    return { nodes = nodes, edges = edges, cols = visualCols, rows = maxRows, count = #list }
 end

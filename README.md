@@ -1,22 +1,24 @@
 # Completao!!
 
-World of Warcraft addon for the Classic "Forever" beta that shows the quests
-of every dungeon and raid as a **chain tree**: which quests exist, what each
-one requires, where it starts, and which ones you have already done. Pick a
-dungeon or raid on the left, read the tree on the right, click a quest for the
-details.
+World of Warcraft addon for the Classic "Forever" beta that shows quests as a
+**chain tree**: which quests exist, what each one requires, where it starts, and
+which ones you have already done. Pick a dungeon, raid, zone or class on the
+left, read the tree on the right, click a quest for the details.
 
 Inspired by BtWQuests.
 
 ## What it does
 
-- **Dungeons and Raids** sections in a collapsible side panel (more sections --
-  zones, class quests -- slot in later). Each entry lists its level range,
-  progress (`done/total`) and a NEW tag for the content Forever adds.
+- **Dungeons, Raids, Zones and Class Quests** sections in a collapsible side
+  panel. Each entry lists its level range, progress (`done/total`) and a NEW tag
+  for the content Forever adds. Zones and classes only list what you can do:
+  entries with no quest for your faction and race are hidden, and your own
+  class comes first. Zone and class names follow the client's language.
 - **Quest chain tree**: quests laid out left to right by prerequisite, colored
-  by state (completed, in progress, available, locked). Only your faction's
-  quests are shown. Drag the background to pan, wheel to scroll (Shift+wheel
-  sideways).
+  by state (completed, in progress, available, locked). Only the quests of your
+  faction and race are shown. Long columns are split (12 rows at most), so a
+  zone with a hundred loose quests reads as a grid. Drag the background to pan,
+  wheel to scroll (Shift+wheel sideways).
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
   red), objective, description, and who starts / ends it with zone and
   coordinates. It can be maximized over the whole tree with Blizzard's
@@ -86,6 +88,13 @@ is fetched with a local helper that is not part of this repository
   instance when its zone is the instance, or when an NPC that only ever spawns
   inside it gives, receives or is the target of the quest; its prerequisite
   chain (up to 12 steps back) and continuations (3 steps forward) come along.
+- `lua tools/questie_classic.lua zones` -- writes `Data/Generated/Zones.lua` and
+  `Classes.lua`: one entry per zone with a map (Classic zones and cities;
+  starting subzones such as Northshire fold into their zone) and one per
+  class. Every quest goes into a single entry: class quests (by Questie's class
+  category or class mask) into their class, the rest into their zone. Quests
+  that belong to a dungeon also show up under its zone when Questie files them
+  there.
 - Chain steps that share a name are numbered ("Unending Torment (2/5)").
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 
@@ -102,7 +111,9 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao/
 
 Early (`0.1.0-beta`); see `CHANGELOG.md`.
 
-- Every Classic dungeon has generated quests. Of Forever's new instances only
+- Every Classic zone and class has generated quests too (Forever's own zones
+  and class quests are not covered yet). Every Classic dungeon has generated
+  quests. Of Forever's new instances only
   The Hall of Thanes and Ruins of Lordaeron have quests so far; the rest are
   listed (level range, zone of the door) but empty until their quests are
   published.

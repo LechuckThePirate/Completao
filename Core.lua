@@ -3,12 +3,25 @@ local ADDON, ns = ...
 ns.entries = {}
 ns.entryList = {}
 
--- Secciones del panel izquierdo, en orden. Para anadir una (zonas, quests de clase...):
--- anadirla aqui y registrar entradas con category = "<id>".
+-- Secciones del panel izquierdo, en orden. Para anadir una: anadirla aqui y registrar
+-- entradas con category = "<id>".
 ns.categories = {
-    { id = "dungeons", name = "Dungeons" },
-    { id = "raids",    name = "Raids" },
+    { id = "dungeons", name = ns.L["Dungeons"] },
+    { id = "raids",    name = ns.L["Raids"] },
+    { id = "zones",    name = ns.L["Zones"] },
+    { id = "classes",  name = ns.L["Class Quests"] },
 }
+
+-- Nombre a mostrar de una entrada: las clases y zonas usan el nombre que da el cliente (su idioma).
+function ns.EntryName(d)
+    if d.classFile and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[d.classFile] then
+        return LOCALIZED_CLASS_NAMES_MALE[d.classFile]
+    end
+    if d.category == "zones" and d.area and C_Map and C_Map.GetAreaInfo then
+        return C_Map.GetAreaInfo(d.area) or d.name
+    end
+    return d.name
+end
 
 function ns.Print(...)
     print("|cff33ff99Completao!!|r:", ...)
@@ -26,12 +39,18 @@ function ns.RegisterEntry(d)
     ns.entryList[#ns.entryList + 1] = d
 end
 
+-- Una misma quest puede estar en varias entradas (p.ej. en su zona y en la mazmorra): se guardan
+-- todas las copias por id para poder buscarla rapido y corregirlas juntas.
+local copies = {}
+
 function ns.AddQuests(entryId, list)
     local e = ns.entries[entryId]
     if not e then return end
     for _, q in ipairs(list) do
         q.entryId = q.entryId or entryId
         e.quests[#e.quests + 1] = q
+        local c = copies[q.id]
+        if c then c[#c + 1] = q else copies[q.id] = { q } end
     end
 end
 
@@ -44,10 +63,10 @@ end
 -- Correcciones a mano sobre datos generados (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
 -- Un valor false borra el campo.
 function ns.PatchQuest(id, fields)
-    local q = ns.FindQuestDef(id)
-    if not q then return end
-    for k, v in pairs(fields) do
-        q[k] = (v ~= false) and v or nil
+    for _, q in ipairs(copies[id] or {}) do
+        for k, v in pairs(fields) do
+            q[k] = (v ~= false) and v or nil
+        end
     end
 end
 
@@ -97,18 +116,21 @@ function ns.QuestStatus(q)
 end
 
 function ns.FindQuestDef(id)
-    for _, d in ipairs(ns.entryList) do
-        for _, q in ipairs(d.quests) do
-            if q.id == id then
-                return q
-            end
-        end
-    end
+    local c = copies[id]
+    return c and c[1]
 end
 
+-- races: mascara de razas permitidas (1 humano, 2 orco, 4 enano, 8 elfo de la noche, 16 no-muerto,
+-- 32 tauren, 64 gnomo, 128 trol); el id de raza del cliente es el numero de bit + 1.
+local playerRaceId
 function ns.QuestVisible(q)
     if q.hidden then return false end
-    return not q.faction or q.faction == UnitFactionGroup("player")
+    if q.faction and q.faction ~= UnitFactionGroup("player") then return false end
+    if q.races then
+        playerRaceId = playerRaceId or select(3, UnitRace("player"))
+        if playerRaceId and math.floor(q.races / 2 ^ (playerRaceId - 1)) % 2 == 0 then return false end
+    end
+    return true
 end
 
 function ns.EntryProgress(d)

@@ -6,8 +6,8 @@ it asks of you, and which ones you have already done. Pick a section on the
 left, read the tree on the right, click a quest for everything about it -- and
 let the addon walk you to the person who hands it out.
 
-Dungeons and raids are in from day one, with more sections on the way (class
-quests, zones and beyond). Currently in **beta**.
+Dungeons, raids, zones and class quests are in, with more sections on the way.
+Currently in **beta**.
 
 ![Main window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
 
@@ -24,10 +24,12 @@ of your own faction are shown. Drag the background to pan the tree, scroll the
 wheel to move (Shift + wheel to go sideways).
 
 ### A side panel that grows with the addon
-Sections are collapsible: open **Dungeons** or **Raids** and pick an entry.
-Each one lists its level range, your progress (`done/total`), and a **NEW** tag
-on what Forever adds on top of Classic. More sections -- class quests, zones and
-others -- slot into the same panel as they are added.
+Sections are collapsible: open **Dungeons**, **Raids**, **Zones** or **Class
+Quests** and pick an entry. Each one lists its level range, your progress
+(`done/total`), and a **NEW** tag on what Forever adds on top of Classic. Zones
+and classes only list what you can actually do -- entries with nothing for your
+faction and race are hidden, and your own class comes first. More sections slot
+into the same panel as they are added.
 
 ### Everything about a quest, one click away
 Click any quest in the tree to open its panel:
@@ -77,7 +79,8 @@ Quest data is generated, not typed in by hand: the Classic quests come from
 Questie's database and the ones Forever adds are compiled from public quest
 databases. That has a consequence you should know about:
 
-- Every Classic dungeon has its quests.
+- Every Classic dungeon, zone and class has its quests. Forever's own zones and
+  class quests are not covered yet.
 - Of Forever's new content, **The Hall of Thanes** and **Ruins of Lordaeron**
   have theirs so far; the other new dungeons and the new raids appear as their
   quests are published, and coverage grows with each update.

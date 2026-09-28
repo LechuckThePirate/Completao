@@ -121,10 +121,16 @@ local function renderTree(d)
     end
 end
 
+-- En zonas y clases solo salen las entradas que tienen alguna quest para este personaje
+-- (facción y raza); las mazmorras y raids se listan siempre, aunque aun no tengan datos.
+local HIDE_WHEN_EMPTY = { zones = true, classes = true }
+
 local function entriesOf(catId)
     local items = {}
     for _, d in ipairs(ns.entryList) do
-        if d.category == catId then items[#items + 1] = d end
+        if d.category == catId and (not HIDE_WHEN_EMPTY[catId] or select(2, ns.EntryProgress(d)) > 0) then
+            items[#items + 1] = d
+        end
     end
     return items
 end
@@ -219,11 +225,15 @@ local function refreshList()
                 b:SetPoint("TOPLEFT", ENTRY_INDENT, -y)
                 b:SetWidth(listW - ENTRY_INDENT)
                 local done, total = ns.EntryProgress(d)
-                b.name:SetText(d.name)
-                local lv = (d.minLevel == d.maxLevel) and tostring(d.minLevel) or ("%s-%s"):format(d.minLevel or "?", d.maxLevel or "?")
-                b.sub:SetText(("%s%s %s%s   %d/%d"):format(
-                    d.new and ("|cff33ff99" .. ns.L["NEW"] .. "|r  ") or "", ns.L["Lv"], lv,
-                    d.size and ("  " .. ns.L["%d-man"]:format(d.size)) or "", done, total))
+                b.name:SetText(ns.EntryName(d))
+                local level = ""
+                if d.minLevel then
+                    local lv = (d.minLevel == d.maxLevel) and tostring(d.minLevel) or ("%s-%s"):format(d.minLevel, d.maxLevel or "?")
+                    level = ns.L["Lv"] .. " " .. lv .. "   "
+                end
+                b.sub:SetText(("%s%s%s%d/%d"):format(
+                    d.new and ("|cff33ff99" .. ns.L["NEW"] .. "|r  ") or "", level,
+                    d.size and (ns.L["%d-man"]:format(d.size) .. "   ") or "", done, total))
                 local sel = d.id == selectedId
                 b:SetBackdropColor(sel and 0.15 or 0.05, sel and 0.25 or 0.05, sel and 0.4 or 0.05, 0.9)
                 b:SetBackdropBorderColor(sel and 0.35 or 0.2, sel and 0.65 or 0.2, sel and 1 or 0.2, 1)
@@ -240,7 +250,7 @@ function ns.UI_Refresh()
     if not frame then return end
     refreshList()
     local d = ns.entries[selectedId]
-    frame.header:SetText(d and d.name or "")
+    frame.header:SetText(d and ns.EntryName(d) or "")
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
 end
@@ -251,7 +261,11 @@ local function saveGeometry()
 end
 
 local function createFrame()
+    -- por nivel; en las clases, la del jugador va primero
+    local playerClass = select(2, UnitClass("player"))
+    local function rank(d) return d.classFile and d.classFile == playerClass and 0 or 1 end
     table.sort(ns.entryList, function(a, b)
+        if rank(a) ~= rank(b) then return rank(a) < rank(b) end
         if a.minLevel ~= b.minLevel then return (a.minLevel or 0) < (b.minLevel or 0) end
         if a.maxLevel ~= b.maxLevel then return (a.maxLevel or 0) < (b.maxLevel or 0) end
         return a.name < b.name

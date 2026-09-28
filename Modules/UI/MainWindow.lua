@@ -21,7 +21,7 @@ local BACKDROP = {
 local HEADER_H, ENTRY_H, ENTRY_INDENT = 28, 34, 12
 local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 
-local selectedId, expandedCat, listInitialized
+local selectedId, expandedCat, listInitialized, viewRestored
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
 local frame, canvas, emptyText
 local openedWithLog = false -- the quest log opened the window (see the end)
@@ -516,6 +516,9 @@ end
 
 function ns.UI_Refresh()
     if not frame then return end
+    -- remember where you are, to come back to it (the view, "tree" | "search" | "log"; the entry is
+    -- ns.char.selected)
+    ns.char.view = searchMode and ns.Search_Mode() or "tree"
     refreshList()
     if searchMode then
         for _, w in ipairs(treeWidgets) do w:Hide() end
@@ -931,6 +934,17 @@ local function createFrame()
                 expandedCat = (cur and cur.category) or ns.categories[1].id
             end
         end
+        -- Preferences -> "Always open on the Quest Log": every time it opens. Otherwise, the first time in
+        -- a session it comes back to the view it was left on (later, the window is just as it was hidden).
+        if ns.char.openOnQuestLog then
+            ns.Detail_Hide()
+            searchMode = true
+            ns.Search_SetMode("log")
+        elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search") then
+            searchMode = true
+            ns.Search_SetMode(ns.char.view)
+        end
+        viewRestored = true
         ns.UI_Refresh()
     end)
     ns.UI = frame

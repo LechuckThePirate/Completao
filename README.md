@@ -102,8 +102,10 @@ Inspired by BtWQuests.
   prefs`) opens a small window, as in Embolsao, with the basics: opacity while
   moving, show the minimap button, show the chat messages at startup, open
   with the quest log (the window opens when you open the quest log -- `L` or
-  its micro button -- and closes with it if it was opened that way), and
-  buttons to reset the window position, the zoom and the filters. More will be
+  its micro button -- and closes with it if it was opened that way), always
+  open on the Quest Log (otherwise the window comes back to where you left it:
+  the log, the search or an entry's tree), and buttons to reset the window
+  position, the zoom and the filters. More will be
   added. A **Character specific preferences** checkbox, as in Embolsao, decides
   where these settings -- and the filters, zoom and window position and size --
   are kept: for this character only (the default) or shared by all your

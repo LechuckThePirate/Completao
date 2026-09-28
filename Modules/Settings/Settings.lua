@@ -6,6 +6,7 @@ local _, ns = ...
 -- belongs to the character. The rest of the addon uses ns.char without knowing which one is behind it.
 local SWITCHABLE = {
     fadeAlpha = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
+    openOnQuestLog = true,
 }
 
 local function deepCopy(value)

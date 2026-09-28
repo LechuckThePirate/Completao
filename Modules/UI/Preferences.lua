@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 370
+local WIDTH, HEIGHT = 340, 398
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -126,9 +126,13 @@ local function create()
         function() return ns.char.openWithQuestLog end,
         function(value) ns.char.openWithQuestLog = value or nil end)
 
-    makeButton(prefs, -236, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -266, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -296, L["Reset filters"], function()
+    widgets[#widgets + 1] = makeCheck(prefs, -220, L["Always open on the Quest Log"],
+        function() return ns.char.openOnQuestLog end,
+        function(value) ns.char.openOnQuestLog = value or nil end)
+
+    makeButton(prefs, -264, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -294, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -324, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)

@@ -126,7 +126,10 @@ Click any quest in the tree to open its panel:
   own icon in the AddOns list and on the window's portrait, next to its version.
 - A **Preferences** window behind the gear next to the close button, with the
   basics: opacity while moving, the minimap button, the startup chat messages,
-  opening Completao!! together with your quest log, and resets for the window position, zoom and filters. More options will come.
+  opening Completao!! together with your quest log, always opening on the Quest
+  Log (otherwise it remembers where you left it: the log, the search or a
+  tree), and resets for the window position, zoom and filters. More options
+  will come.
   Tick **Character specific preferences** to keep them for one character, or
   untick it to share them -- filters, zoom and window included -- with all
   your characters.

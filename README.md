@@ -110,5 +110,10 @@ Early (`0.1.0-beta`); see `CHANGELOG.md`.
 
 Classic quest data comes from Questie's database; Forever quest text and
 locations come from Wowhead. This addon is not affiliated with Blizzard
-Entertainment, Questie or Wowhead. Questie is GPL-3.0 licensed -- keep that in
-mind before redistributing the generated data.
+Entertainment, Questie or Wowhead.
+
+## License
+
+[GNU General Public License v3.0](LICENSE). Questie declares the same license
+on its CurseForge page (its GitHub repository carries no license file), and the
+generated Classic data derives from its database.

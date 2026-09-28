@@ -5,6 +5,7 @@
 ## SavedVariables: CompletaoDB
 ## SavedVariablesPerCharacter: CompletaoCharDB
 ## Category: Quests
+## X-License: GPL-3.0
 ## IconTexture: Interface\AddOns\Completao!!\Icons\Completao.png
 
 Locale.lua

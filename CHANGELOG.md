@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.2.0-beta
+
+- New: **Battlegrounds**, **Events** and **Miscellaneous** sections, and quests
+  for the raids; the generator moved to Forever's own quest database, so many
+  quests that were missing before (or filed under the wrong dungeon) are now in.
+- New: **Zones**, **Class Quests**, **Professions** and **Races** sections, so
+  every quest that isn't tied to a dungeon or raid has a home too.
+- New: quest steps -- each objective gets its own waypoint, with a dropdown to
+  pick which one, and live progress next to it; **Show on map** and the
+  waypoint buttons follow whichever step is selected.
+- New: a check mark on quests that are ready to turn in, both in the tree and
+  the quest log table.
+- New: a dungeon-door badge on quests done inside an instance, and a dragon
+  head badge on elite quests (recommended with a group), on the tree and in
+  the quest panel and tooltip.
+- New: the quest panel shows the recommended level next to the required one,
+  and both are colored the way the game colors that level for your character.
+- New: quest rewards (items, money, reputation) in the quest panel, and a long
+  description at the end, read live from the quest log.
+- New: global quest search and a Quest Log view, as a sortable table (name,
+  level, zone, money) with a money column and an items-only filter; the whole
+  window layout is responsive to its size.
+- New: tree filters -- title search, and hiding low level, too high or
+  completed chains; the chain of the selected quest is highlighted, the rest
+  dimmed.
+- New: a Preferences window: per-character or shared settings, opening the
+  window together with the quest log, always opening on the quest log (or
+  remembering where you left it), and key bindings.
+- New: the window and its trees redraw as you level up, accept, abandon or
+  turn in a quest, so they never go stale.
+- Fix: quests only ever done inside a dungeon aren't marked as such if the
+  particular quest never sends you in; "too high" also catches quests the
+  game itself would show in red; several map coordinates fixed, including a
+  wrong pond for "Altered Beings".
+
 ## 0.1.0-beta
 
 First version.

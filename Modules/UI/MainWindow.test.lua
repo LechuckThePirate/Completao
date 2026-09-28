@@ -83,6 +83,25 @@ describe("MainWindow", function()
         end)
     end)
 
+    it("a quest in the log with every objective done gets a check in the top-right corner", function()
+        local id
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if ns.QuestVisible(q, ns.entries.vc) then id = q.id break end
+        end
+        local function check() return (ShownNodes())[id].ready:IsShown() end
+        ns.UI_Refresh()
+        assert.is_false(check())                 -- not taken
+        WowMock.onQuest[id] = true
+        ns.UI_Refresh()
+        assert.is_false(check())                 -- in the log, objectives pending
+        WowMock.readyForTurnIn[id] = true
+        ns.UI_Refresh()
+        assert.is_true(check())                  -- ready to turn in
+        WowMock.done[id], WowMock.onQuest[id] = true, nil
+        ns.UI_Refresh()
+        assert.is_false(check())                 -- turned in
+    end)
+
     it("selecting a quest highlights its chain and dims the rest", function()
         local q = ns.entries.vc.quests[1]
         ns.UI_OpenQuest("vc", q.id)

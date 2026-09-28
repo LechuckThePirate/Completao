@@ -70,6 +70,11 @@ Quests that take place inside a dungeon or raid wear a small **doorway icon** on
 the top-left corner of their box, with a note in the tooltip and the quest
 panel -- so you can tell them from the ones you do outside on the way there.
 
+### Which ones are ready to hand in
+A quest in your log with every objective done keeps its yellow box and gets a
+green **check** on the top-right corner, so you know at a glance what is only
+waiting for the turn-in.
+
 ### Follow a chain
 In a crowded tree it is hard to follow a chain by eye. Click a quest and its
 whole chain -- everything to do before and after it -- lights up in green, while

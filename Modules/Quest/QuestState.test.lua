@@ -47,6 +47,18 @@ describe("QuestState", function()
         end)
     end)
 
+    describe("IsReadyToTurnIn", function()
+        it("only for a quest in the log with every objective done", function()
+            assert.is_false(ns.IsReadyToTurnIn(10))
+            WowMock.onQuest[10] = true
+            assert.is_false(ns.IsReadyToTurnIn(10))
+            WowMock.readyForTurnIn[10] = true
+            assert.is_true(ns.IsReadyToTurnIn(10))
+            WowMock.done[10] = true
+            assert.is_false(ns.IsReadyToTurnIn(10))
+        end)
+    end)
+
     describe("level", function()
         it("low level: grey for the game", function()
             assert.is_true(ns.IsLowLevel({ level = 10 }))

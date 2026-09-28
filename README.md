@@ -57,6 +57,8 @@ Inspired by BtWQuests.
   carry a small doorway icon on the top-left corner of their box (and a line in
   the tooltip and the quest panel), so you can tell them apart from the ones you
   do outside on the way there.
+- **Ready to turn in**: a quest in your log with every objective done keeps its
+  yellow "in progress" box and gets a green check on the top-right corner.
 - **Follow a chain**: click a quest and its whole chain -- everything to do
   before and after it -- lights up in green (thick lines), while every other
   visible quest and connection dims, so a long chain is easy to follow in a

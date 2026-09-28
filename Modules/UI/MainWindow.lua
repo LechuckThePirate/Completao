@@ -37,6 +37,7 @@ local function showNodeTooltip(btn)
     GameTooltip:AddLine(ns.QuestTitle(q.id, q.name), 1, 1, 1)
     local c = STATUS_COLORS[status]
     GameTooltip:AddLine(STATUS_LABELS[status], c[1], c[2], c[3])
+    if btn.readyToTurnIn then GameTooltip:AddLine(ns.L["Ready to turn in"], 0.35, 1, 0.35) end
     if q.level then
         GameTooltip:AddLine(ns.L["Level %d%s"]:format(q.level, q.minLevel and ns.L[" (min %d)"]:format(q.minLevel) or ""), 0.8, 0.8, 0.8)
     end
@@ -74,6 +75,12 @@ local function getNodeButton(i)
     b.badge:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Dungeon.png")
     b.badge:SetVertexColor(1, 0.82, 0.2)
     b.badge:Hide()
+    -- "ready to turn in" check: on the top-right corner, over the border
+    b.ready = b:CreateTexture(nil, "OVERLAY")
+    b.ready:SetSize(18, 18)
+    b.ready:SetPoint("TOPRIGHT", 6, 6)
+    b.ready:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+    b.ready:Hide()
     b:SetScript("OnEnter", showNodeTooltip)
     b:SetScript("OnLeave", GameTooltip_Hide)
     b:SetScript("OnClick", function(self)
@@ -259,6 +266,8 @@ local function renderTree(d)
             b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         end
         b.badge:SetShown(n.quest.dungeon ~= nil)
+        b.readyToTurnIn = status == "active" and ns.IsReadyToTurnIn(n.quest.id)
+        b.ready:SetShown(b.readyToTurnIn)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
         -- translucent when they don't fit your level (too high ones more than low level ones);

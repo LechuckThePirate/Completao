@@ -16,6 +16,14 @@ function ns.QuestTitle(id, fallback)
     return fallback or ("Quest " .. id)
 end
 
+-- In the log with every objective done and not turned in yet.
+function ns.IsReadyToTurnIn(id)
+    if not C_QuestLog.IsOnQuest(id) or C_QuestLog.IsQuestFlaggedCompleted(id) then return false end
+    if C_QuestLog.ReadyForTurnIn then return C_QuestLog.ReadyForTurnIn(id) and true or false end
+    if C_QuestLog.IsComplete then return C_QuestLog.IsComplete(id) and true or false end
+    return false
+end
+
 -- Returns "done" | "active" | "available" | "locked", and a list of reasons when locked.
 function ns.QuestStatus(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then

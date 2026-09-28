@@ -6,12 +6,6 @@ local _, ns = ...
 -- the game's objectives, else by order); the game's objectives with no step in the data are added without
 -- a place. Returns the list and the index of the step that comes next. Step: { kind =
 -- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", current }.
-local function readyForTurnIn(id)
-    if C_QuestLog.ReadyForTurnIn then return C_QuestLog.ReadyForTurnIn(id) end
-    if C_QuestLog.IsComplete then return C_QuestLog.IsComplete(id) end
-    return false
-end
-
 function ns.QuestSteps(q)
     local L = ns.L
     local list = {}
@@ -68,7 +62,7 @@ function ns.QuestSteps(q)
     if completed then
         current = #list
     elseif onQuest then
-        if readyForTurnIn(q.id) then
+        if ns.IsReadyToTurnIn(q.id) then
             current = #list
         else
             for i, s in ipairs(list) do

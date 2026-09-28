@@ -28,6 +28,7 @@ local es = {
     ["Miscellaneous"] = "Varios",
     ["Completed"] = "Completada",
     ["In progress"] = "En curso",
+    ["Ready to turn in"] = "Lista para entregar",
     ["Available"] = "Disponible",
     ["Locked"] = "Bloqueada",
     ["Level %d%s"] = "Nivel %d%s",

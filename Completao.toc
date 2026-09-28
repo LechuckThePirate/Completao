@@ -12,6 +12,7 @@
 ## IconTexture: Interface\AddOns\Completao\Icons\Completao.png
 ## SavedVariables: CompletaoDB
 ## SavedVariablesPerCharacter: CompletaoCharDB
+## X-Curse-Project-ID: 1716061
 
 Locale.lua
 Core.lua

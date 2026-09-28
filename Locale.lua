@@ -20,6 +20,7 @@ local es = {
     ["Raids"] = "Bandas",
     ["Zones"] = "Zonas",
     ["Class Quests"] = "Misiones de clase",
+    ["Professions"] = "Profesiones",
     ["Completed"] = "Completada",
     ["In progress"] = "En curso",
     ["Available"] = "Disponible",

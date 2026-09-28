@@ -10,6 +10,7 @@ ns.categories = {
     { id = "raids",    name = ns.L["Raids"], sortByLevel = true },
     { id = "zones",    name = ns.L["Zones"] },
     { id = "classes",  name = ns.L["Class Quests"] },
+    { id = "professions", name = ns.L["Professions"] },
     { id = "races",    name = ns.L["Races"] },
 }
 
@@ -20,6 +21,10 @@ function ns.EntryName(d)
     end
     if d.category == "zones" and d.area and C_Map and C_Map.GetAreaInfo then
         return C_Map.GetAreaInfo(d.area) or d.name
+    end
+    if d.skillLine and C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
+        local ok, name = pcall(C_TradeSkillUI.GetTradeSkillDisplayName, d.skillLine)
+        if ok and name and name ~= "" then return name end
     end
     if d.raceId and C_CreatureInfo and C_CreatureInfo.GetRaceInfo then
         local info = C_CreatureInfo.GetRaceInfo(d.raceId)

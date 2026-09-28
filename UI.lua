@@ -335,7 +335,7 @@ end
 
 -- En zonas y clases solo salen las entradas que tienen alguna quest para este personaje
 -- (facción y raza); las mazmorras y raids se listan siempre, aunque aun no tengan datos.
-local HIDE_WHEN_EMPTY = { zones = true, classes = true }
+local HIDE_WHEN_EMPTY = { zones = true, classes = true, professions = true }
 
 -- Orden alfabetico por el nombre que se muestra (en el idioma del cliente), sin distinguir mayusculas ni acentos.
 local ACCENTS = {

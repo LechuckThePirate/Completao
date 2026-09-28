@@ -21,6 +21,7 @@ Data\Raids.lua
 Data\Generated\Classic.lua
 Data\Generated\Zones.lua
 Data\Generated\Classes.lua
+Data\Generated\Professions.lua
 Data\Generated\Races.lua
 Data\Generated\Forever.lua
 Data\Generated\Rewards.lua

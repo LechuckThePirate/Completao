@@ -298,6 +298,22 @@ if arg[1] == "zones" then
     local CLASS_NAME = { WARRIOR = "Warrior", PALADIN = "Paladin", HUNTER = "Hunter", ROGUE = "Rogue", PRIEST = "Priest",
         SHAMAN = "Shaman", MAGE = "Mage", WARLOCK = "Warlock", DRUID = "Druid" }
 
+    -- Profesiones: por la categoria de Questie (QuestSort negativo) o por la profesion que exige la quest
+    -- (campo requiredSkill, 18). Clave: id de la linea de habilidad del juego.
+    local PROF_SORT = { [-24] = 182, [-101] = 356, [-121] = 164, [-181] = 171, [-182] = 165, [-201] = 202,
+        [-264] = 197, [-304] = 185, [-324] = 129 }
+    local PROF_NAME = { [164] = "Blacksmithing", [165] = "Leatherworking", [171] = "Alchemy", [182] = "Herbalism",
+        [185] = "Cooking", [186] = "Mining", [197] = "Tailoring", [202] = "Engineering", [333] = "Enchanting",
+        [356] = "Fishing", [129] = "First Aid", [393] = "Skinning" }
+    local profSet = {}
+    for id, q in pairs(quests) do
+        local skill = PROF_SORT[q[Q_ZONE] or 0] or (q[18] and PROF_NAME[q[18][1]] and q[18][1])
+        if skill then
+            profSet[skill] = profSet[skill] or {}
+            profSet[skill][id] = true
+        end
+    end
+
     local zoneSet, classSet = {}, {}
     for id, q in pairs(quests) do
         local z = q[Q_ZONE]
@@ -373,6 +389,24 @@ if arg[1] == "zones" then
         end
     end
     local fc = assert(io.open(OUT_C, "wb")); fc:write(table.concat(cout, "\n")); fc:close()
+
+    local pout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
+        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local skills = {}
+    for skill in pairs(profSet) do skills[#skills + 1] = skill end
+    table.sort(skills, function(a, b) return PROF_NAME[a] < PROF_NAME[b] end)
+    local totalP = 0
+    for _, skill in ipairs(skills) do
+        local entryId = "p_" .. skill
+        local lo, hi = levelRange(profSet[skill])
+        local n = emitEntry(pout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"professions\", skillLine = %d, minLevel = %d, maxLevel = %d })")
+            :format(lua(entryId), lua(PROF_NAME[skill]), skill, lo, hi), profSet[skill])
+        totalP = totalP + n
+        print(("prof. %-24s %3d quests"):format(PROF_NAME[skill], n))
+    end
+    local OUT_P = ROOT .. "/Data/Generated/Professions.lua"
+    local fp = assert(io.open(OUT_P, "wb")); fp:write(table.concat(pout, "\n")); fp:close()
+    print(("escrito %s (%d quests)"):format(OUT_P, totalP))
 
     -- Razas: las quests de una o pocas razas (no las de toda una faccion) aparecen tambien en la entrada de
     -- cada raza incluida; en las zonas solo las ve quien es de esa raza.

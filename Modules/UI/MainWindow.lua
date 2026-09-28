@@ -335,7 +335,9 @@ end
 
 -- In zones, classes and professions only entries with some quest for this character (faction and race)
 -- are listed; dungeons and raids always are, even with no data yet.
-local HIDE_WHEN_EMPTY = { zones = true, classes = true, professions = true }
+local HIDE_WHEN_EMPTY = {
+    zones = true, classes = true, professions = true, battlegrounds = true, events = true, misc = true,
+}
 
 -- Alphabetical order by the shown name (in the client's language), ignoring case and accents.
 local ACCENTS = {

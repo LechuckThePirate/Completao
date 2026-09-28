@@ -5,7 +5,7 @@ describe("QuestState", function()
 
     before_each(function()
         WowMock.Reset()
-        ns = LoadAddon({ files = { "Modules/Map/EraToForever.lua", "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua" } })
+        ns = LoadAddon({ files = { "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua" } })
         ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
         ns.AddQuests("z", { { id = 10, name = "First" }, { id = 11, name = "Second (2/3)" } })
     end)

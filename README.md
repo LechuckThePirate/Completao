@@ -9,11 +9,15 @@ Inspired by BtWQuests.
 
 ## What it does
 
-- **Dungeons, Raids, Zones, Class Quests and Races** sections in a collapsible
-  side panel, each one sorted alphabetically. Each entry lists its level range,
-  progress (`done/total`) and a NEW tag for the content Forever adds. Zones and
-  classes only list what you can do: entries with no quest for your faction and
-  race are hidden. Zone, class and race names follow the client's language.
+- **Dungeons, Raids, Battlegrounds, Zones, Class Quests, Professions, Races,
+  Events and Miscellaneous** sections in a collapsible side panel, each one
+  sorted alphabetically (dungeons and raids by level). Each entry lists its
+  level range, progress (`done/total`) and a NEW tag for the content Forever
+  adds. Everything but dungeons and raids only lists what you can do: entries
+  with no quest for your faction and race are hidden. Zone, class, race and
+  profession names follow the client's language. Events holds the holiday and
+  world events (Lunar Festival, Darkmoon Faire, the Ahn'Qiraj war effort,
+  Scourge Invasion...); Miscellaneous the reputation and legendary quests.
 - **Only what applies to you**: quests of another class, race or faction are
   hidden, unless you look at that class or race in particular (its own entry in
   the panel). A "Show other faction" checkbox lifts it for the opposite faction.
@@ -130,10 +134,9 @@ Modules/Quest/QuestState.lua                    status, low/too high, who sees i
 Modules/Quest/QuestSteps.lua                    steps of a quest and the one that comes next
 Modules/Settings/Settings.lua                   per character or shared settings
 Modules/Graph/Graph.lua                         tree layout
-Modules/Map/EraToForever.lua                    Era -> Forever map coordinates (4 redrawn zones)
 Modules/Map/Waypoints.lua                       zone -> map, waypoints, map marker
 Modules/UI/  Layout Menu MainWindow QuestPanel Search Preferences MinimapButton
-Data/          Dungeons.lua  Raids.lua  Overrides.lua  Generated/ (tools output)
+Data/          Dungeons.lua  Raids.lua  Battlegrounds.lua  Overrides.lua  Generated/ (tools output)
 Icons/
 test/          WowApiMock.lua (the game's API, simulated)  Addon.lua (loader)  busted.lua (local runner)
 setupTests.lua
@@ -188,38 +191,44 @@ Completion is always read live from the client (`C_QuestLog`), never stored.
 ## Data pipeline
 
 Quest data is generated offline, not written by hand. The Forever-only content
-is fetched with a local helper that is not part of this repository
+is fetched with local helpers that are not part of this repository
 (`tools/local/`, git-ignored):
 
-- `lua tools/questie_classic.lua [entry ids]` -- reads the Classic database that
-  ships with [Questie](https://github.com/Questie/Questie) (Lua 5.4; point
-  `QUESTIE_DIR` at the Questie folder if it is not in the default path) and
-  writes `Data/Generated/Classic.lua` and `Entrances.lua`. A quest belongs to an
-  instance when its zone is the instance, or when an NPC that only ever spawns
-  inside it gives, receives or is the target of the quest; its prerequisite
-  chain (up to 12 steps back) and continuations (3 steps forward) come along.
-- `lua tools/questie_classic.lua zones` -- writes `Data/Generated/Zones.lua`,
-  `Classes.lua` and `Races.lua`: one entry per zone with a map (Classic zones and
-  cities; starting subzones such as Northshire fold into their zone), one per
-  class and one per race. Class quests (by Questie's class category or class
-  mask) go into their class, the rest into their zone; quests restricted to a
-  few races also appear under each of those races. Quests that belong to a
-  dungeon also show up under its zone when Questie files them there.
-- The generators apply Questie's own corrections (`Database/Corrections`,
-  executed outside the game) on top of its base database, so levels,
-  prerequisites, races and classes match what Questie shows. A quest inherits
-  the class or race restriction of the prerequisites it requires (`tools/questie_fixes.lua`).
-- Chain steps that share a name are numbered ("Unending Torment (2/5)").
+- `node tools/questie_forever.mjs` -- reads the Forever database that ships with
+  [Questie](https://github.com/Questie/Questie) (`AddOns/QuestieDB/QuestieDB_Forever.toc`,
+  base64 CBOR read by `tools/questie_db.mjs`; set `QUESTIEDB_TOC` if it is not
+  in the default path) and writes everything under `Data/Generated/` except the
+  rewards and Forever-only quests:
+  - `Classic.lua` and `Entrances.lua`: dungeons, raids and battlegrounds. A
+    quest belongs to an instance when its zone is the instance, or when an NPC
+    that only ever spawns inside it gives, receives or is the target of the
+    quest; its prerequisite chain (up to 12 steps back) and continuations
+    (3 steps forward) come along.
+  - `Zones.lua`, `Classes.lua`, `Professions.lua` and `Races.lua`: one entry per
+    zone with a map (starting subzones such as Northshire fold into their
+    zone), class, profession (by Questie's category or the skill the quest
+    requires) and race. Class quests go into their class, the rest into their
+    zone; quests restricted to a few races also appear under each of those
+    races. Quests that belong to an instance also show up under its zone.
+  - `Extra.lua`: the events and miscellaneous entries, from Questie's other
+    quest categories.
+- Questie's Forever database already has Questie's own corrections and its map
+  points in Forever coordinates, so levels, prerequisites, races, classes and
+  positions match what Questie shows; a quest inherits the class or race
+  restriction of the prerequisites it requires. Chain steps that share a name
+  are numbered ("Unending Torment (2/5)"). Each quest also gets one **step**
+  per objective (kill, world object, item from its droppers), with the zone
+  where it is most common and the densest spot in it.
 - `Data/Generated/Rewards.lua` (`ns.REWARDS`) -- the rewards of every quest in
   the other generated files, written by a local helper from public quest
   databases. Only item ids and counts, money, experience and reputation are
   stored: names, icons and tooltips come from the client.
-- **Coordinates.** The generated data is in Era (Classic) map coordinates.
-  Forever redrew the maps of Mulgore, Eastern Plaguelands, Redridge Mountains
-  and Stormwind City, so points there are converted when the data is registered
-  (`Modules/Map/EraToForever.lua`), with the same per-zone transform Questie
-  uses for Forever. Questie's Forever database has those NPC spawns already
-  converted; the two agree to under 0.6 map points.
+- **Coordinates.** Everything in `Data/Generated/` is in Forever's map
+  coordinates. Forever redrew the maps of Mulgore, Eastern Plaguelands,
+  Redridge Mountains and Stormwind City (same world positions, new map
+  bounds); Questie's data has them converted, and the local helpers that read
+  web pages (which show the old coordinates) apply Questie's per-zone
+  transform (`tools/local/era_to_forever.mjs`).
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 
 ## Installing (development)
@@ -260,8 +269,9 @@ FITNESS FOR A PARTICULAR PURPOSE.
 
 ### Credits and what the GPL does not cover
 
-- **Questie.** The generated Classic data (`Data/Generated/Classic.lua` and
-  `Entrances.lua`) derives from the database that ships with
+- **Questie.** The generated quest data (`Classic.lua`, `Zones.lua`,
+  `Classes.lua`, `Professions.lua`, `Races.lua`, `Extra.lua` and `Entrances.lua`
+  in `Data/Generated/`) derives from the Forever database that ships with
   [Questie](https://github.com/Questie/Questie). Questie declares GPLv3 on its
   CurseForge page (its GitHub repository carries no license file); thanks to
   the Questie team and its contributors.

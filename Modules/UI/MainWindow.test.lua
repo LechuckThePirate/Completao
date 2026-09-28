@@ -23,6 +23,16 @@ describe("MainWindow", function()
         assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:match("Dungeons %(%d+%)") end))
     end)
 
+    it("lists the sections, with battlegrounds, events and miscellaneous after the classic ones", function()
+        local seen = {}
+        for _, f in ipairs(WowMock.frames) do
+            local name = type(f._text) == "string" and f._text:match("^[+-] (%a[%a ]+) %(%d+%)$")
+            if name then seen[#seen + 1] = name end
+        end
+        assert.are.same({ "Dungeons", "Raids", "Battlegrounds", "Zones", "Class Quests", "Professions", "Races",
+            "Events", "Miscellaneous" }, seen)
+    end)
+
     describe("filters", function()
         local parent, child
 

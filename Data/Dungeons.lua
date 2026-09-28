@@ -34,6 +34,7 @@ local dungeons = {
     { id = "dm",   name = "Dire Maul",            minLevel = 55, maxLevel = 60 },
     { id = "scho", name = "Scholomance",          minLevel = 58, maxLevel = 60 },
     { id = "strat", name = "Stratholme",          minLevel = 58, maxLevel = 60 },
+    { id = "dt",   name = "Deeprun Tram",         minLevel = 1,  maxLevel = 60 },
 }
 
 for _, d in ipairs(dungeons) do

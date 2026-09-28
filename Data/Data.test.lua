@@ -74,6 +74,44 @@ describe("Data", function()
         assert.is_true(n > 1000)
     end)
 
+    it("the Classic raids, Deeprun Tram and the battlegrounds have quests and a known section", function()
+        for _, id in ipairs({ "zg", "aq20", "mc", "bwl", "aq40", "naxx" }) do
+            assert.are.equal("raids", ns.entries[id].category, id)
+            assert.is_true(#ns.entries[id].quests > 0, id)
+        end
+        for _, id in ipairs({ "av", "wsg", "ab" }) do
+            assert.are.equal("battlegrounds", ns.entries[id].category, id)
+            assert.is_true(#ns.entries[id].quests > 0, id)
+        end
+        assert.is_true(#ns.entries.dt.quests > 0)
+    end)
+
+    it("the events and miscellaneous entries exist and have quests", function()
+        for _, id in ipairs({ "lunar", "darkmoon", "seasonal", "aq_war", "invasion" }) do
+            assert.are.equal("events", ns.entries[id].category, id)
+            assert.is_true(#ns.entries[id].quests > 0, id)
+        end
+        assert.are.equal("misc", ns.entries.reputation.category)
+    end)
+
+    it("raid quests are marked as done inside their raid", function()
+        local inside = 0
+        for _, q in ipairs(ns.entries.naxx.quests) do if q.dungeon == "naxx" then inside = inside + 1 end end
+        assert.is_true(inside > 10)
+    end)
+
+    it("points are in Forever's map coordinates in the zones it redrew", function()
+        -- Stormwind (1519): Era 74.3/37.2 became 77.1/53.3 in Forever; no point of ours may still be in Era's
+        for _, d in ipairs(ns.entryList) do
+            for _, q in ipairs(d.quests) do
+                if q.start and q.start.area == 1519 and q.start.npc == "Harry Burlguard" then
+                    assert.near(77.2, q.start.x, 0.3)
+                    assert.near(53.2, q.start.y, 0.3)
+                end
+            end
+        end
+    end)
+
     it("instance entries have their door", function()
         for _, d in ipairs(ns.entryList) do
             if d.entrance then assert.is_true(isLoc(d.entrance), d.id) end

@@ -6,7 +6,8 @@ it asks of you, and which ones you have already done. Pick a section on the
 left, read the tree on the right, click a quest for everything about it -- and
 let the addon walk you to the person who hands it out.
 
-Dungeons, raids, zones and class quests are in, with more sections on the way.
+Dungeons, raids, battlegrounds, zones, class and profession quests, races and
+world events are in, with more on the way.
 Currently in **beta**.
 
 ![Main window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
@@ -25,12 +26,15 @@ mouse wheel to **zoom** in or out to see more at once (Shift + wheel to go
 sideways, Ctrl + wheel vertically); your zoom is remembered.
 
 ### A side panel that grows with the addon
-Sections are collapsible: open **Dungeons**, **Raids**, **Zones**, **Class
-Quests** or **Races** and pick an entry, listed alphabetically. Each one shows its
-level range, your progress (`done/total`), and a **NEW** tag on what Forever adds
-on top of Classic. Zones and classes only list what you can actually do --
-entries with nothing for your faction and race are hidden. More sections slot
-into the same panel as they are added.
+Sections are collapsible: open **Dungeons**, **Raids** (Molten Core, Blackwing
+Lair, Naxxramas, Ahn'Qiraj, Zul'Gurub...), **Battlegrounds**, **Zones**, **Class
+Quests**, **Professions**, **Races**, **Events** (Lunar Festival, Darkmoon Faire,
+the Ahn'Qiraj war effort, Scourge Invasion...) or **Miscellaneous** and pick an
+entry, listed alphabetically. Each one shows its level range, your progress
+(`done/total`), and a **NEW** tag on what Forever adds on top of Classic. Apart
+from dungeons and raids, sections only list what you can actually do -- entries
+with nothing for your faction and race are hidden. More sections slot into the
+same panel as they are added.
 
 ### Only what applies to you
 Quests of another class, race or faction stay out of your way. If you want to
@@ -143,7 +147,8 @@ Quest data is generated, not typed in by hand: the Classic quests come from
 Questie's database; the ones Forever adds, and the rewards of every quest, are
 compiled from public quest databases. That has a consequence you should know about:
 
-- Every Classic dungeon, zone, class and profession has its quests, and so do
+- Every Classic dungeon, raid, battlegrounds, zone, class and profession has
+  its quests, as do the world events, and so do
   the ~700 quests Forever adds: in their zones and classes, and in the new
   **Zephras Isle**, **Camping** and **Crafting** entries.
 - Of Forever's new dungeons, **The Hall of Thanes** and **Ruins of Lordaeron**

@@ -7,6 +7,13 @@ local raids = {
     { id = "bd",   name = "Barrow Deeps",     minLevel = 60, maxLevel = 60, size = 10, new = true },
     { id = "hs",   name = "Hyjal Summit",     minLevel = 60, maxLevel = 60, size = 20, new = true },
     { id = "ony",  name = "Onyxia's Lair",    minLevel = 60, maxLevel = 60, size = 40 },
+    -- Classic raids: their quests and entrances come from Questie's Forever database (Data/Generated/).
+    { id = "zg",   name = "Zul'Gurub",        minLevel = 60, maxLevel = 60, size = 20 },
+    { id = "aq20", name = "Ruins of Ahn'Qiraj", minLevel = 60, maxLevel = 60, size = 20 },
+    { id = "mc",   name = "Molten Core",      minLevel = 60, maxLevel = 60, size = 40 },
+    { id = "bwl",  name = "Blackwing Lair",   minLevel = 60, maxLevel = 60, size = 40 },
+    { id = "aq40", name = "Temple of Ahn'Qiraj", minLevel = 60, maxLevel = 60, size = 40 },
+    { id = "naxx", name = "Naxxramas",        minLevel = 60, maxLevel = 60, size = 40 },
 }
 
 for _, r in ipairs(raids) do

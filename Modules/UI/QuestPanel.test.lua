@@ -103,6 +103,24 @@ describe("QuestPanel", function()
             assert.are.equal("Tough Wolf Meat@30", waypoints[#waypoints])
         end)
 
+        it("Show on map follows the step chosen for the waypoint, not the quest giver", function()
+            WowMock.done[900000] = true
+            WowMock.onQuest[900001] = true
+            WowMock.objectives[900001] = { { text = "Tough Wolf Meat: 3/8", finished = false, numFulfilled = 3, numRequired = 8 } }
+            ns.Detail_Show(q)
+            WowMock.FindButton("Show on map"):Click()
+            assert.are.equal("Tough Wolf Meat@30", maps[#maps])
+            -- picking the start in the dropdown makes the map follow it
+            local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
+            arrow:Click()
+            local option = WowMock.Find(function(f)
+                return f.text and type(f.text._text) == "string" and f.text._text:find("Start: Giver", 1, true) and f._scripts.OnClick
+            end)
+            option:Click()
+            WowMock.FindButton("Show on map"):Click()
+            assert.are.equal("Start: Giver@10", maps[#maps])
+        end)
+
         it("a step inside a dungeon goes to its entrance", function()
             WowMock.done[900000] = true
             WowMock.onQuest[900001] = true

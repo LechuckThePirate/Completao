@@ -10,10 +10,13 @@ ns.entryList = {}
 ns.categories = {
     { id = "dungeons", name = ns.L["Dungeons"], sortByLevel = true },
     { id = "raids",    name = ns.L["Raids"], sortByLevel = true },
+    { id = "battlegrounds", name = ns.L["Battlegrounds"] },
     { id = "zones",    name = ns.L["Zones"] },
     { id = "classes",  name = ns.L["Class Quests"] },
     { id = "professions", name = ns.L["Professions"] },
     { id = "races",    name = ns.L["Races"] },
+    { id = "events",   name = ns.L["Events"] },
+    { id = "misc",     name = ns.L["Miscellaneous"] },
 }
 
 -- Name shown for an entry: classes, zones, races and professions use the client's name (its language).
@@ -21,7 +24,7 @@ function ns.EntryName(d)
     if d.classFile and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[d.classFile] then
         return LOCALIZED_CLASS_NAMES_MALE[d.classFile]
     end
-    if d.category == "zones" and d.area and C_Map and C_Map.GetAreaInfo then
+    if (d.category == "zones" or d.category == "battlegrounds") and d.area and C_Map and C_Map.GetAreaInfo then
         return C_Map.GetAreaInfo(d.area) or d.name
     end
     if d.skillLine and C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
@@ -55,10 +58,6 @@ function ns.AddQuests(entryId, list)
     local e = ns.entries[entryId]
     if not e then return end
     for _, q in ipairs(list) do
-        -- the data's points are in Era coordinates: convert those in zones Forever redrew
-        ns.ConvertLocation(q.start)
-        ns.ConvertLocation(q.finish)
-        for _, step in ipairs(q.steps or {}) do ns.ConvertLocation(step) end
         q.entryId = q.entryId or entryId
         e.quests[#e.quests + 1] = q
         local c = copies[q.id]
@@ -69,7 +68,7 @@ end
 -- Where the instance's door is: { area = <AreaTable id>, x = , y = } (x, y optional).
 function ns.SetEntrance(entryId, loc)
     local e = ns.entries[entryId]
-    if e then e.entrance = ns.ConvertLocation(loc) end
+    if e then e.entrance = loc end
 end
 
 -- Hand fixes over generated data (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).

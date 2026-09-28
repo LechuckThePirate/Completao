@@ -203,11 +203,6 @@ local function makeDropdown(parent, width)
     return b
 end
 
-local function statusColor(q)
-    local c = ns.STATUS_COLORS[ns.QuestStatus(q)]
-    return c[1], c[2], c[3]
-end
-
 local function getRow(i)
     local row = rows[i]
     if row then return row end
@@ -324,7 +319,7 @@ local function refresh()
         local shade = (i % 2 == 0) and 0.08 or 0.04
         row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
         row.name:SetText(ns.QuestTitle(q.id, q.name))
-        row.name:SetTextColor(statusColor(q))
+        row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
         row.level:SetText(q.level or q.minLevel or "?")
         row.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
         row.where:SetText(row.whereText)

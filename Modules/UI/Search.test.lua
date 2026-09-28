@@ -29,6 +29,12 @@ describe("Search", function()
         assert.is_true(#ShownRows() > 50)
     end)
 
+    it("quest names are colored by difficulty for the character, not by status", function()
+        typeText("defias brother")
+        local row = ShownRows()[1]
+        assert.are.same({ ns.QuestLevelColorRGB(row.quest.level or row.quest.minLevel) }, { row.name:GetTextColor() })
+    end)
+
     it("searches by title across all sections", function()
         typeText("defias brother")
         local rows = ShownRows()

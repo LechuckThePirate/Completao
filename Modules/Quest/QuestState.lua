@@ -76,15 +76,19 @@ end
 
 -- Color escape (|cffRRGGBB) the game gives a quest of this level for this character (grey, green,
 -- yellow, orange, red); plain grey if the client doesn't answer.
-function ns.QuestLevelColor(level)
+function ns.QuestLevelColorRGB(level)
     if GetQuestDifficultyColor then
         local ok, c = pcall(GetQuestDifficultyColor, level)
         if ok and type(c) == "table" and c.r then
-            local function byte(v) return math.floor(v * 255 + 0.5) end
-            return ("|cff%02x%02x%02x"):format(byte(c.r), byte(c.g), byte(c.b))
+            return c.r, c.g, c.b
         end
     end
-    return "|cffbbbbbb"
+    return 0.73, 0.73, 0.73
+end
+
+function ns.QuestLevelColor(level)
+    local r, g, b = ns.QuestLevelColorRGB(level)
+    return ("|cff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 end
 
 -- "Low level": the quest's title would be grey for this character (trivial). The game itself is asked

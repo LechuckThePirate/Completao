@@ -24,6 +24,12 @@ end
 local quests = loadData(Q .. "Database/Classic/classicQuestDB.lua", "questData")
 local npcs = loadData(Q .. "Database/Classic/classicNpcDB.lua", "npcData")
 
+-- Las correcciones que Questie aplica encima de la base (prerrequisitos, niveles, razas, clases, zonas...)
+do
+    local nFixed, nFields = dofile(ROOT .. "/tools/questie_fixes.lua")(quests, Q)
+    print(("correcciones de Questie aplicadas: %d quests, %d campos"):format(nFixed, nFields))
+end
+
 -- areas de cada mazmorra (id principal + alternativos)
 local areaOf, entranceOf = {}, {}
 for line in read(Q .. "Database/Zones/data/dungeons.lua"):gmatch("[^\n]+") do
@@ -191,8 +197,38 @@ end
 
 local ALLIANCE, HORDE, ALL_RACES = 77, 178, 255
 
--- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races.
-local function questLine(id, name, comment)
+-- Mascaras efectivas de clase (campo 7) y de raza (campo 6): la propia de la quest o, si no tiene, la que
+-- hereda de sus prerrequisitos obligatorios (interseccion). Asi una quest que exige una quest solo de
+-- Horda, o de una clase, es tambien solo de esa faccion o clase.
+local function inheritedMask(field)
+    local memo = {}
+    local function mask(id, depth)
+        if memo[id] ~= nil then return memo[id] end
+        memo[id] = false -- corta ciclos
+        local q = quests[id]
+        if not q then return false end
+        local m = q[field] and q[field] ~= 0 and q[field] or nil
+        if m == ALL_RACES and field == 6 then m = nil end
+        if not m and depth < 30 then
+            local parents = {}
+            for _, p in ipairs(q[Q_PREGROUP] or {}) do parents[#parents + 1] = p end
+            if q[Q_PRESINGLE] and #q[Q_PRESINGLE] == 1 then parents[#parents + 1] = q[Q_PRESINGLE][1] end
+            for _, p in ipairs(parents) do
+                local pm = mask(p, depth + 1)
+                if pm then m = m and (m & pm) or pm end
+            end
+            if m == 0 then m = nil end
+        end
+        memo[id] = m or false
+        return memo[id]
+    end
+    return function(id) return mask(id, 0) end
+end
+local classMask, raceMask = inheritedMask(7), inheritedMask(6)
+
+-- Una linea de datos de quest (tabla Lua). Facciones exactas -> faction; otras restricciones de raza -> races;
+-- restricciones de clase -> classes (salvo en las entradas de clase, donde son la razon de estar ahi).
+local function questLine(id, name, comment, noClasses)
     local q = quests[id]
     local f = { "id = " .. id, "name = " .. lua(name) }
     if q[Q_LVL] and q[Q_LVL] > 0 then f[#f + 1] = "level = " .. q[Q_LVL] end
@@ -203,10 +239,12 @@ local function questLine(id, name, comment)
     if #single == 1 then group[#group + 1] = single[1]; single = {} end
     if #group > 0 then f[#f + 1] = "requires = " .. ids(group) end
     if #single > 1 then f[#f + 1] = "requiresAny = " .. ids(single) end
-    local races = q[Q_RACES]
+    local races = raceMask(id)
     if races == ALLIANCE then f[#f + 1] = 'faction = "Alliance"'
     elseif races == HORDE then f[#f + 1] = 'faction = "Horde"'
-    elseif races and races > 0 and races ~= ALL_RACES then f[#f + 1] = "races = " .. races end
+    elseif races then f[#f + 1] = "races = " .. races end
+    local classes = classMask(id)
+    if classes and not noClasses then f[#f + 1] = "classes = " .. classes end
     local giver = q[Q_START] and q[Q_START][1] and q[Q_START][1][1]
     if giver and npcs[giver] then f[#f + 1] = "giver = " .. lua(npcs[giver][N_NAME]) end
     local finisher = q[Q_END] and q[Q_END][1] and q[Q_END][1][1]
@@ -220,6 +258,7 @@ end
 -- Modo "zones": una entrada por zona y una por clase, cada quest en una sola entrada.
 if arg[1] == "zones" then
     local OUT_Z, OUT_C = ROOT .. "/Data/Generated/Zones.lua", ROOT .. "/Data/Generated/Classes.lua"
+    local OUT_R = ROOT .. "/Data/Generated/Races.lua"
 
     -- zonas con mapa en Classic (uiMapId 1411..1459) y su nombre, segun Questie
     local zoneName = {}
@@ -247,7 +286,7 @@ if arg[1] == "zones" then
     local zoneSet, classSet = {}, {}
     for id, q in pairs(quests) do
         local z = q[Q_ZONE]
-        local class = CLASS_SORT[z or 0] or CLASS_MASK[q[7] or 0]
+        local class = CLASS_SORT[z or 0] or CLASS_MASK[classMask(id) or 0]
         if class then
             classSet[class] = classSet[class] or {}
             classSet[class][id] = true
@@ -274,14 +313,14 @@ if arg[1] == "zones" then
         return lo, math.max(lo, hi)
     end
 
-    local function emitEntry(out, entryId, header, set)
+    local function emitEntry(out, entryId, header, set, noClasses)
         local sorted = {}
         for id in pairs(set) do sorted[#sorted + 1] = id end
         table.sort(sorted)
         local names = displayNames(set)
         out[#out + 1] = header
         out[#out + 1] = ("ns.AddQuests(%s, {"):format(lua(entryId))
-        for _, id in ipairs(sorted) do out[#out + 1] = questLine(id, names[id]) end
+        for _, id in ipairs(sorted) do out[#out + 1] = questLine(id, names[id], nil, noClasses) end
         out[#out + 1] = "})"
         out[#out + 1] = ""
         return #sorted
@@ -313,13 +352,48 @@ if arg[1] == "zones" then
         if classSet[class] then
             local entryId = "c_" .. class
             local n = emitEntry(cout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"classes\", classFile = %s })")
-                :format(lua(entryId), lua(CLASS_NAME[class]), lua(class)), classSet[class])
+                :format(lua(entryId), lua(CLASS_NAME[class]), lua(class)), classSet[class], true)
             totalC = totalC + n
             print(("clase %-24s %3d quests"):format(CLASS_NAME[class], n))
         end
     end
     local fc = assert(io.open(OUT_C, "wb")); fc:write(table.concat(cout, "\n")); fc:close()
-    print(("escrito %s (%d zonas, %d quests) y %s (%d quests)"):format(OUT_Z, #zones, totalZ, OUT_C, totalC))
+
+    -- Razas: las quests de una o pocas razas (no las de toda una faccion) aparecen tambien en la entrada de
+    -- cada raza incluida; en las zonas solo las ve quien es de esa raza.
+    local RACES = { "Human", "Orc", "Dwarf", "Night Elf", "Undead", "Tauren", "Gnome", "Troll" }
+    local raceSet = {}
+    for _, set in pairs(zoneSet) do
+        for id in pairs(set) do
+            local m = raceMask(id)
+            if m and m ~= ALLIANCE and m ~= HORDE then
+                local bits = {}
+                for bit = 0, 7 do
+                    if (m >> bit) & 1 == 1 then bits[#bits + 1] = bit + 1 end
+                end
+                if #bits <= 3 then
+                    for _, r in ipairs(bits) do
+                        raceSet[r] = raceSet[r] or {}
+                        raceSet[r][id] = true
+                    end
+                end
+            end
+        end
+    end
+    local rout = { "local _, ns = ...", "", "-- GENERADO por tools/questie_classic.lua zones a partir de la base de datos de Classic de Questie.",
+        "-- No editar a mano: usar Data/Overrides.lua.", "" }
+    local totalR = 0
+    for r, name in ipairs(RACES) do
+        if raceSet[r] then
+            local entryId = "r_" .. r
+            local n = emitEntry(rout, entryId, ("ns.RegisterEntry({ id = %s, name = %s, category = \"races\", raceId = %d })")
+                :format(lua(entryId), lua(name), r), raceSet[r])
+            totalR = totalR + n
+            print(("raza  %-24s %3d quests"):format(name, n))
+        end
+    end
+    local fr = assert(io.open(OUT_R, "wb")); fr:write(table.concat(rout, "\n")); fr:close()
+    print(("escrito %s (%d zonas, %d quests), %s (%d quests) y %s (%d quests)"):format(OUT_Z, #zones, totalZ, OUT_C, totalC, OUT_R, totalR))
     os.exit(0)
 end
 

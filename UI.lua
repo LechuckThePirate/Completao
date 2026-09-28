@@ -80,6 +80,7 @@ end
 local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
 -- con una quest elegida: lo que no forma parte de su cadena se atenua; su camino va en verde
 local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
+local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
 local CHAIN_COLOR = { 0.35, 1, 0.35 }
 local searchText = ""
 local searchBox
@@ -91,7 +92,7 @@ local searchBox
 local function chainInfo(d)
     local set, parent = {}, {}
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q) then set[q.id] = q; parent[q.id] = q.id end
+        if ns.QuestVisible(q, d) then set[q.id] = q; parent[q.id] = q.id end
     end
     local function find(x)
         while parent[x] ~= x do parent[x] = parent[parent[x]]; x = parent[x] end
@@ -155,7 +156,7 @@ local function makeFilter(d)
     if f.hideLow or f.hideHigh or f.hideDone then chains = chainInfo(d) end
     local needle = searchText ~= "" and searchText or nil
     return function(q)
-        if not ns.QuestVisible(q) then return false end
+        if not ns.QuestVisible(q, d) then return false end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
         if f.hideDone and c and c.allDone then return false end
@@ -187,7 +188,7 @@ local function renderTree(d)
     if layout.count == 0 then
         local hasData = false
         for _, q in ipairs(d.quests) do
-            if ns.QuestVisible(q) then hasData = true break end
+            if ns.QuestVisible(q, d) then hasData = true break end
         end
         emptyText:SetText(hasData and ns.L["No quests match the filters."] or ns.L["No quest data yet."])
     end
@@ -315,6 +316,19 @@ end
 -- (facción y raza); las mazmorras y raids se listan siempre, aunque aun no tengan datos.
 local HIDE_WHEN_EMPTY = { zones = true, classes = true }
 
+-- Orden alfabetico por el nombre que se muestra (en el idioma del cliente), sin distinguir mayusculas ni acentos.
+local ACCENTS = {
+    ["á"] = "a", ["é"] = "e", ["í"] = "i", ["ó"] = "o", ["ú"] = "u", ["ü"] = "u", ["ñ"] = "n", ["à"] = "a",
+    ["è"] = "e", ["ì"] = "i", ["ò"] = "o", ["ù"] = "u", ["â"] = "a", ["ê"] = "e", ["î"] = "i", ["ô"] = "o",
+    ["û"] = "u", ["ç"] = "c", ["ä"] = "a", ["ë"] = "e", ["ï"] = "i", ["ö"] = "o",
+    ["Á"] = "a", ["É"] = "e", ["Í"] = "i", ["Ó"] = "o", ["Ú"] = "u", ["Ü"] = "u", ["Ñ"] = "n", ["À"] = "a",
+    ["È"] = "e", ["Ì"] = "i", ["Ò"] = "o", ["Ù"] = "u", ["Â"] = "a", ["Ê"] = "e", ["Î"] = "i", ["Ô"] = "o",
+    ["Û"] = "u", ["Ç"] = "c", ["Ä"] = "a", ["Ë"] = "e", ["Ï"] = "i", ["Ö"] = "o",
+}
+local function sortKey(d)
+    return (ns.EntryName(d):lower():gsub("[\195][\128-\191]", ACCENTS))
+end
+
 local function entriesOf(catId)
     local items = {}
     for _, d in ipairs(ns.entryList) do
@@ -322,6 +336,12 @@ local function entriesOf(catId)
             items[#items + 1] = d
         end
     end
+    local keys = {}
+    for _, d in ipairs(items) do keys[d] = sortKey(d) end
+    table.sort(items, function(a, b)
+        if keys[a] ~= keys[b] then return keys[a] < keys[b] end
+        return a.id < b.id
+    end)
     return items
 end
 
@@ -453,22 +473,13 @@ local function saveGeometry()
 end
 
 local function createFrame()
-    -- por nivel; en las clases, la del jugador va primero
-    local playerClass = select(2, UnitClass("player"))
-    local function rank(d) return d.classFile and d.classFile == playerClass and 0 or 1 end
-    table.sort(ns.entryList, function(a, b)
-        if rank(a) ~= rank(b) then return rank(a) < rank(b) end
-        if a.minLevel ~= b.minLevel then return (a.minLevel or 0) < (b.minLevel or 0) end
-        if a.maxLevel ~= b.maxLevel then return (a.maxLevel or 0) < (b.maxLevel or 0) end
-        return a.name < b.name
-    end)
     -- Marco con retrato (como Embolsao); si el cliente no tuviera la plantilla, el marco basico de antes.
     local okPortrait, portraitFrame = pcall(CreateFrame, "Frame", "CompletaoFrame", UIParent, "PortraitFrameFlatTemplate")
     local hasPortrait = okPortrait and portraitFrame and portraitFrame.SetPortraitToAsset ~= nil
     frame = okPortrait and portraitFrame or CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
     -- el contenido empieza por debajo del retrato (que sobresale por arriba a la izquierda)
     local top = hasPortrait and 66 or 34
-    ns.TREE_TOP = top + 80
+    ns.TREE_TOP = top + 104
     local saved = ns.char.window
     frame:SetSize(saved and math.max(MIN_W, saved.w) or DEFAULT_W, saved and math.max(MIN_H, saved.h) or DEFAULT_H)
     if saved then
@@ -545,10 +556,10 @@ local function createFrame()
     end)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-    local function makeCheck(key, label, tip, x)
+    local function makeCheck(key, label, tip, x, row)
         local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
         cb:SetSize(24, 24)
-        cb:SetPoint("TOPLEFT", toolbarLeft + x, -(top + 48))
+        cb:SetPoint("TOPLEFT", toolbarLeft + x, -(top + 48 + (row or 0) * 24))
         local text = cb.Text or cb.text
         if not text then
             text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -573,10 +584,13 @@ local function createFrame()
     x = makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."], x)
     x = makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests that require a higher level than yours."], x)
     makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the chains whose quests are all done."], x)
+    -- segunda fila: ver el contenido de la otra faccion (por defecto no se ve)
+    makeCheck("otherFaction", ns.L["Show other faction"],
+        ns.L["Shows the quests and zones of the opposite faction, hidden by default."], 0, 1)
 
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
-    hint:SetText(ns.L["Drag the background to pan  |  Wheel: vertical  |  Shift+wheel: horizontal"])
+    hint:SetText(ns.L["Drag: pan  |  Wheel: zoom  |  Shift+wheel: sideways  |  Ctrl+wheel: vertical"])
 
     local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     listScroll:SetPoint("TOPLEFT", 12, -top)
@@ -595,8 +609,12 @@ local function createFrame()
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, LIST_W + 26)
 
+    -- Zoom del arbol: se escala el lienzo; se guarda por personaje.
+    local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))
+    canvas:SetScale(zoom)
+
     local function maxScroll(self)
-        return math.max(0, canvas:GetWidth() - self:GetWidth()), math.max(0, canvas:GetHeight() - self:GetHeight())
+        return math.max(0, canvas:GetWidth() * zoom - self:GetWidth()), math.max(0, canvas:GetHeight() * zoom - self:GetHeight())
     end
     local function scrollTo(self, x, y)
         local maxX, maxY = maxScroll(self)
@@ -604,14 +622,26 @@ local function createFrame()
         self:SetVerticalScroll(math.max(0, math.min(y, maxY)))
     end
 
-    -- Rueda: vertical; si no hay recorrido vertical (o con Shift), horizontal.
+    -- Rueda: zoom, centrado en el cursor (el punto bajo el cursor no se mueve). Shift+rueda: desplaza a los
+    -- lados; Ctrl+rueda: desplaza en vertical. Mover la vista con el arrastre del fondo.
     treeScroll:SetScript("OnMouseWheel", function(self, delta)
-        local _, maxY = maxScroll(self)
         local x, y = self:GetHorizontalScroll(), self:GetVerticalScroll()
-        if IsShiftKeyDown() or maxY == 0 then
+        if IsShiftKeyDown() then
             scrollTo(self, x - delta * 60, y)
-        else
+        elseif IsControlKeyDown() then
             scrollTo(self, x, y - delta * 60)
+        else
+            local newZoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, zoom * (delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP)))
+            if newZoom == zoom then return end
+            local px, py = GetCursorPosition()
+            local scale = self:GetEffectiveScale()
+            local cx = px / scale - (self:GetLeft() or 0)
+            local cy = (self:GetTop() or 0) - py / scale
+            local contentX, contentY = (x + cx) / zoom, (y + cy) / zoom
+            zoom = newZoom
+            ns.char.zoom = zoom
+            canvas:SetScale(zoom)
+            scrollTo(self, contentX * zoom - cx, contentY * zoom - cy)
         end
     end)
 
@@ -642,7 +672,8 @@ local function createFrame()
     frame:SetScript("OnShow", function()
         selectedId = selectedId or ns.char.selected
         if not ns.entries[selectedId] then
-            selectedId = ns.entryList[1] and ns.entryList[1].id
+            local first = entriesOf(ns.categories[1].id)[1] or ns.entryList[1]
+            selectedId = first and first.id
         end
         if not listInitialized then
             listInitialized = true

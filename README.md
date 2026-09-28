@@ -9,16 +9,19 @@ Inspired by BtWQuests.
 
 ## What it does
 
-- **Dungeons, Raids, Zones and Class Quests** sections in a collapsible side
-  panel. Each entry lists its level range, progress (`done/total`) and a NEW tag
-  for the content Forever adds. Zones and classes only list what you can do:
-  entries with no quest for your faction and race are hidden, and your own
-  class comes first. Zone and class names follow the client's language.
+- **Dungeons, Raids, Zones, Class Quests and Races** sections in a collapsible
+  side panel, each one sorted alphabetically. Each entry lists its level range,
+  progress (`done/total`) and a NEW tag for the content Forever adds. Zones and
+  classes only list what you can do: entries with no quest for your faction and
+  race are hidden. Zone, class and race names follow the client's language.
+- **Only what applies to you**: quests of another class, race or faction are
+  hidden, unless you look at that class or race in particular (its own entry in
+  the panel). A "Show other faction" checkbox lifts it for the opposite faction.
 - **Quest chain tree**: quests laid out left to right by prerequisite, colored
-  by state (completed, in progress, available, locked). Only the quests of your
-  faction and race are shown. Long columns are split (12 rows at most), so a
-  zone with a hundred loose quests reads as a grid. Drag the background to pan,
-  wheel to scroll (Shift+wheel sideways).
+  by state (completed, in progress, available, locked). Long columns are split
+  (12 rows at most), so a zone with a hundred loose quests reads as a grid.
+  Drag the background to pan and use the wheel to zoom (Shift+wheel scrolls
+  sideways, Ctrl+wheel vertically); the zoom is remembered per character.
 - **Filters** above the tree, saved per character: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that require a
   higher level than yours, hide completed chains. Chains are shown or hidden
@@ -104,13 +107,17 @@ is fetched with a local helper that is not part of this repository
   instance when its zone is the instance, or when an NPC that only ever spawns
   inside it gives, receives or is the target of the quest; its prerequisite
   chain (up to 12 steps back) and continuations (3 steps forward) come along.
-- `lua tools/questie_classic.lua zones` -- writes `Data/Generated/Zones.lua` and
-  `Classes.lua`: one entry per zone with a map (Classic zones and cities;
-  starting subzones such as Northshire fold into their zone) and one per
-  class. Every quest goes into a single entry: class quests (by Questie's class
-  category or class mask) into their class, the rest into their zone. Quests
-  that belong to a dungeon also show up under its zone when Questie files them
-  there.
+- `lua tools/questie_classic.lua zones` -- writes `Data/Generated/Zones.lua`,
+  `Classes.lua` and `Races.lua`: one entry per zone with a map (Classic zones and
+  cities; starting subzones such as Northshire fold into their zone), one per
+  class and one per race. Class quests (by Questie's class category or class
+  mask) go into their class, the rest into their zone; quests restricted to a
+  few races also appear under each of those races. Quests that belong to a
+  dungeon also show up under its zone when Questie files them there.
+- The generators apply Questie's own corrections (`Database/Corrections`,
+  executed outside the game) on top of its base database, so levels,
+  prerequisites, races and classes match what Questie shows. A quest inherits
+  the class or race restriction of the prerequisites it requires (`tools/questie_fixes.lua`).
 - Chain steps that share a name are numbered ("Unending Torment (2/5)").
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 

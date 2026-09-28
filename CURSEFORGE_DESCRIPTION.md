@@ -20,16 +20,22 @@ Each entry -- a dungeon, a raid -- draws its quests left to right, by
 prerequisite, so a long chain reads like a story instead of a list. Quests are
 colored by state: **completed**, **in progress**, **available** and **locked**,
 and the lines between them turn green as you move down a chain. Only the quests
-of your own faction are shown. Drag the background to pan the tree, scroll the
-wheel to move (Shift + wheel to go sideways).
+of your own faction are shown. Drag the background to pan the tree and use the
+mouse wheel to **zoom** in or out to see more at once (Shift + wheel to go
+sideways, Ctrl + wheel vertically); your zoom is remembered.
 
 ### A side panel that grows with the addon
-Sections are collapsible: open **Dungeons**, **Raids**, **Zones** or **Class
-Quests** and pick an entry. Each one lists its level range, your progress
-(`done/total`), and a **NEW** tag on what Forever adds on top of Classic. Zones
-and classes only list what you can actually do -- entries with nothing for your
-faction and race are hidden, and your own class comes first. More sections slot
+Sections are collapsible: open **Dungeons**, **Raids**, **Zones**, **Class
+Quests** or **Races** and pick an entry, listed alphabetically. Each one shows its
+level range, your progress (`done/total`), and a **NEW** tag on what Forever adds
+on top of Classic. Zones and classes only list what you can actually do --
+entries with nothing for your faction and race are hidden. More sections slot
 into the same panel as they are added.
+
+### Only what applies to you
+Quests of another class, race or faction stay out of your way. If you want to
+see them, look at that class or race in particular -- each has its own entry --
+or tick **Show other faction** to browse the opposite faction's zones.
 
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes

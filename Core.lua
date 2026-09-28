@@ -10,6 +10,7 @@ ns.categories = {
     { id = "raids",    name = ns.L["Raids"] },
     { id = "zones",    name = ns.L["Zones"] },
     { id = "classes",  name = ns.L["Class Quests"] },
+    { id = "races",    name = ns.L["Races"] },
 }
 
 -- Nombre a mostrar de una entrada: las clases y zonas usan el nombre que da el cliente (su idioma).
@@ -19,6 +20,10 @@ function ns.EntryName(d)
     end
     if d.category == "zones" and d.area and C_Map and C_Map.GetAreaInfo then
         return C_Map.GetAreaInfo(d.area) or d.name
+    end
+    if d.raceId and C_CreatureInfo and C_CreatureInfo.GetRaceInfo then
+        local info = C_CreatureInfo.GetRaceInfo(d.raceId)
+        if info and info.raceName then return info.raceName end
     end
     return d.name
 end
@@ -142,15 +147,54 @@ function ns.IsTooHigh(q)
     return (q.minLevel or 0) > UnitLevel("player")
 end
 
--- races: mascara de razas permitidas (1 humano, 2 orco, 4 enano, 8 elfo de la noche, 16 no-muerto,
--- 32 tauren, 64 gnomo, 128 trol); el id de raza del cliente es el numero de bit + 1.
-local playerRaceId
-function ns.QuestVisible(q)
+-- Mascaras de razas y de clases: un bit por raza/clase (razas: 1 humano, 2 orco, 4 enano, 8 elfo de la
+-- noche, 16 no-muerto, 32 tauren, 64 gnomo, 128 trol; clases: 1 guerrero, 2 paladin, 4 cazador, 8 picaro,
+-- 16 sacerdote, 64 chaman, 128 mago, 256 brujo, 1024 druida). El id de raza o clase del cliente es el
+-- numero de bit + 1.
+local function hasBit(mask, id)
+    return math.floor(mask / 2 ^ (id - 1)) % 2 == 1
+end
+
+local ALLIANCE_RACE_BITS = { [1] = true, [3] = true, [4] = true, [7] = true } -- ids de raza: humano, enano, elfo, gnomo
+
+-- Faccion de una quest: la marcada, o la que se deduce de sus razas (todas de una misma faccion).
+function ns.QuestFaction(q)
+    if q.faction then return q.faction end
+    if not q.races then return nil end
+    local alliance, horde = false, false
+    for id = 1, 8 do
+        if hasBit(q.races, id) then
+            if ALLIANCE_RACE_BITS[id] then alliance = true else horde = true end
+        end
+    end
+    if alliance and not horde then return "Alliance" end
+    if horde and not alliance then return "Horde" end
+end
+
+-- Lo que ve el personaje. Las quests de otra clase, raza o faccion no se ven, salvo que se mire esa clase o
+-- esa raza en concreto (su entrada en el panel; `d` es la entrada que se esta mirando) o se active el filtro
+-- "otra faccion", que lo permite para la faccion contraria.
+local playerRaceId, playerClassId
+function ns.QuestVisible(q, d)
     if q.hidden then return false end
-    if q.faction and q.faction ~= UnitFactionGroup("player") then return false end
-    if q.races then
+    local category = d and d.category
+    local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
+
+    if q.classes and category ~= "classes" then
+        playerClassId = playerClassId or select(3, UnitClass("player"))
+        if playerClassId and not hasBit(q.classes, playerClassId) then return false end
+    end
+
+    local mine = UnitFactionGroup("player")
+    local faction = ns.QuestFaction(q)
+    local lookingAtRace = category == "races"
+    if faction and faction ~= mine and not (lookingAtRace or otherFaction) then return false end
+    if q.races and not lookingAtRace then
         playerRaceId = playerRaceId or select(3, UnitRace("player"))
-        if playerRaceId and math.floor(q.races / 2 ^ (playerRaceId - 1)) % 2 == 0 then return false end
+        if playerRaceId and not hasBit(q.races, playerRaceId) then
+            -- otra raza: solo se ve si es de la faccion contraria y has pedido verla
+            if not (otherFaction and faction and faction ~= mine) then return false end
+        end
     end
     return true
 end
@@ -158,7 +202,7 @@ end
 function ns.EntryProgress(d)
     local done, total = 0, 0
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q) then
+        if ns.QuestVisible(q, d) then
             total = total + 1
             if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
                 done = done + 1

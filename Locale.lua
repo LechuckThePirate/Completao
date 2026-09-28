@@ -2,6 +2,10 @@ local _, ns = ...
 
 -- Las claves son el texto en ingles; en clientes esES/esMX se sustituyen por el espanol.
 local es = {
+    ["Races"] = "Razas",
+    ["Show other faction"] = "Ver otra facción",
+    ["Shows the quests and zones of the opposite faction, hidden by default."] =
+        "Muestra las quests y zonas de la facción contraria, ocultas por defecto.",
     ["Search by title"] = "Buscar por título",
     ["Hide low level"] = "Ocultar bajo nivel",
     ["Hide too high"] = "Ocultar muy alto",
@@ -25,8 +29,8 @@ local es = {
     ["Requires one of: "] = "Requiere una de: ",
     ["Requires level %d (you are %d)"] = "Requiere nivel %d (tienes %d)",
     ["No quest data yet."] = "Sin datos de quests todavía.",
-    ["Drag the background to pan  |  Wheel: vertical  |  Shift+wheel: horizontal"] =
-        "Arrastra el fondo para mover  |  Rueda: vertical  |  Shift+rueda: horizontal",
+    ["Drag: pan  |  Wheel: zoom  |  Shift+wheel: sideways  |  Ctrl+wheel: vertical"] =
+        "Arrastrar: mover  |  Rueda: zoom  |  Shift+rueda: lados  |  Ctrl+rueda: vertical",
     ["NEW"] = "NUEVA",
     ["Lv"] = "Nv",
     ["One of: "] = "Una de: ",

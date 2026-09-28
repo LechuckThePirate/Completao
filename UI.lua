@@ -171,13 +171,14 @@ end
 local function makeFilter(d)
     local f = ns.char.filters
     local chains
-    if f.hideLow or f.hideHigh or f.hideDone then chains = chainInfo(d) end
+    if f.hideLow or f.hideHigh then chains = chainInfo(d) end
     local needle = searchText ~= "" and searchText or nil
     return function(q)
         if not ns.QuestVisible(q, d) then return false end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
-        if f.hideDone and c and c.allDone then return false end
+        -- completadas: cada una por su lado, aunque su cadena siga (para verlas, se quita el filtro)
+        if f.hideDone and C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
         if c and c.size > 1 then
             if not c.started then
                 if f.hideHigh and c.headsTooHigh then return false end
@@ -759,7 +760,7 @@ local function createFrame()
     end
     makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
     makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet or that are red (too hard) for your level."])
-    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the chains whose quests are all done."])
+    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 

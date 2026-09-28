@@ -38,11 +38,12 @@ Inspired by BtWQuests.
 - **Filters** above the tree, remembered like the zoom: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that are too
   high (you cannot take them yet, or they are red for your level), hide
-  completed chains. Chains are shown or hidden
+  completed quests. "Completed" hides every quest you have done, also the done
+  steps of a chain you are still on. By level, chains are shown or hidden
   as a whole, so they are never cut in half: "too high" hides a chain when
   everything it starts with is above your level (if you can start it, all its
   steps stay, even higher ones); "low level" hides a chain only when all its
-  quests are grey; "completed" hides chains with every quest done. A chain you
+  quests are grey. A chain you
   have already started, and anything in your quest log, is never hidden by
   level; loose quests are hidden by their own level. What stays visible is
   drawn translucent -- more the quests too high for you, less the low-level

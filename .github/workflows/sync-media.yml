@@ -1,0 +1,41 @@
+name: Sync CurseForge description images
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "images/screencaps/**"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Cap width at 1000px (never upscale) and requantize with pngquant, skipping any
+      # file it can't shrink.
+      - name: Optimize screenshots
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick pngquant
+          rm -rf optimized
+          cp -r images/screencaps optimized
+          for f in optimized/*.png; do
+            convert "$f" -resize '1000x1000>' "$f"
+          done
+          pngquant --quality=65-85 --force --skip-if-larger --ext .png optimized/*.png
+          du -sh images/screencaps optimized
+
+      - name: Upload screenshots to media host
+        env:
+          SSH_KEY: ${{ secrets.COMPLETAO_MEDIA_SSH_KEY }}
+        run: |
+          install -m 600 /dev/null ssh_key
+          echo "$SSH_KEY" > ssh_key
+          mkdir -p ~/.ssh
+          ssh-keyscan -H apparcao.com >> ~/.ssh/known_hosts 2>/dev/null
+          rsync -avz --delete -e "ssh -i ssh_key -o IdentitiesOnly=yes" \
+            optimized/ completao-deploy@apparcao.com:images/screencaps/
+          rm -f ssh_key

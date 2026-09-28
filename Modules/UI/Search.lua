@@ -167,7 +167,7 @@ local function search()
     return found
 end
 
--- table order (headers): by title (the one shown), level or money; ties by level and title
+-- table order (headers): by title (the one shown), level, zone or money; ties by level and title
 local function sortFound(found)
     local key = {}
     for _, f in ipairs(found) do
@@ -176,7 +176,9 @@ local function sortFound(found)
         f.title = (C_QuestLog.GetTitleForQuestID(q.id) or q.name):lower()
         f.level = q.level or q.minLevel or 0
         f.money = r and r.money or 0
-        key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money or f.level
+        f.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
+        key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money
+            or state.sort == "where" and f.whereText:lower() or f.level
     end
     table.sort(found, function(a, b)
         if key[a] ~= key[b] then
@@ -321,7 +323,7 @@ local function refresh()
         row.name:SetText(ns.QuestTitle(q.id, q.name))
         row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
         row.level:SetText(q.level or q.minLevel or "?")
-        row.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
+        row.whereText = f.whereText
         row.where:SetText(row.whereText)
         local r = ns.REWARDS and ns.REWARDS[q.id]
         row.money:SetText(r and r.money and coinString(r.money) or "")
@@ -557,7 +559,7 @@ function ns.Search_Create(parent)
     head.name = column(L["Quest"], "LEFT", "name")
     head.level = column(L["Level"], "CENTER", "level")
     head.level:SetWidth(LEVEL_W)
-    head.where = column(L["Where"])
+    head.where = column(L["Where"], "LEFT", "where")
     head.money = column(L["Money"], "RIGHT", "money")
     head.rewards = column(L["Rewards"])
     panel.head = head

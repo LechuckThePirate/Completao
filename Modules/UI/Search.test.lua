@@ -82,6 +82,15 @@ describe("Search", function()
         for i = 2, #rows do assert.is_true(money(rows[i - 1]) <= money(rows[i])) end
     end)
 
+    it("sorts by zone (where), reversed on a second click", function()
+        panel.head.where:Click()
+        local rows = ShownRows()
+        for i = 2, #rows do assert.is_true(rows[i - 1].whereText:lower() <= rows[i].whereText:lower()) end
+        panel.head.where:Click()
+        rows = ShownRows()
+        for i = 2, #rows do assert.is_true(rows[i - 1].whereText:lower() >= rows[i].whereText:lower()) end
+    end)
+
     it("sorts by level and by title", function()
         panel.head.level:Click() -- already sorted by ascending level: one click reverses it
         local rows = ShownRows()

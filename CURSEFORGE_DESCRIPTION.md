@@ -66,8 +66,11 @@ Click any quest in the tree to open its panel:
 
 - **Requirements** -- prerequisite quests and level, in green when you meet
   them and red when you don't.
-- **Objective and description** -- what to do and the story behind it.
+- **Objective** -- what to do.
 - **Who starts it and who ends it**, with the zone and coordinates.
+- **Description** -- the story behind it, at the end. The game only reveals a
+  quest's text when someone offers it to you or it is in your log, so the addon
+  remembers it from then on, in your language, for all your characters.
 - A **maximize / restore** button (Blizzard's own) to read the text over the
   whole tree.
 
@@ -122,7 +125,8 @@ databases. That has a consequence you should know about:
 - Of Forever's new content, **The Hall of Thanes** and **Ruins of Lordaeron**
   have theirs so far; the other new dungeons and the new raids appear as their
   quests are published, and coverage grows with each update.
-- Quest text is English only; quest titles follow your client's language.
+- Quest text shipped with the addon is English only; quest titles follow your
+  client's language, and descriptions you see in game are kept in it.
 - Some quests start inside an instance and have no known starting point yet --
   for those the addon shows the entrance instead.
 

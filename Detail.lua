@@ -56,7 +56,6 @@ local function buildText(q)
         local inside = ns.entries[q.dungeon]
         section(L["Instance"], (inside and ns.EntryName(inside) or "?") .. " -- " .. L["done inside the instance"])
     end
-    if q.desc then section(L["Description"], q.desc) end
     if q.start then
         section(L["Starts"], describeLocation(q.start))
     else
@@ -69,6 +68,9 @@ local function buildText(q)
     end
     if q.finish then section(L["Ends"], describeLocation(q.finish)) end
     if q.note then section(L["Notes"], q.note) end
+    -- la descripcion larga, al final: la historia se lee despues de lo practico
+    section(L["Description"], ns.QuestDescription(q)
+        or ("|cff999999" .. L["Not known yet: it is saved here the first time a quest giver offers you the quest."] .. "|r"))
     return table.concat(parts, "\n\n")
 end
 

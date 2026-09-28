@@ -43,9 +43,14 @@ Inspired by BtWQuests.
   visible quest and connection dims, so a long chain is easy to follow in a
   crowded tree. Close the panel (or click the quest again) to go back.
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
-  red), objective, description, and who starts / ends it with zone and
-  coordinates. It can be maximized over the whole tree with Blizzard's
-  maximize/restore button.
+  red), objective, who starts / ends it with zone and coordinates, and the long
+  description at the end. It can be maximized over the whole tree with
+  Blizzard's maximize/restore button.
+  - The client only gives a quest's text when a quest giver offers it
+    (`QUEST_DETAIL`) or when it is in your log, never by id. The addon saves
+    that text as you see it (in your client's language, account-wide, per
+    locale, in `CompletaoDB.descriptions`) and prefers it over the English
+    text in its data; a quest never seen and with no text in the data says so.
   - **Waypoint: start / turn-in** -- sets a [TomTom](https://www.curseforge.com/wow/addons/tomtom)
     waypoint, or the game's own user waypoint if TomTom is not installed.
   - **Show on map** -- opens the world map on the quest giver and drops a
@@ -158,8 +163,9 @@ Early (`0.1.0-beta`); see `CHANGELOG.md`.
   The Hall of Thanes and Ruins of Lordaeron have quests so far; the rest are
   listed (level range, zone of the door) but empty until their quests are
   published.
-- Quest text is English only; titles are read from the client, so they follow
-  its language.
+- Quest text shipped with the addon is English only, and only Forever's quests
+  have a long description in it; titles are read from the client, so they
+  follow its language. Descriptions seen in game are saved in your language.
 - Several integration points could not be checked against the client's own UI
   source and fall back gracefully when missing: Blizzard's maximize/restore
   widget, opening the quest log on a quest, and the map marker.

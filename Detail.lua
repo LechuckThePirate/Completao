@@ -521,6 +521,11 @@ function ns.Detail_Create(parent, tree, leftOffset)
     layout()
 end
 
+-- Abre el registro de misiones del juego en esa quest (para las que el addon no tiene en sus datos).
+function ns.OpenQuestInLog(questID)
+    return openQuest(questID)
+end
+
 function ns.Detail_Layout()
     -- solo con el panel abierto: cerrado, layout() volveria a mostrar el arbol (mal con el buscador abierto)
     if detail and detail:IsShown() then layout() end

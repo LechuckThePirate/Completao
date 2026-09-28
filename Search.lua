@@ -292,7 +292,11 @@ local function getRow(i)
         row.icons[k] = icon
     end
     row:SetScript("OnClick", function(self)
-        if self.entry then ns.UI_OpenQuest(self.entry.id, self.quest.id) end
+        if self.entry then
+            ns.UI_OpenQuest(self.entry.id, self.quest.id)
+        elseif C_QuestLog.IsOnQuest(self.quest.id) then
+            ns.OpenQuestInLog(self.quest.id) -- sin datos del addon: el registro del juego muestra sus detalles
+        end
     end)
     row:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
@@ -302,6 +306,7 @@ local function getRow(i)
             GameTooltip:AddLine(L["Click to open it in its tree."], 0.5, 0.8, 1)
         else
             GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6)
+            GameTooltip:AddLine(L["Click to open it in the quest log."], 0.5, 0.8, 1)
         end
         GameTooltip:Show()
     end)

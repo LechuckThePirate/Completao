@@ -89,6 +89,7 @@ local es = {
     ["Quest Log"] = "Registro de misiones",
     ["Your quest log is empty."] = "Tu registro de misiones está vacío.",
     ["Not in Completao!!'s data."] = "No está en los datos de Completao!!.",
+    ["Click to open it in the quest log."] = "Clic para abrirla en el registro de misiones.",
     ["Only quests with item rewards"] = "Solo quests con objetos de recompensa",
     ["%d quests"] = "%d quests",
     ["%d quests (showing the first %d)"] = "%d quests (se muestran las %d primeras)",

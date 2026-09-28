@@ -308,6 +308,7 @@ local function render()
     detail.btnMap:SetShown(canMap)
     detail.btnMap:SetEnabled(canMap and mapLoc ~= nil)
     detail.btnMap:SetText(isEntrance and L["Show entrance"] or L["Show on map"])
+    detail.layoutButtons()
 end
 
 -- Icono dibujado con lineas (sin depender de texturas del cliente): un cuadro con una flecha
@@ -504,7 +505,25 @@ function ns.Detail_Create(parent, tree, leftOffset)
         ns.ShowOnMap(detail.mapLoc, title)
     end)
 
+    -- botones abajo, en filas si no caben en una; el texto acaba justo encima
+    local buttons = {
+        { frame = detail.btnStart, w = 170 }, { frame = detail.btnFinish, w = 170 },
+        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnMap, w = 130 },
+    }
+    function detail.layoutButtons()
+        local width = detail:GetWidth() - 16
+        if width <= 0 then return end
+        local h = ns.FlowLayout(detail, buttons, 8, 8, width, 6, 4, true, true)
+        detail.scroll:SetPoint("BOTTOMRIGHT", -28, 8 + h + 8)
+    end
+    detail:HookScript("OnSizeChanged", detail.layoutButtons)
+
     layout()
+end
+
+function ns.Detail_Layout()
+    -- solo con el panel abierto: cerrado, layout() volveria a mostrar el arbol (mal con el buscador abierto)
+    if detail and detail:IsShown() then layout() end
 end
 
 function ns.Detail_Show(q)

@@ -7,13 +7,41 @@ local L = ns.L
 -- demasiado altas y las completadas (por defecto no), y el tipo de objeto de recompensa (clase y subclase
 -- del juego, p. ej. Arma > Varita). Pulsar un resultado abre su arbol con la quest elegida (UI.lua).
 local ROW_H, ICON = 22, 18
-local LEVEL_W, WHERE_W, ICONS_W = 44, 170, 6 * (ICON + 2)
+local LEVEL_W, MONEY_W, MAX_ICONS, MIN_NAME_W = 44, 84, 6, 150
 local MAX_ROWS = 300
+
+-- Columnas de la tabla segun el ancho: el titulo se queda al menos con MIN_NAME_W; si no cabe, primero se
+-- estrecha "Donde", luego se muestran menos iconos de recompensa y por ultimo se quita "Donde".
+local cols = { width = 0 }
+local function computeColumns(width)
+    if cols.width == width then return false end
+    local gap = 6
+    local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
+    local function nameW() return width - 6 - LEVEL_W - MONEY_W - where - icons * (ICON + 2) - 4 * gap end
+    if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
+    if nameW() < MIN_NAME_W then icons = 3 end
+    if nameW() < MIN_NAME_W then where = 0 end
+    cols.width, cols.icons, cols.where = width, icons, where
+    cols.name = math.max(40, nameW())
+    cols.levelX = 6 + cols.name + gap
+    cols.whereX = cols.levelX + LEVEL_W + gap
+    cols.moneyX = cols.whereX + (where > 0 and (where + gap) or 0)
+    cols.iconsX = cols.moneyX + MONEY_W + gap
+    return true
+end
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 
 local panel
-local state = { text = "", low = false, high = false, done = false, class = nil, subclass = nil }
+local state = {
+    text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
+    sort = "level", desc = false, -- orden de la tabla: "name" | "level" | "money", pulsando la cabecera
+}
 local rows = {}
+
+local function coinString(copper)
+    local f = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+    return f and f(copper) or (copper .. "c")
+end
 
 -- Clase y subclase de un objeto, con sus nombres en el idioma del cliente. Es informacion "instantanea"
 -- del cliente (no hace falta tener el objeto en cache).
@@ -83,6 +111,30 @@ local function matchesReward(q)
     return false
 end
 
+-- Vista: "search" (formulario + resultados) o "log" (las quests del registro, en la misma tabla).
+local mode = "search"
+
+-- Quests del registro, con la zona (cabecera) bajo la que salen. Las que el addon conoce se abren en su
+-- arbol; las demas se listan igual, con su titulo y nivel del registro.
+local function logQuests()
+    local found = {}
+    local zone
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        if info and info.isHeader then
+            zone = info.title
+        elseif info and info.questID and info.questID > 0 then
+            local def = ns.FindQuestDef(info.questID)
+            if def then
+                found[#found + 1] = { quest = def, entry = ns.entries[def.entryId], zone = zone }
+            else
+                found[#found + 1] = { quest = { id = info.questID, name = info.title or "?", level = info.level }, zone = zone }
+            end
+        end
+    end
+    return found
+end
+
 -- Todas las quests (una vez cada una, en la primera entrada donde se ven: mazmorras, bandas, zonas...).
 local function search()
     local found, seen = {}, {}
@@ -104,14 +156,36 @@ local function search()
                     ok = ok and true or false
                 end
                 if ok and not matchesReward(q) then ok = false end
+                if ok and state.itemsOnly then
+                    local r = ns.REWARDS and ns.REWARDS[q.id]
+                    ok = r ~= nil and #rewardIds(r) > 0
+                end
                 if ok then found[#found + 1] = { quest = q, entry = d } end
             end
         end
     end
+    return found
+end
+
+-- orden de la tabla (cabeceras): por titulo (el que se ve), nivel o dinero; a igualdad, nivel y titulo
+local function sortFound(found)
+    local key = {}
+    for _, f in ipairs(found) do
+        local q = f.quest
+        local r = ns.REWARDS and ns.REWARDS[q.id]
+        f.title = (C_QuestLog.GetTitleForQuestID(q.id) or q.name):lower()
+        f.level = q.level or q.minLevel or 0
+        f.money = r and r.money or 0
+        key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money or f.level
+    end
     table.sort(found, function(a, b)
-        local la, lb = a.quest.level or a.quest.minLevel or 0, b.quest.level or b.quest.minLevel or 0
-        if la ~= lb then return la < lb end
-        return a.quest.name < b.quest.name
+        if key[a] ~= key[b] then
+            if state.desc then return key[a] > key[b] end
+            return key[a] < key[b]
+        end
+        if a.level ~= b.level then return a.level < b.level end
+        if a.title ~= b.title then return a.title < b.title end
+        return a.quest.id < b.quest.id
     end)
     return found
 end
@@ -187,24 +261,21 @@ local function getRow(i)
     row:SetBackdropBorderColor(0, 0, 0, 0)
     row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    row.name:SetPoint("LEFT", 6, 0)
-    row.name:SetPoint("RIGHT", row, "RIGHT", -(ICONS_W + WHERE_W + LEVEL_W + 18), 0)
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
     row.level = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.level:SetPoint("LEFT", row, "RIGHT", -(ICONS_W + WHERE_W + LEVEL_W + 12), 0)
     row.level:SetWidth(LEVEL_W)
     row.level:SetJustifyH("CENTER")
     row.where = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    row.where:SetPoint("LEFT", row, "RIGHT", -(ICONS_W + WHERE_W + 6), 0)
-    row.where:SetWidth(WHERE_W)
     row.where:SetJustifyH("LEFT")
     row.where:SetWordWrap(false)
+    row.money = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.money:SetJustifyH("RIGHT")
+    row.money:SetWordWrap(false)
     row.icons = {}
-    for k = 1, 6 do
+    for k = 1, MAX_ICONS do
         local icon = CreateFrame("Button", nil, row)
         icon:SetSize(ICON, ICON)
-        icon:SetPoint("LEFT", row, "RIGHT", -ICONS_W + (k - 1) * (ICON + 2), 0)
         icon.tex = icon:CreateTexture(nil, "ARTWORK")
         icon.tex:SetAllPoints()
         icon:SetScript("OnEnter", function(self)
@@ -221,13 +292,17 @@ local function getRow(i)
         row.icons[k] = icon
     end
     row:SetScript("OnClick", function(self)
-        ns.UI_OpenQuest(self.entry.id, self.quest.id)
+        if self.entry then ns.UI_OpenQuest(self.entry.id, self.quest.id) end
     end)
     row:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
         GameTooltip:AddLine(ns.QuestTitle(self.quest.id, self.quest.name), 1, 1, 1)
-        GameTooltip:AddLine(ns.EntryName(self.entry), 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(L["Click to open it in its tree."], 0.5, 0.8, 1)
+        GameTooltip:AddLine(self.whereText, 0.8, 0.8, 0.8)
+        if self.entry then
+            GameTooltip:AddLine(L["Click to open it in its tree."], 0.5, 0.8, 1)
+        else
+            GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6)
+        end
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)
@@ -235,18 +310,53 @@ local function getRow(i)
     return row
 end
 
+-- Coloca las columnas de una fila (o de la cabecera) segun `cols`.
+local function placeRow(row)
+    row.name:ClearAllPoints()
+    row.name:SetPoint("LEFT", row, "LEFT", 6, 0)
+    row.name:SetWidth(cols.name)
+    row.level:ClearAllPoints()
+    row.level:SetPoint("LEFT", row, "LEFT", cols.levelX, 0)
+    row.where:ClearAllPoints()
+    row.where:SetPoint("LEFT", row, "LEFT", cols.whereX, 0)
+    row.where:SetWidth(math.max(1, cols.where))
+    row.where:SetShown(cols.where > 0)
+    row.money:ClearAllPoints()
+    row.money:SetPoint("LEFT", row, "LEFT", cols.moneyX, 0)
+    row.money:SetWidth(MONEY_W)
+    if row.icons then
+        for k, icon in ipairs(row.icons) do
+            icon:ClearAllPoints()
+            icon:SetPoint("LEFT", row, "LEFT", cols.iconsX + (k - 1) * (ICON + 2), 0)
+        end
+    elseif row.rewards then
+        row.rewards:ClearAllPoints()
+        row.rewards:SetPoint("LEFT", row, "LEFT", cols.iconsX, 0)
+    end
+end
+
 local function refresh()
     if not (panel and panel:IsShown()) then return end
-    local found = search()
+    local found = sortFound(mode == "log" and logQuests() or search())
     local shown = math.min(#found, MAX_ROWS)
     panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
         or L["%d quests"]:format(#found))
     local width = panel.scroll:GetWidth()
-    if width and width > 0 then panel.content:SetWidth(width) end
+    if width and width > 0 then
+        panel.content:SetWidth(width)
+        if computeColumns(width) then
+            placeRow(panel.head)
+            for _, row in ipairs(rows) do row.placedFor = nil end
+        end
+    end
     for i = 1, shown do
         local f = found[i]
         local q, row = f.quest, getRow(i)
         row.quest, row.entry = q, f.entry
+        if row.placedFor ~= cols.width and cols.width > 0 then
+            placeRow(row)
+            row.placedFor = cols.width
+        end
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
         row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
@@ -255,11 +365,13 @@ local function refresh()
         row.name:SetText(ns.QuestTitle(q.id, q.name))
         row.name:SetTextColor(statusColor(q))
         row.level:SetText(q.level or q.minLevel or "?")
-        row.where:SetText(ns.EntryName(f.entry))
+        row.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
+        row.where:SetText(row.whereText)
         local r = ns.REWARDS and ns.REWARDS[q.id]
+        row.money:SetText(r and r.money and coinString(r.money) or "")
         local ids = r and rewardIds(r) or {}
         for k, icon in ipairs(row.icons) do
-            local id = ids[k]
+            local id = k <= (cols.icons or MAX_ICONS) and ids[k]
             if id then
                 local c = itemClass(id)
                 icon.itemID = id
@@ -308,6 +420,7 @@ function ns.Search_Create(parent)
     local title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     title:SetPoint("TOPLEFT", 4, 0)
     title:SetText(L["Search quests"])
+    panel.title = title
 
     local okSearch, box = pcall(CreateFrame, "EditBox", nil, panel, "SearchBoxTemplate")
     if not okSearch or not box then
@@ -315,7 +428,6 @@ function ns.Search_Create(parent)
         box:SetTextInsets(6, 6, 0, 0)
     end
     box:SetSize(240, 20)
-    box:SetPoint("TOPLEFT", 8, -28)
     box:SetAutoFocus(false)
     local placeholder = box.Instructions
     if not placeholder then
@@ -331,14 +443,16 @@ function ns.Search_Create(parent)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    local include = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    include:SetPoint("LEFT", box, "RIGHT", 16, 0)
-    include:SetText(L["Include:"])
-    local x = include
+    -- "Incluir:" y sus tres casillas van juntos, en un grupo que se coloca entero
+    local include = CreateFrame("Frame", nil, panel)
+    include:SetHeight(24)
+    include.label = include:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    include.label:SetPoint("LEFT", 0, 0)
+    include.label:SetText(L["Include:"])
+    include.checks = {}
     for _, opt in ipairs({ { "low", L["Low level"] }, { "high", L["Too high"] }, { "done", L["Done"] } }) do
-        local cb = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+        local cb = CreateFrame("CheckButton", nil, include, "UICheckButtonTemplate")
         cb:SetSize(24, 24)
-        cb:SetPoint("LEFT", x, "RIGHT", x == include and 4 or 2, 0)
         local text = cb.Text or cb.text
         if not text then
             text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -350,16 +464,60 @@ function ns.Search_Create(parent)
             state[opt[1]] = self:GetChecked() and true or false
             requestRefresh()
         end)
-        x = text
+        include.checks[#include.checks + 1] = { cb = cb, text = text }
+    end
+    local function includeWidth()
+        local x = math.ceil(include.label:GetStringWidth()) + 4
+        for _, c in ipairs(include.checks) do
+            c.cb:ClearAllPoints()
+            c.cb:SetPoint("LEFT", include, "LEFT", x, 0)
+            x = x + 24 + math.ceil(c.text:GetStringWidth()) + 8
+        end
+        include:SetWidth(x)
+        return x
     end
 
+    -- solo quests que dan algun objeto (fijo o a elegir)
+    local itemsOnly = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+    itemsOnly:SetSize(24, 24)
+    local itemsOnlyText = itemsOnly.Text or itemsOnly.text
+    if not itemsOnlyText then
+        itemsOnlyText = itemsOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        itemsOnlyText:SetPoint("LEFT", itemsOnly, "RIGHT", 0, 1)
+    end
+    itemsOnlyText:SetText(L["Only quests with item rewards"])
+    itemsOnly:SetScript("OnClick", function(self)
+        state.itemsOnly = self:GetChecked() and true or false
+        requestRefresh()
+    end)
+    panel.itemsOnly = itemsOnly
+
     local rewardLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rewardLabel:SetPoint("TOPLEFT", 8, -62)
     rewardLabel:SetText(L["Reward type:"])
-    panel.typeButton = makeDropdown(panel, 160)
-    panel.typeButton:SetPoint("LEFT", rewardLabel, "RIGHT", 8, 0)
-    panel.subButton = makeDropdown(panel, 160)
-    panel.subButton:SetPoint("LEFT", panel.typeButton, "RIGHT", 6, 0)
+    panel.typeButton = makeDropdown(panel, 150)
+    panel.subButton = makeDropdown(panel, 150)
+
+    -- formulario en filas segun el ancho; la cabecera de la tabla va debajo de la ultima fila
+    local formItems = {
+        { frame = box, w = 244, h = 24, dy = 2 },
+        { frame = include, w = includeWidth, h = 24 },
+        { frame = itemsOnly, w = ns.CheckWidth(itemsOnly, itemsOnlyText), h = 24 },
+        { frame = rewardLabel, w = function() return math.ceil(rewardLabel:GetStringWidth()) + 4 end, h = 24, dy = 6 },
+        { frame = panel.typeButton, w = 150, h = 24 },
+        { frame = panel.subButton, w = 150, h = 24 },
+    }
+    local function layoutForm()
+        local width = panel:GetWidth() - 8
+        if width <= 0 then return end
+        -- en la vista del registro no hay formulario: la tabla empieza bajo el titulo
+        for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
+        local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -12
+        panel.count:ClearAllPoints()
+        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -26, -(28 + h + 6))
+        panel.head:ClearAllPoints()
+        panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -(28 + h + 22))
+        panel.head:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+    end
     panel.typeButton:SetScript("OnClick", function(self)
         local options = { { name = L["Any"] } }
         for _, t in ipairs(getRewardTypes()) do options[#options + 1] = t end
@@ -383,31 +541,64 @@ function ns.Search_Create(parent)
         end)
     end)
     panel.count = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    panel.count:SetPoint("TOPRIGHT", -4, -66)
 
-    -- cabecera de la tabla, con las mismas columnas que las filas
+    -- cabecera de la tabla, con las mismas columnas que las filas (placeRow)
     local head = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    head:SetPoint("TOPLEFT", 0, -92)
-    head:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
     head:SetHeight(20)
     head:SetBackdrop(BACKDROP)
     head:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
     head:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
-    local function column(text, anchorX, width, justify)
-        local fs = head:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        if anchorX then
-            fs:SetPoint("LEFT", head, "RIGHT", anchorX, 0)
-        else
-            fs:SetPoint("LEFT", 6, 0)
+    -- columnas ordenables: pulsar ordena por ellas; pulsar otra vez invierte el orden (flecha junto al nombre)
+    local sortable = {}
+    local function updateSortLabels()
+        for sortKey, c in pairs(sortable) do
+            local arrow = state.sort == sortKey and (state.desc and " v" or " ^") or ""
+            c.fs:SetText(c.label .. arrow)
         end
-        if width then fs:SetWidth(width) end
-        fs:SetJustifyH(justify or "LEFT")
-        fs:SetText(text)
     end
-    column(L["Quest"])
-    column(L["Level"], -(ICONS_W + WHERE_W + LEVEL_W + 12), LEVEL_W, "CENTER")
-    column(L["Where"], -(ICONS_W + WHERE_W + 6), WHERE_W)
-    column(L["Rewards"], -ICONS_W, ICONS_W)
+    local function column(text, justify, sortKey)
+        local fs
+        if sortKey then
+            local b = CreateFrame("Button", nil, head)
+            b:SetHeight(20)
+            fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            fs:SetAllPoints()
+            b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+            b:SetScript("OnClick", function()
+                if state.sort == sortKey then
+                    state.desc = not state.desc
+                else
+                    state.sort, state.desc = sortKey, sortKey == "money" -- el dinero, de mas a menos
+                end
+                updateSortLabels()
+                requestRefresh()
+            end)
+            sortable[sortKey] = { fs = fs, label = text }
+            fs:SetJustifyH(justify or "LEFT")
+            fs:SetWordWrap(false)
+            fs:SetText(text)
+            return b
+        end
+        fs = head:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs:SetJustifyH(justify or "LEFT")
+        fs:SetWordWrap(false)
+        fs:SetText(text)
+        return fs
+    end
+    head.name = column(L["Quest"], "LEFT", "name")
+    head.level = column(L["Level"], "CENTER", "level")
+    head.level:SetWidth(LEVEL_W)
+    head.where = column(L["Where"])
+    head.money = column(L["Money"], "RIGHT", "money")
+    head.rewards = column(L["Rewards"])
+    panel.head = head
+    updateSortLabels()
+    panel.layoutForm = layoutForm
+    layoutForm()
+    panel:SetScript("OnSizeChanged", function()
+        layoutForm()
+        requestRefresh()
+    end)
 
     panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     panel.scroll:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, -2)
@@ -433,6 +624,21 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
+-- "search": buscador; "log": las quests que llevas en el registro.
+function ns.Search_SetMode(m)
+    mode = m == "log" and "log" or "search"
+    if not panel then return end
+    if popup then popup:Hide() end
+    panel.title:SetText(mode == "log" and L["Quest Log"] or L["Search quests"])
+    panel.empty:SetText(mode == "log" and L["Your quest log is empty."] or L["No quests match the search."])
+    panel.layoutForm()
+    requestRefresh()
+end
+
+function ns.Search_Mode()
+    return mode
+end
+
 function ns.Search_Focus()
-    if panel and panel.box then panel.box:SetFocus() end
+    if panel and panel.box and mode == "search" then panel.box:SetFocus() end
 end

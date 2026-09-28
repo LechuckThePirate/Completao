@@ -29,7 +29,7 @@ local openedWithLog = false -- la ventana la abrio el registro de misiones (ver 
 -- resultados en vez del arbol; treeWidgets es lo que se oculta entonces.
 local searchMode = false
 local treeWidgets = {}
-local searchButton, nodePos = nil, {}
+local searchButtons, nodePos = {}, {}
 
 local function showNodeTooltip(btn)
     local q, status, reasons = btn.quest, btn.status, btn.reasons
@@ -447,13 +447,17 @@ local function refreshList()
     local listW = LIST_W - 26
     local y, hi, ei = 0, 0, 0
 
-    -- primera entrada: el buscador global
-    searchButton:ClearAllPoints()
-    searchButton:SetPoint("TOPLEFT", 0, 0)
-    searchButton:SetWidth(listW)
-    searchButton:SetBackdropColor(searchMode and 0.15 or 0.05, searchMode and 0.25 or 0.05, searchMode and 0.4 or 0.05, 0.9)
-    searchButton:SetBackdropBorderColor(searchMode and 0.35 or 0.4, searchMode and 0.65 or 0.4, searchMode and 1 or 0.4, 1)
-    y = y + searchButton:GetHeight() + 6
+    -- primeras entradas: el buscador global y el registro de misiones (misma tabla, Search.lua)
+    for _, b in ipairs(searchButtons) do
+        local on = searchMode and ns.Search_Mode() == b.kind
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", 0, -y)
+        b:SetWidth(listW)
+        b:SetBackdropColor(on and 0.15 or 0.05, on and 0.25 or 0.05, on and 0.4 or 0.05, 0.9)
+        b:SetBackdropBorderColor(on and 0.35 or 0.4, on and 0.65 or 0.4, on and 1 or 0.4, 1)
+        y = y + b:GetHeight() + 2
+    end
+    y = y + 4
 
     for _, cat in ipairs(ns.categories) do
         local items = entriesOf(cat.id)
@@ -517,9 +521,12 @@ function ns.UI_Refresh()
 end
 
 -- Entrar al buscador (entrada de la barra lateral): el panel de la quest se cierra y el arbol se oculta.
-function ns.UI_SetSearchMode(on)
+function ns.UI_SetSearchMode(on, kind)
     searchMode = on and true or false
-    if searchMode then ns.Detail_Hide() end
+    if searchMode then
+        ns.Detail_Hide()
+        ns.Search_SetMode(kind or "search")
+    end
     ns.UI_Refresh()
     if searchMode then ns.Search_Focus() end
 end
@@ -694,9 +701,14 @@ local function createFrame()
 
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.header:SetPoint("TOPLEFT", LIST_W + 30, -top)
+    frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
+    frame.header:SetJustifyH("LEFT")
+    frame.header:SetWordWrap(false)
 
-    -- Barra de filtros bajo el titulo: buscador por titulo y tres casillas.
+    -- Barra de filtros bajo el titulo: buscador por titulo y casillas, colocados en filas que se
+    -- recolocan con el ancho de la ventana (layoutToolbar, mas abajo).
     local toolbarLeft = LIST_W + 30
+    local toolbarItems = {}
     local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
     if not okSearch or not box then
         box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
@@ -704,8 +716,8 @@ local function createFrame()
     end
     searchBox = box
     box:SetSize(200, 20)
-    box:SetPoint("TOPLEFT", toolbarLeft + 4, -(top + 26))
     box:SetAutoFocus(false)
+    toolbarItems[#toolbarItems + 1] = { frame = box, w = 204, h = 24, dy = 2 }
     local placeholder = box.Instructions
     if placeholder then
         placeholder:SetText(ns.L["Search by title"])
@@ -721,10 +733,9 @@ local function createFrame()
     end)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-    local function makeCheck(key, label, tip, x, row)
+    local function makeCheck(key, label, tip)
         local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
         cb:SetSize(24, 24)
-        cb:SetPoint("TOPLEFT", toolbarLeft + x, -(top + 48 + (row or 0) * 24))
         local text = cb.Text or cb.text
         if not text then
             text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -744,18 +755,20 @@ local function createFrame()
             GameTooltip:Show()
         end)
         cb:SetScript("OnLeave", GameTooltip_Hide)
-        return x + 24 + text:GetStringWidth() + 10
+        toolbarItems[#toolbarItems + 1] = { frame = cb, w = ns.CheckWidth(cb, text), h = 24 }
     end
-    local x = 0
-    x = makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."], x)
-    x = makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests that require a higher level than yours."], x)
-    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the chains whose quests are all done."], x)
-    -- segunda fila: ver el contenido de la otra faccion (por defecto no se ve)
+    makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
+    makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests that require a higher level than yours."])
+    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the chains whose quests are all done."])
     makeCheck("otherFaction", ns.L["Show other faction"],
-        ns.L["Shows the quests and zones of the opposite faction, hidden by default."], 0, 1)
+        ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 
+    -- ayuda de abajo: ocupa el ancho del area del arbol y se recorta ("...") si no cabe
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    hint:SetPoint("BOTTOMLEFT", LIST_W + 30, 12)
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
+    hint:SetJustifyH("RIGHT")
+    hint:SetWordWrap(false)
     hint:SetText(ns.L["Drag: pan  |  Wheel: zoom  |  Shift+wheel: sideways  |  Ctrl+wheel: vertical"])
 
     local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
@@ -766,19 +779,26 @@ local function createFrame()
     frame.listChild:SetSize(LIST_W - 26, 1)
     listScroll:SetScrollChild(frame.listChild)
 
-    -- "Buscar quests...": primera entrada de la barra lateral; abre el buscador en el area principal
-    searchButton = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
-    searchButton:SetHeight(26)
-    searchButton:SetBackdrop(BACKDROP)
-    local searchIcon = searchButton:CreateTexture(nil, "ARTWORK")
-    searchIcon:SetSize(14, 14)
-    searchIcon:SetPoint("LEFT", 8, 0)
-    searchIcon:SetTexture("Interface\\Common\\UI-Searchbox-Icon")
-    local searchLabel = searchButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    searchLabel:SetPoint("LEFT", searchIcon, "RIGHT", 6, 0)
-    searchLabel:SetText(ns.L["Search quests..."])
-    searchButton:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    searchButton:SetScript("OnClick", function() ns.UI_SetSearchMode(true) end)
+    -- "Buscar quests..." y "Quest Log": primeras entradas de la barra lateral; abren la tabla en el area
+    -- principal (buscador con su formulario, o las quests que llevas en el registro)
+    local function sideButton(kind, icon, label)
+        local b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
+        b.kind = kind
+        b:SetHeight(26)
+        b:SetBackdrop(BACKDROP)
+        local tex = b:CreateTexture(nil, "ARTWORK")
+        tex:SetSize(14, 14)
+        tex:SetPoint("LEFT", 8, 0)
+        tex:SetTexture(icon)
+        local text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        text:SetPoint("LEFT", tex, "RIGHT", 6, 0)
+        text:SetText(label)
+        b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+        b:SetScript("OnClick", function() ns.UI_SetSearchMode(true, kind) end)
+        searchButtons[#searchButtons + 1] = b
+    end
+    sideButton("search", "Interface\\Common\\UI-Searchbox-Icon", ns.L["Search quests..."])
+    sideButton("log", "Interface\\GossipFrame\\ActiveQuestIcon", ns.L["Quest Log"])
 
     frame.searchPanel = ns.Search_Create(frame)
     frame.searchPanel:SetPoint("TOPLEFT", LIST_W + 30, -top)
@@ -792,6 +812,17 @@ local function createFrame()
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, LIST_W + 26)
+
+    -- filtros en filas segun el ancho; el arbol empieza debajo de la ultima fila
+    local function layoutToolbar()
+        local width = frame:GetWidth() - toolbarLeft - 32
+        local h = ns.FlowLayout(frame, toolbarItems, toolbarLeft, top + 26, width, 10, 2)
+        ns.TREE_TOP = top + 26 + h + 8
+        treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -ns.TREE_TOP)
+        ns.Detail_Layout()
+    end
+    layoutToolbar()
+    frame:HookScript("OnSizeChanged", layoutToolbar)
 
     -- lo que se oculta con el buscador abierto
     treeWidgets = { frame.header, searchBox, hint, treeScroll }

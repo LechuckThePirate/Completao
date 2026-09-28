@@ -41,9 +41,11 @@ or tick **Show other faction** to browse the opposite faction's zones.
 **Search quests...**, at the top of the side panel, looks through every
 dungeon, raid, zone and class at the same time. Search by title, choose whether
 to include low-level, too-high and completed quests, or look for a reward type
--- say, *Weapon > Wands*. Results come as a table with level, location and the
-reward icons (hover for the item tooltip); click one to jump to its tree with
-the quest selected.
+-- say, *Weapon > Wands* -- or keep only quests that give an item. Results come
+as a table with level, location, money and the reward icons (hover for the
+item tooltip), sortable by title, level or money; click one to jump to its
+tree with the quest selected. **Quest Log** shows the quests you carry in the
+same table.
 
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes

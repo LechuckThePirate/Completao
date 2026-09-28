@@ -26,9 +26,15 @@ Inspired by BtWQuests.
   main area, across every section at once, among the quests meant for your
   character: quest title; include low-level, too-high and completed quests
   (off by default); and the reward's item type and subtype as the game names
-  them (Weapon > Wands...). Results are a table -- title in its state color,
-  level, where it is, reward icons with their tooltips -- and clicking one
-  opens its tree with the quest selected and centered (`Search.lua`).
+  them (Weapon > Wands...), or only quests that give an item. Results are a
+  table -- title in its state color, level, where it is, money, reward icons
+  with their tooltips -- sortable by title, level or money from its header,
+  and clicking one opens its tree with the quest selected and centered
+  (`Search.lua`). **Quest Log**, right below, shows the quests in your log in
+  the same table.
+- The window can be made small: filters, the search form and the quest
+  panel's buttons wrap onto new rows as it narrows, and the results table
+  narrows its columns (`ns.FlowLayout`).
 - **Filters** above the tree, remembered like the zoom: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that require a
   higher level than yours, hide completed chains. Chains are shown or hidden

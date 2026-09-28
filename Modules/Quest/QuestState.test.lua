@@ -98,7 +98,7 @@ describe("QuestState", function()
         it("con la quest en el registro lee el texto del juego y deja la seleccion como estaba", function()
             WowMock.onQuest[32] = true
             WowMock.selectedQuest = 5
-            GetQuestLogQuestText = function() return WowMock.selectedQuest == 32 and "Texto del juego" or "" end
+            _G.GetQuestLogQuestText = function() return WowMock.selectedQuest == 32 and "Texto del juego" or "" end
             assert.are.equal("Texto del juego", ns.QuestDescription({ id = 32, desc = "english" }))
             assert.are.equal(5, WowMock.selectedQuest)
         end)

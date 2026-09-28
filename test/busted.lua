@@ -122,7 +122,10 @@ local function runFile(path)
     _G.setup, _G.teardown = function(fn) fn() end, function() end
     _G.assert = makeAssert()
 
-    local ok, err = pcall(dofile, path)
+    -- como busted: el archivo corre en su propio entorno (lee los globales, pero lo que asigna sin _G. se queda
+    -- en el archivo); lo que carga con dofile (setupTests.lua, los mocks) y el addon usan los globales reales
+    local env = setmetatable({}, { __index = _G })
+    local ok, err = pcall(function() return assert(loadfile(path, "t", env))() end)
     if not ok then
         results.failed = results.failed + 1
         table.insert(results.errors, path .. ": error al cargar: " .. tostring(err))

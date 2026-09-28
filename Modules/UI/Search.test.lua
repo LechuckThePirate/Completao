@@ -112,9 +112,9 @@ describe("Search", function()
             for _, r in ipairs(ShownRows()) do if r.quest.id == 999999 then unknown = r end end
             assert.are.equal("Ashenvale", unknown.whereText)
             local opened
-            QuestMapFrame_OpenToQuestDetails = function(id) opened = id end
+            _G.QuestMapFrame_OpenToQuestDetails = function(id) opened = id end
             unknown:Click()
-            QuestMapFrame_OpenToQuestDetails = nil
+            _G.QuestMapFrame_OpenToQuestDetails = nil
             assert.are.equal(999999, opened)
         end)
     end)

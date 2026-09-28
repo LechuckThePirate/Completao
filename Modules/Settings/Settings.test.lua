@@ -4,7 +4,7 @@ describe("Settings", function()
     local ns, applied
 
     local function login(charDB, accountDB)
-        CompletaoDB, CompletaoCharDB = accountDB, charDB
+        _G.CompletaoDB, _G.CompletaoCharDB = accountDB, charDB
         ns = LoadAddon({ files = { "Modules/Settings/Settings.lua" } })
         applied = 0
         ns.Minimap_Init = function() ns.char.minimap = ns.char.minimap or { angle = 225 } end

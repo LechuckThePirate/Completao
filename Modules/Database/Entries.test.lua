@@ -63,9 +63,9 @@ describe("Entries", function()
         end)
         it("profesiones: el nombre del cliente si lo da; si no, el de los datos", function()
             assert.are.equal("Fishing", ns.EntryName({ skillLine = 356, name = "Fishing" }))
-            C_TradeSkillUI = { GetTradeSkillDisplayName = function() return "Pesca" end }
+            _G.C_TradeSkillUI = { GetTradeSkillDisplayName = function() return "Pesca" end }
             assert.are.equal("Pesca", ns.EntryName({ skillLine = 356, name = "Fishing" }))
-            C_TradeSkillUI = nil
+            _G.C_TradeSkillUI = nil
         end)
     end)
 

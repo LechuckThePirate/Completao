@@ -125,9 +125,9 @@ describe("MainWindow", function()
 
         it("con la velocidad oculta por el juego (combate) no cambia", function()
             WowMock.speed = 7
-            issecretvalue = function() return true end
+            _G.issecretvalue = function() return true end
             tick()
-            issecretvalue = nil
+            _G.issecretvalue = nil
             assert.near(1, ns.UI:GetAlpha(), 0.02)
         end)
     end)
@@ -143,7 +143,7 @@ describe("MainWindow", function()
         before_each(function()
             ns.UI:Hide()
             ns.char.openWithQuestLog = true
-            QuestLogFrame = WowMock.NewFrame("Frame", "QuestLogFrame")
+            _G.QuestLogFrame = WowMock.NewFrame("Frame", "QuestLogFrame")
             QuestLogFrame:Hide()
         end)
 

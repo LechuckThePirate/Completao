@@ -9,7 +9,7 @@ describe("Waypoints", function()
         WowMock.maps[1429] = { name = "Area12", mapType = Enum.UIMapType.Zone }
         ns = LoadAddon({ files = { "Modules/Map/Waypoints.lua" } })
         ns.Print = function(...) WowMock.lastPrint = table.concat({ ... }, " ") end
-        TomTom = nil
+        _G.TomTom = nil
     end)
 
     it("convierte la zona de una ubicacion en el mapa del cliente por su nombre", function()
@@ -26,7 +26,7 @@ describe("Waypoints", function()
 
     it("con TomTom, pone el waypoint en TomTom", function()
         local got
-        TomTom = { AddWaypoint = function(_, map, x, y, opts) got = { map, x, y, opts.title } end }
+        _G.TomTom = { AddWaypoint = function(_, map, x, y, opts) got = { map, x, y, opts.title } end }
         assert.is_true(ns.SetWaypoint(elwynn, "Marshal"))
         assert.are.equal(1429, got[1])
         assert.near(0.421, got[2], 1e-9)
@@ -47,10 +47,10 @@ describe("Waypoints", function()
 
     it("ver en el mapa abre el mapa de la zona y marca el punto", function()
         local opened
-        OpenWorldMap = function(map) opened = map end
+        _G.OpenWorldMap = function(map) opened = map end
         ns.ShowOnMap(elwynn, "Marshal")
         assert.are.equal(1429, opened)
         assert.are.equal(1429, WowMock.userWaypoint.mapID)
-        OpenWorldMap = nil
+        _G.OpenWorldMap = nil
     end)
 end)

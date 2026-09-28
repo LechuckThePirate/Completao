@@ -55,6 +55,10 @@ function ns.AddQuests(entryId, list)
     local e = ns.entries[entryId]
     if not e then return end
     for _, q in ipairs(list) do
+        -- the data's points are in Era coordinates: convert those in zones Forever redrew
+        ns.ConvertLocation(q.start)
+        ns.ConvertLocation(q.finish)
+        for _, step in ipairs(q.steps or {}) do ns.ConvertLocation(step) end
         q.entryId = q.entryId or entryId
         e.quests[#e.quests + 1] = q
         local c = copies[q.id]
@@ -65,7 +69,7 @@ end
 -- Where the instance's door is: { area = <AreaTable id>, x = , y = } (x, y optional).
 function ns.SetEntrance(entryId, loc)
     local e = ns.entries[entryId]
-    if e then e.entrance = loc end
+    if e then e.entrance = ns.ConvertLocation(loc) end
 end
 
 -- Hand fixes over generated data (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).

@@ -5,7 +5,7 @@ describe("Entries", function()
 
     before_each(function()
         WowMock.Reset()
-        ns = LoadAddon({ files = { "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua" } })
+        ns = LoadAddon({ files = { "Modules/Map/EraToForever.lua", "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua" } })
     end)
 
     it("registers entries with 'dungeons' as the default section", function()
@@ -20,6 +20,26 @@ describe("Entries", function()
         ns.AddQuests("dm", { { id = 166, name = "The Defias Brotherhood" } })
         assert.are.equal(1, #ns.entries.dm.quests)
         assert.are.equal("dm", ns.entries.dm.quests[1].entryId)
+    end)
+
+    it("converts the data's Era coordinates in the zones Forever redrew, and only those", function()
+        ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
+        ns.AddQuests("z", {
+            { id = 1, name = "Stormwind", start = { npc = "A", area = 1519, x = 42.3, y = 58.9 },
+              finish = { npc = "B", area = 12, x = 40.0, y = 50.0 },
+              steps = { { name = "S", area = 1519, x = 42.3, y = 58.9 }, { name = "Inside", area = 1581 } } },
+        })
+        local q = ns.FindQuestDef(1)
+        assert.near(52.4, q.start.x, 0.06)
+        assert.are.equal(40.0, q.finish.x)
+        assert.near(52.4, q.steps[1].x, 0.06)
+        assert.is_nil(q.steps[2].x)
+    end)
+
+    it("converts an entrance in those zones", function()
+        ns.RegisterEntry({ id = "stk", name = "The Stockade" })
+        ns.SetEntrance("stk", { area = 1519, x = 42.3, y = 58.9 })
+        assert.near(52.4, ns.entries.stk.entrance.x, 0.06)
     end)
 
     it("ignores quests of an entry that doesn't exist", function()

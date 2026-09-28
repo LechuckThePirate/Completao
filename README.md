@@ -130,6 +130,7 @@ Modules/Quest/QuestState.lua                    status, low/too high, who sees i
 Modules/Quest/QuestSteps.lua                    steps of a quest and the one that comes next
 Modules/Settings/Settings.lua                   per character or shared settings
 Modules/Graph/Graph.lua                         tree layout
+Modules/Map/EraToForever.lua                    Era -> Forever map coordinates (4 redrawn zones)
 Modules/Map/Waypoints.lua                       zone -> map, waypoints, map marker
 Modules/UI/  Layout Menu MainWindow QuestPanel Search Preferences MinimapButton
 Data/          Dungeons.lua  Raids.lua  Overrides.lua  Generated/ (tools output)
@@ -213,6 +214,12 @@ is fetched with a local helper that is not part of this repository
   the other generated files, written by a local helper from public quest
   databases. Only item ids and counts, money, experience and reputation are
   stored: names, icons and tooltips come from the client.
+- **Coordinates.** The generated data is in Era (Classic) map coordinates.
+  Forever redrew the maps of Mulgore, Eastern Plaguelands, Redridge Mountains
+  and Stormwind City, so points there are converted when the data is registered
+  (`Modules/Map/EraToForever.lua`), with the same per-zone transform Questie
+  uses for Forever. Questie's Forever database has those NPC spawns already
+  converted; the two agree to under 0.6 map points.
 - Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
 
 ## Installing (development)

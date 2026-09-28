@@ -5,7 +5,10 @@ describe("QuestSteps", function()
 
     before_each(function()
         WowMock.Reset()
-        ns = LoadAddon({ files = { "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua", "Modules/Quest/QuestSteps.lua" } })
+        ns = LoadAddon({ files = {
+            "Modules/Map/EraToForever.lua", "Modules/Database/Entries.lua", "Modules/Quest/QuestState.lua",
+            "Modules/Quest/QuestSteps.lua",
+        } })
         ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
         ns.AddQuests("z", { { id = 900, name = "Before", start = { npc = "Old", area = 12, x = 1, y = 2 } } })
         q = { id = 901, name = "Test", requires = { 900 },

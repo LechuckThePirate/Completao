@@ -176,15 +176,56 @@ function inheritedMask(field) {
 }
 const classMask = inheritedMask(7), raceMask = inheritedMask(6);
 
+// Whether the quest is done inside the instance. Questie also files under a dungeon the quests of its quest
+// line that never go in (the druids' chain to Wailing Caverns is all in the Barrens and Thunder Bluff), so a
+// dungeon quest is only marked when it starts or ends inside, or has something to do there; a quest with
+// nothing but talking, or whose targets are all known to be outside, is not. When the data can't say where
+// an objective is (an item with no known dropper, e.g. the Egg of Hakkar), it is kept marked. Raids and
+// battlegrounds are done inside by definition: every quest of theirs is marked.
+const INSIDE_ALL = new Set(["ony", "mc", "bwl", "aq20", "aq40", "naxx", "zg", "av", "wsg", "ab", "dt"]);
+const inInstance = (zone, area) => areaOf.get(zone) === area || areaOf.get(parent.get(zone)) === area;
+// where some spawns are: "inside", "outside" or "unknown" (no spawn data)
+function spawnClass(spawns, area) {
+    const zones = Object.keys(keyed(spawns)).map(Number);
+    if (!zones.length) return "unknown";
+    return zones.some((z) => inInstance(z, area)) ? "inside" : "outside";
+}
+// where an item comes from: the mobs and objects that drop it
+function itemClass(itemId, area) {
+    const it = item(itemId);
+    const sources = [...(it?.[2] ?? []).map((id) => spawnClass(npc(id)?.[7], area)), ...(it?.[3] ?? []).map((id) => spawnClass(object(id)?.[4], area))];
+    if (sources.includes("inside")) return "inside";
+    return sources.some((s) => s === "outside") ? "outside" : "unknown";
+}
+function doneInside(q, area, entry) {
+    if (INSIDE_ALL.has(entry)) return true;
+    const starts = q[2], ends = q[3], obj = q[10];
+    if (group(starts, 1).some((id) => npcInstance(id) === area) || group(ends, 1).some((id) => npcInstance(id) === area)) return true;
+    const classes = [
+        ...group(starts, 2).map((id) => spawnClass(object(id)?.[4], area)),
+        ...group(starts, 3).map((id) => itemClass(id, area)),
+        ...group(ends, 2).map((id) => spawnClass(object(id)?.[4], area)),
+        ...group(obj, 1).map((o) => spawnClass(npc(o[0])?.[7], area)),
+        ...group(obj, 2).map((o) => spawnClass(object(o[0])?.[4], area)),
+        ...group(obj, 3).map((o) => itemClass(o[0], area)),
+        ...group(obj, 5).map((o) => ((o[0] ?? []).some((id) => spawnClass(npc(id)?.[7], area) === "inside") ? "inside" : "outside")),
+    ];
+    const trigger = q[9];
+    if (Array.isArray(trigger) && trigger[1]) classes.push(Object.keys(keyed(trigger[1])).some((z) => inInstance(Number(z), area)) ? "inside" : "outside");
+    return classes.includes("inside") || classes.includes("unknown");
+}
+
 // quests done inside one of our instances: marked dungeon = "<entry id>", also when they show in a zone
 const ENTRY_OF_AREA = new Map(Object.entries(INSTANCE_AREA).map(([e, a]) => [a, e]));
 const dungeonOf = new Map();
 for (const [area, ids] of core) {
     const entry = ENTRY_OF_AREA.get(area);
     if (!entry) continue;
-    for (const id of ids) if (!dungeonOf.has(id) || entry < dungeonOf.get(id)) dungeonOf.set(id, entry);
+    for (const id of ids) {
+        if (!doneInside(quests.get(id), area, entry)) continue;
+        if (!dungeonOf.has(id) || entry < dungeonOf.get(id)) dungeonOf.set(id, entry);
+    }
 }
-
 // ----------------------------------------------------------------------------------------------------
 // locations and steps
 // an NPC's location: preferred zone (its most common) and first coordinate; NPCs inside an instance have

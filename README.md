@@ -56,7 +56,10 @@ Inspired by BtWQuests.
 - **Done inside the instance**: quests that take place inside a dungeon or raid
   carry a small doorway icon on the top-left corner of their box (and a line in
   the tooltip and the quest panel), so you can tell them apart from the ones you
-  do outside on the way there.
+  do outside on the way there. A dungeon quest is marked when it starts or ends
+  inside or has something to do there; the ones of a dungeon's quest line that
+  never go in (only talking, or targets all outside) are not. Everything in a
+  raid or battleground is marked.
 - **Ready to turn in**: a quest in your log with every objective done keeps its
   yellow "in progress" box and gets a green check on the top-right corner.
 - **Follow a chain**: click a quest and its whole chain -- everything to do

@@ -81,9 +81,10 @@ local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
 local searchText = ""
 local searchBox
 
--- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos.
--- Devuelve dos conjuntos por id de quest: las que estan en una cadena de mas de una quest (inChain) y las
--- que estan en una cadena con todas sus quests hechas (done; incluye las sueltas hechas).
+-- Cadenas de una entrada: cada grupo de quests conectadas por prerrequisitos. Devuelve, por id de quest, los
+-- datos de su cadena: size (numero de quests), allDone (todas hechas; incluye las sueltas hechas), started
+-- (alguna hecha o en el registro), allLow (todas de bajo nivel) y headsTooHigh (todas las quests con las que
+-- empieza la cadena, las que no tienen prerrequisito dentro de ella, estan por encima de tu nivel).
 local function chainInfo(d)
     local set, parent = {}, {}
     for _, q in ipairs(d.quests) do
@@ -101,36 +102,69 @@ local function chainInfo(d)
             end
         end
     end
-    local allDone, size = {}, {}
-    for id in pairs(set) do
-        local root = find(id)
-        size[root] = (size[root] or 0) + 1
-        if allDone[root] == nil then allDone[root] = true end
-        if not C_QuestLog.IsQuestFlaggedCompleted(id) then allDone[root] = false end
+    local chains = {}
+    local function chainOf(root)
+        local c = chains[root]
+        if not c then
+            c = { size = 0, allDone = true, started = false, allLow = true, heads = 0, headsHigh = 0 }
+            chains[root] = c
+        end
+        return c
     end
-    local inChain, done = {}, {}
-    for id in pairs(set) do
-        local root = find(id)
-        if size[root] > 1 then inChain[id] = true end
-        if allDone[root] then done[id] = true end
+    for id, q in pairs(set) do
+        local c = chainOf(find(id))
+        c.size = c.size + 1
+        local isDone = C_QuestLog.IsQuestFlaggedCompleted(id)
+        if not isDone then c.allDone = false end
+        if isDone or C_QuestLog.IsOnQuest(id) then c.started = true end
+        if not ns.IsLowLevel(q) then c.allLow = false end
+        local isHead = true
+        for _, p in ipairs(ns.ParentsOf(q)) do
+            if set[p] then isHead = false break end
+        end
+        if isHead then
+            c.heads = c.heads + 1
+            if ns.IsTooHigh(q) then c.headsHigh = c.headsHigh + 1 end
+        end
     end
-    return inChain, done
+    local info = {}
+    for id in pairs(set) do
+        local c = chains[find(id)]
+        info[id] = {
+            size = c.size, allDone = c.allDone, started = c.started, allLow = c.allLow,
+            headsTooHigh = c.heads > 0 and c.headsHigh == c.heads,
+        }
+    end
+    return info
 end
 
 -- Predicado de visibilidad para el arbol de una entrada: faccion/raza + filtros del usuario.
--- Las quests de nivel alto o bajo que forman parte de una cadena sin completar se muestran siempre
--- (para no romperla), igual que las que llevas en el registro; solo se ocultan las sueltas.
+-- Las cadenas se muestran u ocultan enteras, para no cortarlas por la mitad:
+--  * "muy alto" oculta una cadena cuando todas las quests con las que empieza estan por encima de tu nivel;
+--    si puedes empezarla se ven todos sus pasos, aunque alguno sea mas alto.
+--  * "bajo nivel" oculta una cadena solo si todas sus quests estan en gris.
+--  * "completadas" oculta las cadenas con todas sus quests hechas.
+-- Una cadena que ya has empezado (alguna quest hecha o en el registro) nunca se oculta por nivel, y las
+-- quests sueltas se ocultan por su propio nivel salvo que las lleves en el registro.
 local function makeFilter(d)
     local f = ns.char.filters
-    local inChain, doneChain
-    if f.hideLow or f.hideHigh or f.hideDone then inChain, doneChain = chainInfo(d) end
+    local chains
+    if f.hideLow or f.hideHigh or f.hideDone then chains = chainInfo(d) end
     local needle = searchText ~= "" and searchText or nil
     return function(q)
         if not ns.QuestVisible(q) then return false end
-        local keep = C_QuestLog.IsOnQuest(q.id) or (inChain and inChain[q.id] and not doneChain[q.id])
-        if f.hideLow and not keep and ns.IsLowLevel(q) then return false end
-        if f.hideHigh and not keep and ns.IsTooHigh(q) then return false end
-        if f.hideDone and doneChain[q.id] then return false end
+        local c = chains and chains[q.id]
+        local onQuest = C_QuestLog.IsOnQuest(q.id)
+        if f.hideDone and c and c.allDone then return false end
+        if c and c.size > 1 then
+            if not c.started then
+                if f.hideHigh and c.headsTooHigh then return false end
+                if f.hideLow and c.allLow then return false end
+            end
+        elseif not onQuest then
+            if f.hideLow and ns.IsLowLevel(q) then return false end
+            if f.hideHigh and ns.IsTooHigh(q) then return false end
+        end
         if needle then
             local cached = C_QuestLog.GetTitleForQuestID(q.id)
             local hit = (cached and cached:lower():find(needle, 1, true)) or q.name:lower():find(needle, 1, true)

@@ -21,11 +21,16 @@ Inspired by BtWQuests.
   wheel to scroll (Shift+wheel sideways).
 - **Filters** above the tree, saved per character: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that require a
-  higher level than yours, hide completed chains. Low- and high-level quests
-  that belong to a chain you have not finished are always shown, so chains are
-  never broken (only loose quests are hidden), and so are the ones in your
-  quest log. The ones that stay visible are drawn translucent -- more the ones
-  too high for you, less the low-level ones, which stay readable.
+  higher level than yours, hide completed chains. Chains are shown or hidden
+  as a whole, so they are never cut in half: "too high" hides a chain when
+  everything it starts with is above your level (if you can start it, all its
+  steps stay, even higher ones); "low level" hides a chain only when all its
+  quests are grey; "completed" hides chains with every quest done. A chain you
+  have already started, and anything in your quest log, is never hidden by
+  level; loose quests are hidden by their own level. What stays visible is
+  drawn translucent -- more the quests too high for you, less the low-level
+  ones, which stay readable. "Low level" means the title would be grey in your
+  quest log, as the game itself decides.
 - **Quest panel** (click a quest): requirements (met ones in green, missing in
   red), objective, description, and who starts / ends it with zone and
   coordinates. It can be maximized over the whole tree with Blizzard's

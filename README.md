@@ -86,7 +86,7 @@ Inspired by BtWQuests.
 Commands: `/completao` (or `/cpl`) toggles the window, `/completao minimap`
 shows or hides the minimap button, `/completao dump` lists the quest ids in
 your log. Key bindings for opening the window and the preferences are under
-Options -> Keybindings -> AddOns -> Completao!! (`Bindings.xml`).
+Options -> Keybindings, in their own Completao!! section (`Bindings.xml`).
 
 ## Repo layout
 

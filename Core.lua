@@ -117,9 +117,13 @@ function ns.PatchQuest(id, fields)
     end
 end
 
+-- Titulo en el idioma del cliente. Los pasos de una cadena que se llaman igual van numerados en los datos
+-- ("Hidden Enemies (3/5)"): el numero se conserva tambien con el titulo del juego, que no lo lleva.
 function ns.QuestTitle(id, fallback)
     local title = C_QuestLog.GetTitleForQuestID(id)
     if title and title ~= "" then
+        local step = fallback and fallback:match(" %(%d+/%d+%)$")
+        if step and not title:find(step, 1, true) then title = title .. step end
         return title
     end
     C_QuestLog.RequestLoadQuestByID(id)

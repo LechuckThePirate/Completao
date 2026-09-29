@@ -189,6 +189,7 @@ local function readFromLog(id)
     local getSel, setSel = C_QuestLog.GetSelectedQuest, C_QuestLog.SetSelectedQuest
     if not (getSel and setSel and GetQuestLogQuestText) then return false end
     local previous = getSel()
+    ns.quietSelect = true -- our own selection changes aren't the player's (see MainWindow)
     local ok, text = pcall(function()
         setSel(id)
         if getSel() ~= id then return nil end
@@ -196,6 +197,7 @@ local function readFromLog(id)
         return (GetQuestLogQuestText(index))
     end)
     if previous ~= id then pcall(setSel, previous or 0) end
+    ns.quietSelect = nil
     if ok and type(text) == "string" and strtrim(text) ~= "" then fromLog[id] = text end
     return fromLog[id]
 end

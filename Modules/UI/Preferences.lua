@@ -122,7 +122,7 @@ local function create()
         function() return not ns.char.quiet end,
         function(value) ns.char.quiet = (not value) or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -192, L["Open with the quest log"],
+    widgets[#widgets + 1] = makeCheck(prefs, -192, L["Sync with Blizzard Quest Log"],
         function() return ns.char.openWithQuestLog end,
         function(value) ns.char.openWithQuestLog = value or nil end)
 

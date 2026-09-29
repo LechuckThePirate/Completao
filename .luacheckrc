@@ -30,7 +30,7 @@ read_globals = {
     "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "HandleModifiedItemClick",
     "BreakUpLargeNumbers", "IsControlKeyDown", "IsShiftKeyDown", "ITEM_QUALITY_COLORS", "LOCALIZED_CLASS_NAMES_MALE",
     "Minimap", "OpenQuestLog", "OpenWorldMap", "QuestDifficultyColors", "QuestLogFrame", "QuestLog_SetSelection",
-    "QuestMapFrame", "QuestMapFrame_OpenToQuestDetails", "REWARDS", "REWARD_CHOICES", "REWARD_ITEMS",
+    "QuestMapFrame", "QuestMapFrame_OpenToQuestDetails", "QuestMapFrame_ShowQuestDetails","REWARDS", "REWARD_CHOICES", "REWARD_ITEMS",
     "REWARD_ITEMS_ONLY", "ShowUIPanel", "ToggleQuestLog", "TomTom", "UIParent", "UiMapPoint", "UnitClass",
     "UnitFactionGroup", "UnitLevel", "UnitName", "UnitRace", "WorldMapFrame",
     "hooksecurefunc", "issecretvalue", "strtrim", "tinsert", "wipe",

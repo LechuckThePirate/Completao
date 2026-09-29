@@ -292,6 +292,7 @@ end
 -- Opens the quest log on that quest. The Forever client uses the modern UI (log inside the map); several
 -- ways are tried in order and the first that works is used.
 local function openQuest(questID)
+    ns.quietSelect = true -- opening it in the log from here must not open it back in the tree
     if C_QuestLog.SetSelectedQuest then pcall(C_QuestLog.SetSelectedQuest, questID) end
     local attempts = {
         function()
@@ -316,8 +317,12 @@ local function openQuest(questID)
     }
     for _, attempt in ipairs(attempts) do
         local ok, done = pcall(attempt)
-        if ok and done then return true end
+        if ok and done then
+            ns.quietSelect = nil
+            return true
+        end
     end
+    ns.quietSelect = nil
     ns.Print(L["Could not open the quest log."])
     return false
 end

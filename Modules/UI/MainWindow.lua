@@ -971,7 +971,7 @@ function ns.UI_Toggle()
     frame:SetShown(not frame:IsShown())
 end
 
--- Preferences -> "Open with the quest log": opening the log (the L key or its button, both through
+-- Preferences -> "Sync with Blizzard Quest Log": opening the log (the L key or its button, both through
 -- ToggleQuestLog) also opens this window, and if it was opened that way it closes with it. The log can be
 -- the classic one (QuestLogFrame) or the map's (QuestMapFrame); checked after the game shows it.
 local function questLogShown()
@@ -991,6 +991,29 @@ local function onQuestLogToggled()
         elseif openedWithLog and frame then
             frame:Hide()
         end
+    end)
+end
+
+-- Preferences -> "Sync with Blizzard Quest Log": selecting a quest in the game's log opens it (and its
+-- chain) in the tree, when the addon knows it. Only while this window is open.
+local function onQuestSelected(questID)
+    if not (ns.char and ns.char.openWithQuestLog and frame and frame:IsShown()) then return end
+    local def = questID and ns.FindQuestDef(questID)
+    if def and ns.entries[def.entryId] then ns.UI_OpenQuest(def.entryId, def.id) end
+end
+
+ns.UI_QuestSelected = onQuestSelected
+if QuestMapFrame_ShowQuestDetails then hooksecurefunc("QuestMapFrame_ShowQuestDetails", onQuestSelected) end
+-- Whatever the log's UI is, clicking a quest ends up selecting it here (our own selections are flagged).
+if C_QuestLog.SetSelectedQuest then
+    hooksecurefunc(C_QuestLog, "SetSelectedQuest", function(questID)
+        if not ns.quietSelect and questID and questID > 0 then onQuestSelected(questID) end
+    end)
+end
+if QuestLog_SetSelection then
+    hooksecurefunc("QuestLog_SetSelection", function(index)
+        local info = index and index > 0 and C_QuestLog.GetInfo(index)
+        if info and not info.isHeader then onQuestSelected(info.questID) end
     end)
 end
 

@@ -540,6 +540,7 @@ function ns.UI_Refresh()
         for _, w in ipairs(treeWidgets) do w:Hide() end
         frame.searchPanel:Show()
         ns.Search_Refresh()
+        ns.Detail_Layout() -- with a quest's panel open, the table ends above it
         return
     end
     frame.searchPanel:Hide()
@@ -548,6 +549,10 @@ function ns.UI_Refresh()
     frame.header:SetText(d and ns.EntryName(d) or "")
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
+end
+
+function ns.UI_IsSearchMode()
+    return searchMode
 end
 
 -- Entering the search (side panel entry): the quest panel closes and the tree is hidden.
@@ -895,7 +900,7 @@ local function createFrame()
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
-    ns.Detail_Create(frame, treeScroll, LIST_W + 26)
+    ns.Detail_Create(frame, treeScroll, LIST_W + 26, frame.searchPanel)
 
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()

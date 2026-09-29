@@ -14,6 +14,26 @@ end
 
 ns.ParentsOf = parentsOf
 
+-- Whether the quest is part of a chain: it follows another quest of its entry, or another one follows it.
+local chained = {}
+function ns.IsInChain(q)
+    local d = ns.entries[q.entryId]
+    if not d then return false end
+    local set = chained[d]
+    if not set then
+        set = {}
+        local ids = {}
+        for _, other in ipairs(d.quests) do ids[other.id] = true end
+        for _, other in ipairs(d.quests) do
+            for _, parent in ipairs(parentsOf(other)) do
+                if ids[parent] then set[parent], set[other.id] = true, true end
+            end
+        end
+        chained[d] = set
+    end
+    return set[q.id] == true
+end
+
 function ns.BuildLayout(quests, visible)
     local set, list = {}, {}
     for _, q in ipairs(quests) do

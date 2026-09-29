@@ -4,7 +4,7 @@ local L = ns.L
 local DETAIL_H = 210
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 
-local detail, parentFrame, treeScroll, current, leftOff
+local detail, parentFrame, treeScroll, current, leftOff, companion
 local maximized = false
 
 local function describeLocation(loc)
@@ -343,6 +343,8 @@ local function render()
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
     detail.btnOpen:SetShown(onQuest)
+    -- from a table: "View chain" goes to the quest's tree, when it is part of a chain
+    detail.btnChain:SetShown(ns.UI_IsSearchMode() and ns.IsInChain(q))
     -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false
@@ -449,12 +451,21 @@ local function layout()
         treeScroll:Show()
         treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, shown and (30 + DETAIL_H + 8) or 30)
     end
+    -- the table (search, log, tracked) shares the space too: it ends above the panel
+    if companion then
+        companion:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -8, shown and not maximized and (30 + DETAIL_H + 8) or 30)
+    end
+    detail:SetBackdropColor(0.05, 0.05, 0.08, maximized and 1 or 0.95)
     if setMaxState then setMaxState(maximized) end
 end
 
-function ns.Detail_Create(parent, tree, leftOffset)
-    parentFrame, treeScroll, leftOff = parent, tree, leftOffset
+function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
+    parentFrame, treeScroll, leftOff, companion = parent, tree, leftOffset, companionPanel
     detail = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    -- above the tables' rows (children of their own frames, so at higher levels than a plain sibling): when
+    -- the panel is maximized over a table, the table must not show through
+    detail:SetFrameLevel(parent:GetFrameLevel() + 60)
+    detail:EnableMouse(true) -- and it takes the clicks, so nothing under it gets them
     detail:SetBackdrop(BACKDROP)
     detail:SetBackdropColor(0.05, 0.05, 0.08, 0.95)
     detail:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
@@ -562,6 +573,13 @@ function ns.Detail_Create(parent, tree, leftOffset)
         if current then openQuest(current.id) end
     end)
 
+    detail.btnChain = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
+    detail.btnChain:SetSize(130, 22)
+    detail.btnChain:SetText(L["View chain"])
+    detail.btnChain:SetScript("OnClick", function()
+        if current and current.entryId then ns.UI_OpenQuest(current.entryId, current.id) end
+    end)
+
     -- "Show on map": the chosen step (inside an instance, its entrance)
     detail.btnMap = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnMap:SetSize(130, 22)
@@ -582,7 +600,7 @@ function ns.Detail_Create(parent, tree, leftOffset)
     -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them
     local buttons = {
         { frame = detail.wayGroup, w = WAY_W + 26 },
-        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnChain, w = 130 }, { frame = detail.btnMap, w = 130 },
     }
     function detail.layoutButtons()
         local width = detail:GetWidth() - 16

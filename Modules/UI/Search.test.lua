@@ -169,12 +169,34 @@ describe("Search", function()
         assert.is_true(rows[1].quest.name:lower() <= rows[#rows].quest.name:lower())
     end)
 
-    it("clicking a result opens its tree with the quest selected", function()
+    local function chainButton()
+        return WowMock.Find(function(f) return f._text == "View chain" and f._scripts.OnClick and f:IsShown() end)
+    end
+
+    it("clicking a result shows its details below the table, without leaving it", function()
         typeText("defias brother")
         local row = ShownRows()[1]
         row:Click()
-        assert.is_false(panel:IsShown())
+        assert.is_true(panel:IsShown())
         assert.are.equal(row.quest.id, ns.Detail_Current().id)
+        assert.are.equal("search", ns.Search_Mode())
+    end)
+
+    it("'View chain' takes a quest that is part of a chain to its tree, and only those", function()
+        local chained, alone
+        for _, d in ipairs(ns.entryList) do
+            for _, q in ipairs(d.quests) do
+                if ns.IsInChain(q) then chained = chained or q else alone = alone or q end
+            end
+        end
+        ns.Detail_Show(chained)
+        assert.is_not_nil(chainButton())
+        chainButton():Click()
+        assert.is_false(panel:IsShown())
+        assert.are.equal(chained.id, ns.Detail_Current().id)
+        ns.UI_SetSearchMode(true, "search")
+        ns.Detail_Show(alone)
+        assert.is_nil(chainButton())
     end)
 
     describe("quest log view", function()
@@ -191,15 +213,13 @@ describe("Search", function()
             assert.is_false(panel.box:IsShown())
         end)
 
-        it("a quest missing from the addon's data shows its zone and opens in the game's log", function()
+        it("a quest missing from the addon's data shows its zone and its details, with no chain", function()
             local unknown
             for _, r in ipairs(ShownRows()) do if r.quest.id == 999999 then unknown = r end end
             assert.are.equal("Ashenvale", unknown.whereText)
-            local opened
-            _G.QuestMapFrame_OpenToQuestDetails = function(id) opened = id end
             unknown:Click()
-            _G.QuestMapFrame_OpenToQuestDetails = nil
-            assert.are.equal(999999, opened)
+            assert.are.equal(999999, ns.Detail_Current().id)
+            assert.is_nil(WowMock.Find(function(f) return f._text == "View chain" and f:IsShown() end))
         end)
     end)
 

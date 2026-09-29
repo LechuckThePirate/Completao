@@ -69,6 +69,18 @@ describe("QuestState", function()
         end)
     end)
 
+    describe("QuestPrefix", function()
+        it("is [level], with D for dungeon quests and + for elite ones (elite first)", function()
+            assert.are.equal("[11] ", ns.QuestPrefix({ id = 10, level = 11 }))
+            assert.are.equal("[13D] ", ns.QuestPrefix({ id = 10, level = 13, dungeon = true }))
+            assert.are.equal("[9] ", ns.QuestPrefix({ id = 10, minLevel = 9 }))
+            WowMock.tagInfo[10] = { 1, "Elite" }
+            assert.are.equal("[15+] ", ns.QuestPrefix({ id = 10, level = 15 }))
+            assert.are.equal("[15+] ", ns.QuestPrefix({ id = 10, level = 15, dungeon = true }))
+            assert.are.equal("", ns.QuestPrefix({ id = 10 }))
+        end)
+    end)
+
     describe("level", function()
         it("low level: grey for the game", function()
             assert.is_true(ns.IsLowLevel({ level = 10 }))

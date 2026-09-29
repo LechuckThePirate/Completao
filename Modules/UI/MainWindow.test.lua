@@ -15,7 +15,7 @@ describe("MainWindow", function()
     end)
 
     it("the side panel has the search, the log and the sections with their entry count", function()
-        for _, label in ipairs({ "Search quests...", "Quest Log" }) do
+        for _, label in ipairs({ "Search quests...", "Quest Log", "Tracked Quests" }) do
             local text = WowMock.FindByText(label)
             assert.is_not_nil(text, label)
             assert.is_not_nil(text:GetParent()._scripts.OnClick, label)

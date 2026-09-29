@@ -46,7 +46,7 @@ end
 -- them may not exist in every client, and registering an unknown event is an error: they are optional.
 local REFRESH_EVENTS = {
     "QUEST_LOG_UPDATE", "QUEST_ACCEPTED", "QUEST_REMOVED", "QUEST_TURNED_IN", "QUEST_DATA_LOAD_RESULT",
-    "UNIT_QUEST_LOG_CHANGED", "PLAYER_LEVEL_UP", "PLAYER_LEVEL_CHANGED",
+    "UNIT_QUEST_LOG_CHANGED", "PLAYER_LEVEL_UP", "PLAYER_LEVEL_CHANGED", "QUEST_WATCH_LIST_CHANGED",
 }
 -- the level may not be updated yet when the event fires, so these redraw again a moment later
 local LEVEL_EVENTS = { PLAYER_LEVEL_UP = true, PLAYER_LEVEL_CHANGED = true }

@@ -532,7 +532,7 @@ end
 
 function ns.UI_Refresh()
     if not frame then return end
-    -- remember where you are, to come back to it (the view, "tree" | "search" | "log"; the entry is
+    -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
     refreshList()
@@ -882,6 +882,7 @@ local function createFrame()
     end
     sideButton("search", "Interface\\Common\\UI-Searchbox-Icon", ns.L["Search quests..."])
     sideButton("log", "Interface\\GossipFrame\\ActiveQuestIcon", ns.L["Quest Log"])
+    sideButton("tracked", "Interface\\GossipFrame\\AvailableQuestIcon", ns.L["Tracked Quests"])
 
     frame.searchPanel = ns.Search_Create(frame)
     frame.searchPanel:SetPoint("TOPLEFT", LIST_W + 30, -top)
@@ -1008,7 +1009,7 @@ local function createFrame()
             ns.Detail_Hide()
             searchMode = true
             ns.Search_SetMode("log")
-        elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search") then
+        elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search" or ns.char.view == "tracked") then
             searchMode = true
             ns.Search_SetMode(ns.char.view)
         end

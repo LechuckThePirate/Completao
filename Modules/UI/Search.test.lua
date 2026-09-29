@@ -35,6 +35,12 @@ describe("Search", function()
         assert.are.same({ ns.QuestLevelColorRGB(row.quest.level or row.quest.minLevel) }, { row.name:GetTextColor() })
     end)
 
+    it("titles carry the level prefix", function()
+        typeText("defias brother")
+        local row = ShownRows()[1]
+        assert.matches("^%[%d+D?%+?%] ", row.name:GetText())
+    end)
+
     it("searches by title across all sections", function()
         typeText("defias brother")
         local rows = ShownRows()
@@ -142,6 +148,18 @@ describe("Search", function()
         ns.DistanceTo = original
     end)
 
+    it("remembers the table's order between sessions", function()
+        panel.head.dist:Click()
+        panel.head.dist:Click() -- distance, reversed
+        assert.are.same({ key = "distance", desc = true }, ns.char.tableSort)
+        WowMock.Reset()
+        local reopened = LoadAddon()
+        StartAddon(reopened, nil, { selected = "vc", tableSort = { key = "money", desc = false } })
+        reopened.UI_Toggle()
+        reopened.UI_SetSearchMode(true)
+        assert.is_not_nil(WowMock.Find(function(f) return f._text == "Money ^" end))
+    end)
+
     it("sorts by level and by title", function()
         panel.head.level:Click() -- already sorted by ascending level: one click reverses it
         local rows = ShownRows()
@@ -182,6 +200,112 @@ describe("Search", function()
             unknown:Click()
             _G.QuestMapFrame_OpenToQuestDetails = nil
             assert.are.equal(999999, opened)
+        end)
+    end)
+
+    describe("tracked quests view", function()
+        local tracked, saved
+        before_each(function()
+            WowMock.log = { { isHeader = true, title = "Westfall" }, { questID = 166, title = "The Defias Brotherhood", level = 22 },
+                { isHeader = true, title = "Ashenvale" }, { questID = 999999, title = "Unknown Quest", level = 25 } }
+            WowMock.onQuest[166], WowMock.onQuest[999999] = true, true
+            tracked, saved = { [999999] = true }, C_QuestLog.GetQuestWatchType
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+            ns.UI_SetSearchMode(true, "tracked")
+        end)
+        after_each(function() C_QuestLog.GetQuestWatchType = saved end)
+
+        it("the search table has no status icons", function()
+            ns.UI_SetSearchMode(true, "search")
+            assert.is_false(ShownRows()[1].status:IsShown())
+        end)
+
+        it("lists only the quests of the log that are being tracked, without the form", function()
+            local rows = ShownRows()
+            assert.are.equal(1, #rows)
+            assert.are.equal(999999, rows[1].quest.id)
+            assert.is_false(panel.box:IsShown())
+            assert.are.equal("tracked", ns.Search_Mode())
+        end)
+
+        it("lists the steps under each quest, with a button to set the waypoint of each", function()
+            local spot = { npc = "Boar", area = 12, x = 40, y = 50 }
+            local realSteps, realCan, realWaypoint = ns.QuestSteps, ns.CanShowMap, ns.SetWaypoint
+            ns.QuestSteps = function()
+                return {
+                    { kind = "start", label = "Start: X", done = true },
+                    { kind = "obj", label = "Kill boars", progress = "3/10", loc = spot, current = true },
+                    { kind = "obj", label = "Find the cave", done = true, area = 12 },
+                    { kind = "finish", label = "Turn in: Y" },
+                }, 2
+            end
+            ns.CanShowMap = function() return true end
+            ns.IsReadyToTurnIn = function() return false end
+            local setTo
+            ns.SetWaypoint = function(loc, title) setTo = { loc, title } end
+            ns.CanWaypoint = function(loc) return loc.x ~= nil end
+            ns.Search_Refresh()
+            local labels, buttons = {}, {}
+            for _, f in ipairs(WowMock.frames) do
+                if f:IsShown() and type(f._text) == "string" and f._text:find("Kill boars", 1, true) then labels[#labels + 1] = f._text end
+                if f._kind == "Button" and f.loc and f:IsShown() then buttons[#buttons + 1] = f end
+            end
+            assert.are.equal(1, #labels)
+            assert.matches("3/10", labels[1])
+            assert.matches("ffd100", labels[1]) -- the current step is in gold
+            assert.is_true(#buttons >= 1)
+            local kill
+            for _, b in ipairs(buttons) do if b.title == "Kill boars" then kill = b end end
+            kill:Click()
+            assert.are.same({ spot, "Kill boars" }, setTo)
+            assert.is_nil(WowMock.Find(function(f) return f:IsShown() and type(f._text) == "string" and f._text:find("Turn in", 1, true) end))
+            -- the clicked step and its quest are marked
+            local focusTag = ShownRows()[1].quest.id .. ":2"
+            assert.are.equal(focusTag, kill.tag)
+            ns.FocusTag = function() return focusTag end
+            ns.Search_Refresh()
+            local marked = WowMock.Find(function(f) return f._kind == "Button" and f.tag == focusTag and f.mark:IsShown() end)
+            assert.is_not_nil(marked)
+            assert.are.same({ 1, 0.82, 0, 1 }, { ShownRows()[1]:GetBackdropBorderColor() })
+            ns.FocusTag = function() return nil end
+            ns.Search_Refresh()
+            assert.is_false(marked.mark:IsShown())
+            ns.QuestSteps, ns.CanShowMap, ns.SetWaypoint = realSteps, realCan, realWaypoint
+        end)
+
+        it("a quest ready to turn in shows only the turn-in, and its icon says so", function()
+            local realSteps = ns.QuestSteps
+            ns.QuestSteps = function()
+                return {
+                    { kind = "start", label = "Start: X", done = true },
+                    { kind = "obj", label = "Kill boars", progress = "10/10", done = true },
+                    { kind = "finish", label = "Turn in: Y", current = true, loc = { area = 12, x = 1, y = 2 } },
+                }, 3
+            end
+            ns.IsReadyToTurnIn = function() return true end
+            ns.Search_Refresh()
+            local function shown(text)
+                return WowMock.Find(function(f) return f:IsShown() and type(f._text) == "string" and f._text:find(text, 1, true) end)
+            end
+            assert.is_not_nil(shown("Turn in: Y"))
+            assert.is_nil(shown("Kill boars"))
+            local status = ShownRows()[1].status
+            assert.is_true(status:IsShown())
+            assert.matches("ActiveQuestIcon", status._set.SetTexture[1]) -- the "?" (no atlases in the mock)
+            ns.IsReadyToTurnIn = function() return false end
+            ns.Search_Refresh()
+            assert.matches("IncompleteQuestIcon", ShownRows()[1].status._set.SetTexture[1])
+            ns.QuestSteps = realSteps
+        end)
+
+        it("follows the tracker and says so when nothing is tracked", function()
+            tracked = { [166] = true, [999999] = true }
+            ns.Search_Refresh()
+            assert.are.equal(2, #ShownRows())
+            tracked = {}
+            ns.Search_Refresh()
+            assert.are.equal(0, #ShownRows())
+            assert.is_true(panel.empty:IsShown())
         end)
     end)
 end)

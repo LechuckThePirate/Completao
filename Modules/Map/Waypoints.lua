@@ -198,7 +198,32 @@ function ns.ShowOnMap(loc, title)
     return opened
 end
 
-function ns.SetWaypoint(loc, title)
+-- What the waypoint is for (the optional tag given to SetWaypoint, e.g. a quest step), so the tables can
+-- mark it. It is forgotten when the game's waypoint is moved or cleared by something else.
+local focus
+function ns.FocusTag()
+    return focus and focus.tag
+end
+
+local function focusChanged()
+    if ns.Search_Refresh then ns.Search_Refresh() end
+end
+
+local function checkFocus()
+    if not (focus and focus.blizzard) then return end
+    local p = C_Map.GetUserWaypoint and C_Map.GetUserWaypoint()
+    local pos = p and p.position
+    if not (pos and p.uiMapID == focus.map and math.abs(pos.x - focus.x) < 1e-3 and math.abs(pos.y - focus.y) < 1e-3) then
+        focus = nil
+        focusChanged()
+    end
+end
+
+local focusEvents = CreateFrame("Frame")
+pcall(focusEvents.RegisterEvent, focusEvents, "USER_WAYPOINT_UPDATED")
+focusEvents:SetScript("OnEvent", checkFocus)
+
+function ns.SetWaypoint(loc, title, tag)
     local map = ns.ResolveMap(loc)
     if not map then
         ns.Print(ns.L["No map location available for this quest giver."])
@@ -206,6 +231,8 @@ function ns.SetWaypoint(loc, title)
     end
     local x, y = loc.x / 100, loc.y / 100
     ns.SetMapPin(map, loc.x, loc.y)
+    -- set before the game's call: it fires the event that checks it
+    focus = { tag = tag, map = map, x = x, y = y, blizzard = not (TomTom and TomTom.AddWaypoint) }
     if TomTom and TomTom.AddWaypoint then
         TomTom:AddWaypoint(map, x, y, { title = title, persistent = false, minimap = true, world = true, crazy = true })
     elseif C_Map.SetUserWaypoint and UiMapPoint then
@@ -214,6 +241,7 @@ function ns.SetWaypoint(loc, title)
             C_SuperTrack.SetSuperTrackedUserWaypoint(true)
         end
     else
+        focus = nil
         return false
     end
     ns.Print(ns.L["Waypoint set: %s"]:format(title))

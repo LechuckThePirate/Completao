@@ -40,6 +40,36 @@ describe("Waypoints", function()
         assert.near(0.421, WowMock.userWaypoint.x, 1e-9)
     end)
 
+    describe("focus", function()
+        local current
+        before_each(function()
+            current = nil
+            C_Map.GetUserWaypoint = function() return current end
+            C_Map.SetUserWaypoint = function(p) current = { uiMapID = p.mapID, position = { x = p.x, y = p.y } } end
+            ns.Search_Refresh = function() ns.refreshed = (ns.refreshed or 0) + 1 end
+        end)
+        after_each(function() C_Map.GetUserWaypoint = nil end)
+
+        it("remembers what the waypoint was set for, and keeps it when the game reports the same spot", function()
+            ns.SetWaypoint(elwynn, "Marshal", "166:2")
+            assert.are.equal("166:2", ns.FocusTag())
+            FireEvent("USER_WAYPOINT_UPDATED")
+            assert.are.equal("166:2", ns.FocusTag())
+        end)
+
+        it("forgets it when the waypoint is moved or cleared, and asks for a redraw", function()
+            ns.SetWaypoint(elwynn, "Marshal", "166:2")
+            current = { uiMapID = 1429, position = { x = 0.9, y = 0.1 } }
+            FireEvent("USER_WAYPOINT_UPDATED")
+            assert.is_nil(ns.FocusTag())
+            assert.are.equal(1, ns.refreshed)
+            ns.SetWaypoint(elwynn, "Marshal", "166:2")
+            current = nil
+            FireEvent("USER_WAYPOINT_UPDATED")
+            assert.is_nil(ns.FocusTag())
+        end)
+    end)
+
     it("with no place, warns and sets nothing", function()
         assert.is_false(ns.SetWaypoint({ area = 12 }, "x"))
         assert.matches("No map location", WowMock.lastPrint)

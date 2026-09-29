@@ -12,18 +12,21 @@ local MAX_ROWS = 300
 
 -- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
 -- then fewer reward icons are shown and last "Where" is dropped.
+local STATUS_W = 20 -- the quest's status icon before its title (quest log and tracked views)
 local cols = { width = 0 }
-local function computeColumns(width)
-    if cols.width == width then return false end
+local function computeColumns(width, status)
+    if cols.width == width and cols.status == status then return false end
     local gap = 6
     local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
-    local function nameW() return width - 6 - LEVEL_W - DIST_W - MONEY_W - where - icons * (ICON + 2) - 5 * gap end
+    local function nameW() return width - 6 - status - LEVEL_W - DIST_W - MONEY_W - where - icons * (ICON + 2) - 5 * gap end
     if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
     if nameW() < MIN_NAME_W then icons = 3 end
     if nameW() < MIN_NAME_W then where = 0 end
-    cols.width, cols.icons, cols.where = width, icons, where
+    cols.width, cols.icons, cols.where, cols.status = width, icons, where, status
+    cols.gen = (cols.gen or 0) + 1
     cols.name = math.max(40, nameW())
-    cols.levelX = 6 + cols.name + gap
+    cols.nameX = 6 + status
+    cols.levelX = cols.nameX + cols.name + gap
     cols.whereX = cols.levelX + LEVEL_W + gap
     cols.distX = cols.whereX + (where > 0 and (where + gap) or 0)
     cols.moneyX = cols.distX + DIST_W + gap
@@ -112,19 +115,26 @@ local function matchesReward(q)
     return false
 end
 
--- View: "search" (form + results) or "log" (the quests in the log, in the same table).
+-- View: "search" (form + results), "log" (the quests in the log, in the same table) or "tracked" (the ones
+-- of them in the objective tracker).
 local mode = "search"
+
+local function isTracked(id)
+    if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
+    if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
+    return false
+end
 
 -- Quests in the log, with the zone (header) they are listed under. The ones the addon knows open in their
 -- tree; the rest are listed anyway, with the log's title and level.
-local function logQuests()
+local function logQuests(trackedOnly)
     local found = {}
     local zone
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         if info and info.isHeader then
             zone = info.title
-        elseif info and info.questID and info.questID > 0 then
+        elseif info and info.questID and info.questID > 0 and (not trackedOnly or isTracked(info.questID)) then
             local def = ns.FindQuestDef(info.questID)
             if def then
                 found[#found + 1] = { quest = def, entry = ns.entries[def.entryId], zone = zone }
@@ -233,6 +243,8 @@ local function getRow(i)
     row:SetBackdrop(BACKDROP)
     row:SetBackdropBorderColor(0, 0, 0, 0)
     row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    row.status = row:CreateTexture(nil, "ARTWORK")
+    row.status:SetSize(STATUS_W - 4, STATUS_W - 4)
     row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
@@ -294,8 +306,12 @@ end
 -- Places the columns of a row (or of the header) according to `cols`.
 local function placeRow(row)
     row.name:ClearAllPoints()
-    row.name:SetPoint("LEFT", row, "LEFT", 6, 0)
+    row.name:SetPoint("LEFT", row, "LEFT", cols.nameX, 0)
     row.name:SetWidth(cols.name)
+    if row.status then
+        row.status:ClearAllPoints()
+        row.status:SetPoint("LEFT", row, "LEFT", 4, 0)
+    end
     row.level:ClearAllPoints()
     row.level:SetPoint("LEFT", row, "LEFT", cols.levelX, 0)
     row.where:ClearAllPoints()
@@ -318,34 +334,147 @@ local function placeRow(row)
     end
 end
 
+-- Tracked view: under each quest, its steps (objectives with their progress and the turn-in). Clicking one
+-- sets the waypoint (or opens the map on its zone when the spot isn't known).
+local STEP_H = 18
+local stepRows, stepsUsed = {}, 0
+
+local function getStepRow()
+    stepsUsed = stepsUsed + 1
+    local row = stepRows[stepsUsed]
+    if row then return row end
+    row = CreateFrame("Button", nil, panel.content)
+    row:SetHeight(STEP_H)
+    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    row:SetScript("OnClick", function(self)
+        if not self.loc then return end
+        if ns.CanWaypoint(self.loc) then
+            ns.SetWaypoint(self.loc, self.title, self.tag)
+            ns.Search_Refresh()
+        else
+            ns.ShowOnMap(self.loc, self.title)
+        end
+    end)
+    row:SetScript("OnEnter", function(self)
+        if not self.loc then return end
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:AddLine(ns.CanWaypoint(self.loc) and L["Click to set the waypoint."] or L["Click to show it on the map."],
+            0.5, 0.8, 1)
+        GameTooltip:Show()
+    end)
+    row:SetScript("OnLeave", GameTooltip_Hide)
+    -- the step the waypoint is set on: a gold tint and a bar on the left
+    row.mark = row:CreateTexture(nil, "BACKGROUND")
+    row.mark:SetAllPoints()
+    row.mark:SetColorTexture(1, 0.82, 0, 0.18)
+    row.markBar = row:CreateTexture(nil, "ARTWORK")
+    row.markBar:SetPoint("TOPLEFT")
+    row.markBar:SetPoint("BOTTOMLEFT")
+    row.markBar:SetWidth(3)
+    row.markBar:SetColorTexture(1, 0.82, 0, 1)
+    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.text:SetPoint("LEFT", 16, 0)
+    row.text:SetPoint("RIGHT", -6, 0)
+    row.text:SetJustifyH("LEFT")
+    row.text:SetWordWrap(false)
+    stepRows[stepsUsed] = row
+    return row
+end
+
+local STEP_COLORS = { done = "ff808080", current = "ffffd100", todo = "ffffffff" }
+local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14|t "
+
+local function readyToTurnIn(quest)
+    return C_QuestLog.IsOnQuest(quest.id) and ns.IsReadyToTurnIn(quest.id) and true or false
+end
+
+-- Status icon before a quest's title (quest log and tracked views): ready to turn in ("?") or in progress
+-- ("..."), round like the game's. The atlases are tried in order; the classic gossip icons are the fallback.
+local STATUS_ICONS = {
+    ready = { atlas = { "QuestTurnin", "quest-turnin" }, file = "Interface\\GossipFrame\\ActiveQuestIcon" },
+    progress = { atlas = { "QuestIncomplete", "quest-incomplete" }, file = "Interface\\GossipFrame\\IncompleteQuestIcon" },
+}
+
+local function setStatusIcon(tex, kind)
+    local spec = kind and STATUS_ICONS[kind]
+    if not spec then tex:Hide() return end
+    local set
+    if tex.SetAtlas and C_Texture and C_Texture.GetAtlasInfo then
+        for _, name in ipairs(spec.atlas) do
+            if C_Texture.GetAtlasInfo(name) then tex:SetAtlas(name) set = true break end
+        end
+    end
+    if not set then tex:SetTexture(spec.file) end
+    tex:Show()
+end
+
+-- Lays the quest's steps out from y down; returns the height used. A quest ready to turn in shows only the
+-- turn-in; one still in progress shows its objectives and not the turn-in.
+local function layoutSteps(quest, y)
+    local steps = ns.QuestSteps(quest)
+    local ready = readyToTurnIn(quest)
+    local used = 0
+    for index, s in ipairs(steps) do
+        local wanted = ready and s.kind == "finish" or not ready and s.kind == "obj"
+        if wanted then
+            local row = getStepRow()
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 0, -(y + used))
+            row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
+            local color = STEP_COLORS[s.done and "done" or s.current and "current" or "todo"]
+            row.text:SetText(("%s|c%s%s%s|r"):format(s.done and CHECK or "", color, s.label,
+                s.progress and ("  " .. s.progress) or ""))
+            local loc = s.loc or (s.area and { area = s.area }) or nil
+            row.loc, row.title = loc and ns.CanShowMap(loc) and loc or nil, s.label
+            row.tag = quest.id .. ":" .. index
+            local focused = ns.FocusTag() == row.tag
+            row.mark:SetShown(focused)
+            row.markBar:SetShown(focused)
+            row:Show()
+            used = used + STEP_H
+        end
+    end
+    return used
+end
+
 local function refresh()
     if not (panel and panel:IsShown()) then return end
-    local found = sortFound(mode == "log" and logQuests() or search())
+    stepsUsed = 0
+    local found = sortFound(mode == "search" and search() or logQuests(mode == "tracked"))
     local shown = math.min(#found, MAX_ROWS)
     panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
         or L["%d quests"]:format(#found))
     local width = panel.scroll:GetWidth()
     if width and width > 0 then
         panel.content:SetWidth(width)
-        if computeColumns(width) then
+        if computeColumns(width, mode == "search" and 0 or STATUS_W) then
             placeRow(panel.head)
             for _, row in ipairs(rows) do row.placedFor = nil end
         end
     end
+    local y = 0
     for i = 1, shown do
         local f = found[i]
         local q, row = f.quest, getRow(i)
         row.quest, row.entry = q, f.entry
-        if row.placedFor ~= cols.width and cols.width > 0 then
+        if row.placedFor ~= cols.gen and cols.width > 0 then
             placeRow(row)
-            row.placedFor = cols.width
+            row.placedFor = cols.gen
         end
+        setStatusIcon(row.status, mode ~= "search" and (readyToTurnIn(q) and "ready" or "progress") or nil)
         row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
+        row:SetPoint("TOPLEFT", 0, -y)
         row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
         local shade = (i % 2 == 0) and 0.08 or 0.04
         row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
-        row.name:SetText(ns.QuestTitle(q.id, q.name))
+        -- the quest whose step has the waypoint: gold border
+        local focusTag = ns.FocusTag()
+        if focusTag and focusTag:find("^" .. q.id .. ":") then
+            row:SetBackdropBorderColor(1, 0.82, 0, 1)
+        else
+            row:SetBackdropBorderColor(0, 0, 0, 0)
+        end
+        row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name))
         row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
         row.level:SetText(q.level or q.minLevel or "?")
         row.whereText = f.whereText
@@ -366,9 +495,12 @@ local function refresh()
             end
         end
         row:Show()
+        y = y + ROW_H
+        if mode == "tracked" then y = y + layoutSteps(q, y) end
     end
     for i = shown + 1, #rows do rows[i]:Hide() end
-    panel.content:SetHeight(math.max(1, shown * ROW_H))
+    for i = stepsUsed + 1, #stepRows do stepRows[i]:Hide() end
+    panel.content:SetHeight(math.max(1, y))
     panel.empty:SetShown(#found == 0)
 end
 
@@ -567,6 +699,7 @@ function ns.Search_Create(parent)
                 else
                     state.sort, state.desc = sortKey, sortKey == "money" -- money, most first
                 end
+                ns.char.tableSort = { key = state.sort, desc = state.desc }
                 updateSortLabels()
                 requestRefresh()
             end)
@@ -591,6 +724,9 @@ function ns.Search_Create(parent)
     head.money = column(L["Money"], "RIGHT", "money")
     head.rewards = column(L["Rewards"])
     panel.head = head
+    -- the order the table was left in (per character)
+    local saved = ns.char.tableSort
+    if saved and sortable[saved.key] then state.sort, state.desc = saved.key, saved.desc and true or false end
     updateSortLabels()
     panel.layoutForm = layoutForm
     layoutForm()
@@ -637,13 +773,17 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
--- "search": the search; "log": the quests you carry in your log.
+local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests" }
+local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.",
+    tracked = "No quests are being tracked." }
+
+-- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked.
 function ns.Search_SetMode(m)
-    mode = m == "log" and "log" or "search"
+    mode = TITLES[m] and m or "search"
     if not panel then return end
     ns.PopupMenu_Hide()
-    panel.title:SetText(mode == "log" and L["Quest Log"] or L["Search quests"])
-    panel.empty:SetText(mode == "log" and L["Your quest log is empty."] or L["No quests match the search."])
+    panel.title:SetText(L[TITLES[mode]])
+    panel.empty:SetText(L[EMPTY[mode]])
     panel.layoutForm()
     requestRefresh()
 end

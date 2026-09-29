@@ -38,6 +38,14 @@ function ns.IsEliteQuest(id)
     return tagId == ELITE_TAG_ID
 end
 
+-- Prefix for a quest's name, as Questie's tracker: "[11] ", "[13D] " (dungeon quest) or "[15+] " (elite; it
+-- takes priority over dungeon). Empty when the level isn't known.
+function ns.QuestPrefix(q)
+    local level = q.level or q.minLevel
+    if not level then return "" end
+    return ("[%d%s] "):format(level, ns.IsEliteQuest(q.id) and "+" or q.dungeon and "D" or "")
+end
+
 -- Returns "done" | "active" | "available" | "locked", and a list of reasons when locked.
 function ns.QuestStatus(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then

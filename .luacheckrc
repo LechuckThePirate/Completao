@@ -24,7 +24,7 @@ globals = {
 read_globals = {
     "C_AddOns", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
     "C_Texture", "C_Timer", "C_TradeSkillUI",
-    "CLOSE", "CreateFrame", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
+    "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
     "GetCoinTextureString",
     "GetCursorPosition", "GetFactionInfoByID", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
     "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "HandleModifiedItemClick",

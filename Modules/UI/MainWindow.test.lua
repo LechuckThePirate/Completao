@@ -247,6 +247,102 @@ describe("MainWindow", function()
         assert.is_true(_G.CompletaoPreferencesFrame:IsShown())
     end)
 
+    describe("opacity in combat", function()
+        local function settle()
+            for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end
+        end
+        after_each(function() WowMock.inCombat, WowMock.speed = false, 0 end)
+
+        it("fades to its own setting in combat, and is opaque by default", function()
+            WowMock.inCombat = true
+            settle()
+            assert.near(1, ns.UI:GetAlpha(), 0.02)
+            ns.char.fadeAlphaCombat = 0.4
+            settle()
+            assert.near(0.4, ns.UI:GetAlpha(), 0.02)
+            WowMock.inCombat = false
+            settle()
+            assert.near(1, ns.UI:GetAlpha(), 0.02)
+            ns.char.fadeAlphaCombat = nil
+        end)
+
+        it("with the mouse over it stays opaque, and moving in combat takes the lower of the two", function()
+            ns.char.fadeAlphaCombat, ns.char.fadeAlpha = 0.4, 0.7
+            WowMock.inCombat, WowMock.speed = true, 7
+            settle()
+            assert.near(0.4, ns.UI:GetAlpha(), 0.02)
+            ns.UI._mouseOver = true
+            settle()
+            assert.near(1, ns.UI:GetAlpha(), 0.02)
+            ns.UI._mouseOver = false
+            ns.char.fadeAlphaCombat, ns.char.fadeAlpha = nil, nil
+        end)
+    end)
+
+    describe("click-through", function()
+        local function tick() ns.UI._scripts.OnUpdate(ns.UI, 0.1) end
+        local function anyChild()
+            return WowMock.Find(function(f) return f._kind == "Button" and f._parent == ns.UI and f._scripts.OnClick end)
+        end
+        before_each(function()
+            ns.UI:EnableMouse(true)
+            ns.char.clickThroughCombat, ns.char.clickThroughMoving = nil, nil
+            WowMock.inCombat, WowMock.speed = false, 0
+        end)
+        after_each(function() WowMock.inCombat, WowMock.speed = false, 0 end)
+
+        it("does nothing unless the preference is on", function()
+            WowMock.inCombat = true
+            tick()
+            assert.is_true(ns.UI:IsMouseEnabled())
+        end)
+
+        it("in combat, when asked to: the window and what is in it stop taking the mouse, and get it back after", function()
+            ns.char.clickThroughCombat = true
+            local child = anyChild()
+            child:EnableMouse(true)
+            WowMock.inCombat = true
+            tick()
+            assert.is_false(ns.UI:IsMouseEnabled())
+            assert.is_false(child:IsMouseEnabled())
+            WowMock.inCombat = false
+            tick()
+            assert.is_true(ns.UI:IsMouseEnabled())
+            assert.is_true(child:IsMouseEnabled())
+        end)
+
+        it("while moving is a separate setting", function()
+            ns.char.clickThroughCombat = true
+            WowMock.speed = 7
+            tick()
+            assert.is_true(ns.UI:IsMouseEnabled())
+            ns.char.clickThroughMoving = true
+            tick()
+            assert.is_false(ns.UI:IsMouseEnabled())
+            WowMock.speed = 0
+            tick()
+            assert.is_true(ns.UI:IsMouseEnabled())
+        end)
+
+        it("while click-through the mouse over it doesn't make it opaque", function()
+            ns.char.clickThroughCombat, ns.char.fadeAlphaCombat = true, 0.4
+            WowMock.inCombat = true
+            ns.UI._mouseOver = true
+            for _ = 1, 60 do tick() end
+            assert.near(0.4, ns.UI:GetAlpha(), 0.02)
+            ns.UI._mouseOver = false
+            ns.char.fadeAlphaCombat = nil
+        end)
+
+        it("closing the window gives the mouse back", function()
+            ns.char.clickThroughCombat = true
+            WowMock.inCombat = true
+            tick()
+            ns.UI:Hide()
+            assert.is_true(ns.UI:IsMouseEnabled())
+        end)
+    end)
+
     describe("open with the quest log", function()
         before_each(function()
             ns.UI:Hide()

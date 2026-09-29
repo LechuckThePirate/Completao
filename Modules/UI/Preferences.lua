@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 432
+local WIDTH, HEIGHT = 340, 540
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -114,29 +114,42 @@ local function create()
         function(value) ns.char.fadeAlpha = value end,
         function(value) return L["Opacity while moving: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -136, L["Show the minimap button"],
+    widgets[#widgets + 1] = makeSlider(prefs, -136,
+        function() return ns.char.fadeAlphaCombat or 1 end,
+        function(value) ns.char.fadeAlphaCombat = value end,
+        function(value) return L["Opacity in combat: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
+
+    widgets[#widgets + 1] = makeCheck(prefs, -188, L["Show the minimap button"],
         function() return ns.Minimap_IsShown() end,
         function(value) ns.Minimap_SetShown(value) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -164, L["Show chat messages at startup"],
+    widgets[#widgets + 1] = makeCheck(prefs, -216, L["Show chat messages at startup"],
         function() return not ns.char.quiet end,
         function(value) ns.char.quiet = (not value) or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -192, L["Sync with Blizzard Quest Log"],
+    widgets[#widgets + 1] = makeCheck(prefs, -244, L["Sync with Blizzard Quest Log"],
         function() return ns.char.openWithQuestLog end,
         function(value) ns.char.openWithQuestLog = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -220, L["Always open on the Quest Log"],
+    widgets[#widgets + 1] = makeCheck(prefs, -272, L["Always open on the Quest Log"],
         function() return ns.char.openOnQuestLog end,
         function(value) ns.char.openOnQuestLog = value or nil end)
 
-    makeButton(prefs, -264, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -294, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -324, L["Reset filters"], function()
+    widgets[#widgets + 1] = makeCheck(prefs, -300, L["Click-through in combat"],
+        function() return ns.char.clickThroughCombat end,
+        function(value) ns.char.clickThroughCombat = value or nil end)
+
+    widgets[#widgets + 1] = makeCheck(prefs, -328, L["Click-through while moving"],
+        function() return ns.char.clickThroughMoving end,
+        function(value) ns.char.clickThroughMoving = value or nil end)
+
+    makeButton(prefs, -372, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -402, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -432, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, -358, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, -466, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

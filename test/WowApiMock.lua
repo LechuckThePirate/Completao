@@ -121,6 +121,21 @@ function frameMethods:GetVerticalScroll() return self._vs or 0 end
 function frameMethods:SetHorizontalScroll(v) self._hs = v end
 function frameMethods:SetVerticalScroll(v) self._vs = v end
 function frameMethods:IsMouseOver() return self._mouseOver or false end
+function frameMethods:EnableMouse(v) self._mouse = v and true or false end
+function frameMethods:IsMouseEnabled() return self._mouse or false end
+function frameMethods:EnableMouseWheel(v) self._wheel = v and true or false end
+function frameMethods:IsMouseWheelEnabled() return self._wheel or false end
+-- child frames (not textures or font strings), as the game's GetChildren returns them
+function frameMethods:GetChildren()
+    local list = {}
+    for _, f in ipairs(WowMock.frames) do
+        if f._parent == self and f._kind ~= "Texture" and f._kind ~= "FontString" and f._kind ~= "Line"
+            and f._kind ~= "MaskTexture" and f._kind ~= "AnimationGroup" then
+            list[#list + 1] = f
+        end
+    end
+    return unpackArgs(list)
+end
 function frameMethods:GetFontString() self._fontString = self._fontString or WowMock.NewFrame("FontString", nil, self); return self._fontString end
 function frameMethods:GetNormalTexture() self._normal = self._normal or WowMock.NewFrame("Texture", nil, self); return self._normal end
 function frameMethods:GetHighlightTexture() self._highlight = self._highlight or WowMock.NewFrame("Texture", nil, self); return self._highlight end
@@ -236,6 +251,7 @@ UnitRace = function() return unpackArgs(WowMock.race) end
 UnitClass = function() return unpackArgs(WowMock.class) end
 UnitName = function() return "Tester" end
 GetUnitSpeed = function() return WowMock.speed end
+UnitAffectingCombat = function() return WowMock.inCombat or false end
 GetCursorPosition = function() return WowMock.cursor[1], WowMock.cursor[2] end
 IsShiftKeyDown = function() return WowMock.shift or false end
 IsControlKeyDown = function() return WowMock.ctrl or false end

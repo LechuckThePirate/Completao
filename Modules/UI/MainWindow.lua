@@ -628,14 +628,63 @@ end
 -- again when you stop or while the cursor is over it, so it can be used on the move. The change is smooth.
 -- Only the transparency changes, which the game allows even in combat.
 local DEFAULT_FADE_ALPHA = 0.5
+
+-- Click-through (Preferences: in combat / while moving): the window and everything in it stops taking the
+-- mouse, so clicks reach the game world. Mouse and wheel are switched off on the window and on every frame
+-- inside it (a child takes clicks even when its parent doesn't), and put back as they were afterwards.
+local mouseOrig, clickThrough, sinceWalk = {}, false, 0
+local function walk(f, fn)
+    fn(f)
+    for _, child in ipairs({ f:GetChildren() }) do walk(child, fn) end
+end
+
+local function setClickThrough(on)
+    if on then
+        walk(frame, function(f)
+            if not mouseOrig[f] then mouseOrig[f] = { mouse = f:IsMouseEnabled(), wheel = f:IsMouseWheelEnabled() } end
+            f:EnableMouse(false)
+            f:EnableMouseWheel(false)
+        end)
+    else
+        for f, o in pairs(mouseOrig) do
+            f:EnableMouse(o.mouse)
+            f:EnableMouseWheel(o.wheel)
+        end
+        mouseOrig = {}
+    end
+    clickThrough = on
+end
+
+local function inCombat()
+    if UnitAffectingCombat and UnitAffectingCombat("player") then return true end
+    return InCombatLockdown and InCombatLockdown() and true or false
+end
+
 local function fadeOnUpdate(self, elapsed)
     local target = 1
     -- the client hides some values in combat ("secret" values): comparing them errors, so in that case the
     -- window stays opaque
     local speed = GetUnitSpeed("player")
     local known = speed ~= nil and not (issecretvalue and issecretvalue(speed))
-    if known and speed > 0 and not self:IsMouseOver() then
-        target = ns.char.fadeAlpha or DEFAULT_FADE_ALPHA
+    local moving = known and speed > 0
+    local combat = inCombat()
+    local wantClickThrough = (ns.char.clickThroughCombat and combat) or (ns.char.clickThroughMoving and moving) or false
+    if wantClickThrough ~= clickThrough then
+        setClickThrough(wantClickThrough)
+        sinceWalk = 0
+    elseif clickThrough then
+        -- frames made while it is on (table rows...) are caught too
+        sinceWalk = sinceWalk + elapsed
+        if sinceWalk > 1 then
+            sinceWalk = 0
+            setClickThrough(true)
+        end
+    end
+    -- the cursor over it brings it back to opaque so it can be used -- unless it is click-through: it can't
+    -- be used then, and stays as transparent as set
+    if clickThrough or not self:IsMouseOver() then
+        if moving then target = math.min(target, ns.char.fadeAlpha or DEFAULT_FADE_ALPHA) end
+        if combat then target = math.min(target, ns.char.fadeAlphaCombat or 1) end
     end
     local current = self:GetAlpha()
     if math.abs(current - target) < 0.01 then
@@ -680,6 +729,7 @@ local function createFrame()
     frame:SetScript("OnUpdate", fadeOnUpdate)
     frame:HookScript("OnHide", function(self)
         self:SetAlpha(1) -- opens opaque next time
+        if clickThrough then setClickThrough(false) end
         openedWithLog = false
     end)
     frame:Hide()

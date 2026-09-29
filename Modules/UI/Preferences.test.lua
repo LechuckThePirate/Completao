@@ -18,8 +18,9 @@ describe("Preferences", function()
 
     it("the checkboxes reflect and change the settings", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
-        -- order: per character, minimap, messages, open with the quest log, always open on the quest log
-        assert.are.equal(5, #checks)
+        -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
+        -- click-through in combat, click-through while moving
+        assert.are.equal(7, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
         assert.is_true(ns.char.quiet)
@@ -29,6 +30,10 @@ describe("Preferences", function()
         assert.is_true(ns.char.openOnQuestLog)
         checks[5]:SetChecked(false); checks[5]:Click()
         assert.is_nil(ns.char.openOnQuestLog)
+        checks[6]:SetChecked(true); checks[6]:Click()
+        assert.is_true(ns.char.clickThroughCombat)
+        checks[7]:SetChecked(true); checks[7]:Click()
+        assert.is_true(ns.char.clickThroughMoving)
         checks[2]:SetChecked(false); checks[2]:Click()
         assert.is_false(ns.Minimap_IsShown())
     end)

@@ -5,8 +5,8 @@ local _, ns = ...
 -- account's shared one (CompletaoDB.shared). The rest of ns.char (selected entry, open section) always
 -- belongs to the character. The rest of the addon uses ns.char without knowing which one is behind it.
 local SWITCHABLE = {
-    fadeAlpha = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
-    openOnQuestLog = true,
+    fadeAlpha = true, fadeAlphaCombat = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
+    openOnQuestLog = true, clickThroughCombat = true, clickThroughMoving = true,
 }
 
 local function deepCopy(value)

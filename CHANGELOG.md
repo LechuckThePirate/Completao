@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0-beta
+
+- New: **Tracked Quests** view under Quest Log, with the quests in your
+  objective tracker; under each one its objectives with live progress (done
+  ones checked, the next one in gold, only the turn-in once it is ready).
+  Click an objective to set the waypoint on it -- the one in use is marked
+  until the waypoint changes.
+- New: clicking a quest in Search, Quest Log or Tracked Quests opens its
+  details below the table, with a **View chain** button (for quests that are
+  part of a chain) that takes you to its tree.
+- New: a **Distance** column with the live distance to each quest's next
+  step (meters, or yards in US/UK English clients); sort by it and the table
+  re-sorts as you move.
+- New: quest titles carry a `[level]` prefix, with `D` for dungeon quests and
+  `+` for elite ones, and a status icon (ready / in progress) in the quest log
+  and tracked views.
+- New: **Sync with Blizzard Quest Log** -- besides opening and closing with
+  the log, selecting a quest in it opens that quest (and its chain).
+- New: click-through in combat and/or while moving (separate settings), and a
+  separate window opacity in combat.
+- New: the table's sort order is remembered, and going to Search, Quest Log
+  or Tracked Quests collapses the sections.
+- Fix: the game's quest log selection no longer loops back into the window.
+
 ## 0.2.0-beta
 
 - New: **Battlegrounds**, **Events** and **Miscellaneous** sections, and quests

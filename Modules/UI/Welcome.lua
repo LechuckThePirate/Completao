@@ -12,22 +12,14 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: Battlegrounds, Events and Miscellaneous sections, and quests for the raids; many quests that",
-    "  were missing before are in now.",
-    "- New: Zones, Class Quests, Professions and Races sections, for quests not tied to a dungeon or raid.",
-    "- New: quest steps -- each objective gets its own waypoint and live progress; Show on map follows",
-    "  whichever step you pick.",
-    "- New: a check mark on quests ready to turn in.",
-    "- New: a dungeon-door badge on quests done inside an instance, and a dragon head badge on elite ones.",
-    "- New: the recommended level next to the required one, colored the way the game colors it for you.",
-    "- New: quest rewards and a long description in the quest panel.",
-    "- New: global quest search and a Quest Log view, as a sortable table with a money column and an",
-    "  items-only filter.",
-    "- New: tree filters (title search, hide low level / too high / completed) and chain highlighting.",
-    "- New: a Preferences window, opening with the quest log, always on the Quest Log (or remembering",
-    "  where you left it), and key bindings.",
-    "- New: the window redraws as you level up, accept, abandon or turn in a quest.",
-    "- Fix: several map coordinates, and a wrong \"done inside the dungeon\" marking.",
+    "- New: Tracked Quests view, with your tracked quests and their objectives; click an objective to set",
+    "  the waypoint on it.",
+    "- New: clicking a quest in a table opens its details below it, with a View chain button.",
+    "- New: a live Distance column to each quest's next step (sortable).",
+    "- New: [level] prefix on titles (D dungeon, + elite) and ready / in progress icons.",
+    "- New: Sync with Blizzard Quest Log -- selecting a quest in it opens it here.",
+    "- New: click-through in combat / while moving, and a separate opacity in combat.",
+    "- New: the table's sort order is remembered.",
 }, "\n")
 
 local welcomeFrame

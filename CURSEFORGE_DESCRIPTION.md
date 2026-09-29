@@ -10,7 +10,7 @@ Dungeons, raids, battlegrounds, zones, class and profession quests, races and
 world events are in, with more on the way.
 Currently in **beta**.
 
-![Main window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
+![Your quest log, in the Completao!! window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
 
 ---
 
@@ -24,6 +24,8 @@ and the lines between them turn green as you move down a chain. Only the quests
 of your own faction are shown. Drag the background to pan the tree and use the
 mouse wheel to **zoom** in or out to see more at once (Shift + wheel to go
 sideways, Ctrl + wheel vertically); your zoom is remembered.
+
+![A dungeon's quest chains](https://media.joanvilarino.online/completao/images/screencaps/quest_tree.png)
 
 ### A side panel that grows with the addon
 Sections are collapsible: open **Dungeons**, **Raids** (Molten Core, Blackwing
@@ -48,8 +50,26 @@ to include low-level, too-high and completed quests, or look for a reward type
 -- say, *Weapon > Wands* -- or keep only quests that give an item. Results come
 as a table with level, location, money and the reward icons (hover for the
 item tooltip), sortable by title, level or money; click one to jump to its
-tree with the quest selected. **Quest Log** shows the quests you carry in the
-same table.
+tree with the quest selected. Every row starts with the quest's `[level]`
+(`D` for dungeon quests, `+` for elite ones), and the **Distance** column shows
+how far each quest's next step is from you -- sort by it and the table re-sorts
+as you move.
+
+![Searching for leather armor rewards](https://media.joanvilarino.online/completao/images/screencaps/search_quests.png)
+
+### Your quest log, and the quests you track
+**Quest Log** shows the quests you carry in the same table, with a status icon
+(ready to hand in / in progress) next to each, colored by difficulty for your
+level.
+
+![The Quest Log view](https://media.joanvilarino.online/completao/images/screencaps/quest_log.png)
+
+**Tracked Quests** narrows it to the ones in your objective tracker and lists,
+under each quest, its objectives with live progress: finished ones checked, the
+next one in gold, and only the turn-in once the quest is ready. Click an
+objective to set your waypoint on it.
+
+![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png)
 
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes
@@ -82,7 +102,8 @@ every other quest and connection fades back. Close the panel to return to the
 full tree.
 
 ### Everything about a quest, one click away
-Click any quest in the tree to open its panel:
+Click any quest in the tree to open its panel -- or click one in Search, Quest
+Log or Tracked Quests and its details open right below the table:
 
 - **Requirements** -- prerequisite quests and level, in green when you meet
   them and red when you don't.
@@ -95,8 +116,10 @@ Click any quest in the tree to open its panel:
   experience and reputation.
 - A **maximize / restore** button (Blizzard's own) to read the text over the
   whole tree.
+- **View chain**, for quests that belong to a chain: jumps to its tree with the
+  quest selected.
 
-![The quest panel, with a locked quest's tooltip](https://media.joanvilarino.online/completao/images/screencaps/quest_info_pane.png)
+![A quest's details, below the Tracked Quests table](https://media.joanvilarino.online/completao/images/screencaps/quest_info_pane.png)
 
 ![The quest panel maximized, with the requirement still missing](https://media.joanvilarino.online/completao/images/screencaps/maximize_pane_unavailable_quest.png)
 
@@ -137,6 +160,10 @@ Click any quest in the tree to open its panel:
   while you walk or run, so it never hides what is ahead, and comes back when you
   stop or when the cursor is over it. `/completao fade <10-100>` changes how
   much (100 = no fade).
+- **Click-through**: let the mouse pass through the window in combat and/or
+  while you move (separate settings), with its own opacity in combat.
+- **Sync with Blizzard Quest Log**: the window opens and closes with the game's
+  quest log, and selecting a quest there opens it -- and its chain -- here.
 - Completion is always read live from the game, so it is never out of date.
 
 ![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png)

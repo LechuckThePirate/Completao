@@ -91,6 +91,57 @@ describe("Search", function()
         for i = 2, #rows do assert.is_true(rows[i - 1].whereText:lower() >= rows[i].whereText:lower()) end
     end)
 
+    it("sorts by the distance to the next step, nearest first, unknown ones last", function()
+        local original = ns.DistanceTo
+        ns.DistanceTo = function(loc) return loc and (loc.x or 0) * 10 or nil end
+        panel.head.dist:Click()
+        local rows = ShownRows()
+        local seenUnknown
+        for i = 1, #rows do
+            local text = rows[i].dist:GetText()
+            if text == "" then seenUnknown = true else assert.is_nil(seenUnknown) end
+            if i > 1 and text ~= "" and rows[i - 1].dist:GetText() ~= "" then
+                assert.is_true(ns.DistanceTo(ns.QuestSteps(rows[i - 1].quest)[1].loc) <= ns.DistanceTo(ns.QuestSteps(rows[i].quest)[1].loc))
+            end
+        end
+        panel.head.dist:Click() -- reversed: the unknown ones still go last
+        seenUnknown = nil
+        for _, row in ipairs(ShownRows()) do
+            if row.dist:GetText() == "" then seenUnknown = true else assert.is_nil(seenUnknown) end
+        end
+        ns.DistanceTo = original
+    end)
+
+    it("distances read in yards, or thousands of yards", function()
+        local original = ns.DistanceTo
+        ns.DistanceTo = function() return 350 end
+        ns.Search_Refresh()
+        panel.head.dist:Click()
+        assert.are.equal("350 yd", ShownRows()[1].dist:GetText())
+        ns.DistanceTo = function() return 1300 end
+        panel.head.dist:Click()
+        assert.are.equal("1.3k yd", ShownRows()[1].dist:GetText())
+        ns.DistanceTo = original
+    end)
+
+    it("redraws the distances when the player moves, and not while standing still", function()
+        local original, pos = ns.DistanceTo, 100
+        local x = 0.5
+        ns.DistanceTo = function() return pos end
+        ns.PlayerPosition = function() return 1, x, 0.5 end
+        panel.head.dist:Click()
+        local onUpdate = panel._scripts.OnUpdate
+        onUpdate(panel, 1) -- first look at the position
+        assert.are.equal("100 yd", ShownRows()[1].dist:GetText())
+        pos = 200
+        onUpdate(panel, 1) -- same spot: nothing to redraw
+        assert.are.equal("100 yd", ShownRows()[1].dist:GetText())
+        x = 0.6
+        onUpdate(panel, 1)
+        assert.are.equal("200 yd", ShownRows()[1].dist:GetText())
+        ns.DistanceTo = original
+    end)
+
     it("sorts by level and by title", function()
         panel.head.level:Click() -- already sorted by ascending level: one click reverses it
         local rows = ShownRows()

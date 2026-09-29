@@ -45,6 +45,49 @@ describe("Waypoints", function()
         assert.matches("No map location", WowMock.lastPrint)
     end)
 
+    describe("distance", function()
+        local saved = {}
+        before_each(function()
+            for _, k in ipairs({ "GetBestMapForUnit", "GetPlayerMapPosition", "GetWorldPosFromMapPos" }) do saved[k] = C_Map[k] end
+            _G.CreateVector2D = function(x, y) return { x = x, y = y } end
+            C_Map.GetBestMapForUnit = function() return 1429 end
+            C_Map.GetPlayerMapPosition = function() return { GetXY = function() return 0.5, 0.5 end } end
+            -- 1 map unit = 1000 yards, on continent 0
+            C_Map.GetWorldPosFromMapPos = function(_, v) return 0, { x = v.x * 1000, y = v.y * 1000 } end
+        end)
+        after_each(function()
+            for k, v in pairs(saved) do C_Map[k] = v end
+            _G.CreateVector2D = nil
+        end)
+
+        it("is the yards from the player to the location", function()
+            assert.near(math.sqrt((0.5 - 0.421) ^ 2 + (0.5 - 0.659) ^ 2) * 1000, ns.DistanceTo(elwynn), 1e-6)
+        end)
+
+        it("reads in meters, except in the US and UK English locales (or as forced)", function()
+            WowMock.locale = "esES"
+            assert.are.equal("320 m", ns.FormatDistance(350))
+            assert.are.equal("1.2 km", ns.FormatDistance(1300))
+            assert.are.equal("", ns.FormatDistance(nil))
+            WowMock.locale = "enUS"
+            assert.are.equal("350 yd", ns.FormatDistance(350))
+            assert.are.equal("1.3k yd", ns.FormatDistance(1300))
+            ns.char = { distanceUnit = "m" }
+            assert.are.equal("320 m", ns.FormatDistance(350))
+            ns.char = nil
+        end)
+
+        it("is unknown without coordinates, without the player's position or across continents", function()
+            assert.is_nil(ns.DistanceTo({ area = 12 }))
+            C_Map.GetPlayerMapPosition = function() return nil end
+            assert.is_nil(ns.DistanceTo(elwynn))
+            C_Map.GetPlayerMapPosition = function() return { GetXY = function() return 0.5, 0.5 end } end
+            local n = 0
+            C_Map.GetWorldPosFromMapPos = function(_, v) n = n + 1; return n, { x = v.x, y = v.y } end
+            assert.is_nil(ns.DistanceTo(elwynn))
+        end)
+    end)
+
     it("show on map opens the zone's map and marks the spot", function()
         local opened
         _G.OpenWorldMap = function(map) opened = map end

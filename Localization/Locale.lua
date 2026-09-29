@@ -102,6 +102,7 @@ local es = {
     ["Quest"] = "Quest",
     ["Level"] = "Nivel",
     ["Where"] = "Dónde",
+    ["Distance"] = "Distancia",
     ["Money"] = "Dinero",
     ["Quest Log"] = "Registro de misiones",
     ["Your quest log is empty."] = "Tu registro de misiones está vacío.",

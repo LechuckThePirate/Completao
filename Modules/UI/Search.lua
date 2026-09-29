@@ -7,7 +7,7 @@ local L = ns.L
 -- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
 -- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
-local LEVEL_W, MONEY_W, MAX_ICONS, MIN_NAME_W = 44, 84, 6, 150
+local LEVEL_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 84, 60, 6, 150
 local MAX_ROWS = 300
 
 -- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
@@ -17,7 +17,7 @@ local function computeColumns(width)
     if cols.width == width then return false end
     local gap = 6
     local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
-    local function nameW() return width - 6 - LEVEL_W - MONEY_W - where - icons * (ICON + 2) - 4 * gap end
+    local function nameW() return width - 6 - LEVEL_W - DIST_W - MONEY_W - where - icons * (ICON + 2) - 5 * gap end
     if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
     if nameW() < MIN_NAME_W then icons = 3 end
     if nameW() < MIN_NAME_W then where = 0 end
@@ -25,7 +25,8 @@ local function computeColumns(width)
     cols.name = math.max(40, nameW())
     cols.levelX = 6 + cols.name + gap
     cols.whereX = cols.levelX + LEVEL_W + gap
-    cols.moneyX = cols.whereX + (where > 0 and (where + gap) or 0)
+    cols.distX = cols.whereX + (where > 0 and (where + gap) or 0)
+    cols.moneyX = cols.distX + DIST_W + gap
     cols.iconsX = cols.moneyX + MONEY_W + gap
     return true
 end
@@ -34,7 +35,7 @@ local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interfac
 local panel
 local state = {
     text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
-    sort = "level", desc = false, -- table order: "name" | "level" | "money", by clicking the header
+    sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "money", by the header
 }
 local rows = {}
 
@@ -167,7 +168,19 @@ local function search()
     return found
 end
 
--- table order (headers): by title (the one shown), level, zone or money; ties by level and title
+-- Yards from the player to the quest's next step (nil when unknown), worked out once per result.
+local function distanceOf(f)
+    if not f.distDone then
+        f.distDone = true
+        if f.quest.steps or f.quest.start or f.quest.finish then
+            local steps, current = ns.QuestSteps(f.quest)
+            f.dist = steps[current] and ns.DistanceTo(steps[current].loc)
+        end
+    end
+    return f.dist
+end
+
+-- table order (headers): by title (the one shown), level, zone, distance or money; ties by level and title
 local function sortFound(found)
     local key = {}
     for _, f in ipairs(found) do
@@ -177,11 +190,18 @@ local function sortFound(found)
         f.level = q.level or q.minLevel or 0
         f.money = r and r.money or 0
         f.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
-        key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money
-            or state.sort == "where" and f.whereText:lower() or f.level
+        if state.sort == "distance" then
+            key[f] = distanceOf(f) or false
+        else
+            key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money
+                or state.sort == "where" and f.whereText:lower() or f.level
+        end
     end
     table.sort(found, function(a, b)
         if key[a] ~= key[b] then
+            -- no distance (false): always after the ones that have it, whichever way it is sorted
+            if not key[a] then return false end
+            if not key[b] then return true end
             if state.desc then return key[a] > key[b] end
             return key[a] < key[b]
         end
@@ -222,6 +242,9 @@ local function getRow(i)
     row.where = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.where:SetJustifyH("LEFT")
     row.where:SetWordWrap(false)
+    row.dist = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.dist:SetWidth(DIST_W)
+    row.dist:SetJustifyH("RIGHT")
     row.money = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.money:SetJustifyH("RIGHT")
     row.money:SetWordWrap(false)
@@ -279,6 +302,8 @@ local function placeRow(row)
     row.where:SetPoint("LEFT", row, "LEFT", cols.whereX, 0)
     row.where:SetWidth(math.max(1, cols.where))
     row.where:SetShown(cols.where > 0)
+    row.dist:ClearAllPoints()
+    row.dist:SetPoint("LEFT", row, "LEFT", cols.distX, 0)
     row.money:ClearAllPoints()
     row.money:SetPoint("LEFT", row, "LEFT", cols.moneyX, 0)
     row.money:SetWidth(MONEY_W)
@@ -325,6 +350,7 @@ local function refresh()
         row.level:SetText(q.level or q.minLevel or "?")
         row.whereText = f.whereText
         row.where:SetText(row.whereText)
+        row.dist:SetText(ns.FormatDistance(distanceOf(f)))
         local r = ns.REWARDS and ns.REWARDS[q.id]
         row.money:SetText(r and r.money and coinString(r.money) or "")
         local ids = r and rewardIds(r) or {}
@@ -560,6 +586,8 @@ function ns.Search_Create(parent)
     head.level = column(L["Level"], "CENTER", "level")
     head.level:SetWidth(LEVEL_W)
     head.where = column(L["Where"], "LEFT", "where")
+    head.dist = column(L["Distance"], "RIGHT", "distance")
+    head.dist:SetWidth(DIST_W)
     head.money = column(L["Money"], "RIGHT", "money")
     head.rewards = column(L["Rewards"])
     panel.head = head
@@ -588,6 +616,20 @@ function ns.Search_Create(parent)
         refresh()
     end)
     panel:SetScript("OnHide", ns.PopupMenu_Hide)
+
+    -- Live distances: while the table is visible, it is redrawn (and re-sorted) when the player has moved.
+    local sinceCheck, lastPos = 0, nil
+    panel:SetScript("OnUpdate", function(_, elapsed)
+        sinceCheck = sinceCheck + elapsed
+        if sinceCheck < 1 then return end
+        sinceCheck = 0
+        local map, x, y = ns.PlayerPosition()
+        local pos = map and ("%d:%.4f:%.4f"):format(map, x, y) or false
+        if pos ~= lastPos then
+            lastPos = pos
+            refresh()
+        end
+    end)
     return panel
 end
 

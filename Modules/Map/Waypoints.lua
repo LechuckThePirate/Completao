@@ -43,6 +43,54 @@ function ns.CanShowMap(loc)
     return ns.ResolveZone(loc) ~= nil
 end
 
+local function worldPos(map, x, y)
+    if not (C_Map.GetWorldPosFromMapPos and CreateVector2D) then return nil end
+    local continent, pos = C_Map.GetWorldPosFromMapPos(map, CreateVector2D(x, y))
+    if continent and pos then return continent, pos.x, pos.y end
+end
+
+-- The player's map and position on it (0-1), or nil.
+function ns.PlayerPosition()
+    local map = C_Map.GetBestMapForUnit("player")
+    local p = map and C_Map.GetPlayerMapPosition and C_Map.GetPlayerMapPosition(map, "player")
+    if not p then return nil end
+    local x, y = p:GetXY()
+    return map, x, y
+end
+
+-- Distance in yards from the player to a location, or nil when it can't be told (no coordinates, the
+-- player's position unknown, or another continent).
+function ns.DistanceTo(loc)
+    local map = ns.ResolveMap(loc)
+    if not map then return nil end
+    local playerMap, px, py = ns.PlayerPosition()
+    if not playerMap then return nil end
+    local c1, x1, y1 = worldPos(playerMap, px, py)
+    local c2, x2, y2 = worldPos(map, loc.x / 100, loc.y / 100)
+    if not (c1 and c2 and c1 == c2) then return nil end
+    local d = math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
+    if d ~= d or d == math.huge then return nil end -- the client gave no real position (e.g. a city map)
+    return d
+end
+
+-- Distances read in meters unless the client is in a yards locale (US and UK English); the game gives
+-- them in yards. ns.char.distanceUnit = "yd" | "m" forces one.
+local YARD = 0.9144
+function ns.FormatDistance(yards)
+    if not yards then return "" end
+    local unit = ns.char and ns.char.distanceUnit
+    local metric
+    if unit then
+        metric = unit == "m"
+    else
+        local locale = GetLocale()
+        metric = locale ~= "enUS" and locale ~= "enGB"
+    end
+    local d = metric and yards * YARD or yards
+    local small, big = metric and "%d m" or "%d yd", metric and "%.1f km" or "%.1fk yd"
+    return d < 1000 and small:format(math.floor(d)) or big:format(d / 1000)
+end
+
 -- Our own marker on the world map: a bouncing gold "!" with a pulsing glow. It hangs from the map's
 -- canvas (moves and zooms with it) and is counter-scaled to keep its size. Shown only while the visible
 -- map is the location's, and cleared when the map closes.

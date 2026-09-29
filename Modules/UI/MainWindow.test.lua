@@ -33,6 +33,20 @@ describe("MainWindow", function()
             "Events", "Miscellaneous" }, seen)
     end)
 
+    it("going to the search or the quest log collapses every section", function()
+        local function openSections()
+            local n = 0
+            for _, f in ipairs(WowMock.frames) do
+                if f:IsShown() and type(f._text) == "string" and f._text:match("^%- %a[%a ]+ %(%d+%)$") then n = n + 1 end
+            end
+            return n
+        end
+        assert.are.equal(1, openSections())
+        ns.UI_SetSearchMode(true, "log")
+        assert.are.equal(0, openSections())
+        assert.is_false(ns.char.category)
+    end)
+
     describe("the view it opens on", function()
         local function reopen(charDB)
             WowMock.Reset()

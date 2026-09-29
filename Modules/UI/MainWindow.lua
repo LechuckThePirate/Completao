@@ -554,6 +554,8 @@ end
 function ns.UI_SetSearchMode(on, kind)
     searchMode = on and true or false
     if searchMode then
+        expandedCat = nil -- going to the search or the log collapses the sections
+        ns.char.category = false
         ns.Detail_Hide()
         ns.Search_SetMode(kind or "search")
     end

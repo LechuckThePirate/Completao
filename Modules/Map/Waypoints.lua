@@ -223,18 +223,21 @@ local focusEvents = CreateFrame("Frame")
 pcall(focusEvents.RegisterEvent, focusEvents, "USER_WAYPOINT_UPDATED")
 focusEvents:SetScript("OnEvent", checkFocus)
 
-function ns.SetWaypoint(loc, title, tag)
+-- `quiet`: no chat message (the focus window moves the waypoint on its own as objectives are done).
+function ns.SetWaypoint(loc, title, tag, quiet)
     local map = ns.ResolveMap(loc)
     if not map then
-        ns.Print(ns.L["No map location available for this quest giver."])
+        if not quiet then ns.Print(ns.L["No map location available for this quest giver."]) end
         return false
     end
     local x, y = loc.x / 100, loc.y / 100
     ns.SetMapPin(map, loc.x, loc.y)
+    -- TomTom keeps every waypoint it is given: the one we set before goes away, so they don't pile up
+    if focus and focus.uid and TomTom and TomTom.RemoveWaypoint then pcall(TomTom.RemoveWaypoint, TomTom, focus.uid) end
     -- set before the game's call: it fires the event that checks it
     focus = { tag = tag, map = map, x = x, y = y, blizzard = not (TomTom and TomTom.AddWaypoint) }
     if TomTom and TomTom.AddWaypoint then
-        TomTom:AddWaypoint(map, x, y, { title = title, persistent = false, minimap = true, world = true, crazy = true })
+        focus.uid = TomTom:AddWaypoint(map, x, y, { title = title, persistent = false, minimap = true, world = true, crazy = true })
     elseif C_Map.SetUserWaypoint and UiMapPoint then
         C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(map, x, y))
         if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
@@ -244,6 +247,6 @@ function ns.SetWaypoint(loc, title, tag)
         focus = nil
         return false
     end
-    ns.Print(ns.L["Waypoint set: %s"]:format(title))
+    if not quiet then ns.Print(ns.L["Waypoint set: %s"]:format(title)) end
     return true
 end

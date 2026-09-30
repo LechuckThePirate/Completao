@@ -14,6 +14,7 @@ function ns.RequestRefresh()
     pending = true
     C_Timer.After(0.2, function()
         pending = false
+        ns.Focus_Refresh() -- the focus window lives on its own, with or without the main window
         if ns.UI and ns.UI:IsShown() then
             ns.UI_Refresh()
         end

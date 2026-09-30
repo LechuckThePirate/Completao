@@ -678,6 +678,7 @@ end
 
 -- Hooks for the preferences (Preferences.lua): reset window, zoom and filters.
 function ns.UI_ResetWindow()
+    ns.Focus_ResetPosition()
     ns.char.window = nil
     if frame then
         frame:ClearAllPoints()
@@ -699,6 +700,7 @@ end
 -- After switching between character and shared settings (Settings.lua): the new store's window, zoom and
 -- filters.
 function ns.UI_ApplySettings()
+    ns.Focus_ApplySettings()
     if frame then
         local saved = ns.char.window
         frame:ClearAllPoints()

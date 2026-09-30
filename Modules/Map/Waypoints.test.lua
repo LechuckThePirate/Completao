@@ -34,6 +34,25 @@ describe("Waypoints", function()
         assert.are.equal("Marshal", got[4])
     end)
 
+    it("a new waypoint replaces the one set before in TomTom, so they don't pile up", function()
+        local added, removed = 0, {}
+        _G.TomTom = {
+            AddWaypoint = function() added = added + 1 return "uid" .. added end,
+            RemoveWaypoint = function(_, uid) removed[#removed + 1] = uid end,
+        }
+        ns.SetWaypoint(elwynn, "One")
+        ns.SetWaypoint(elwynn, "Two")
+        assert.are.same({ "uid1" }, removed)
+    end)
+
+    it("quiet: sets the waypoint without a word in chat", function()
+        WowMock.lastPrint = nil
+        assert.is_true(ns.SetWaypoint(elwynn, "Marshal", nil, true))
+        assert.is_nil(WowMock.lastPrint)
+        assert.is_true(ns.SetWaypoint(elwynn, "Marshal"))
+        assert.matches("Waypoint set", WowMock.lastPrint)
+    end)
+
     it("without TomTom, uses the game's waypoint", function()
         assert.is_true(ns.SetWaypoint(elwynn, "Marshal"))
         assert.are.equal(1429, WowMock.userWaypoint.mapID)

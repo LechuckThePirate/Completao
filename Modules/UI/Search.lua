@@ -279,7 +279,16 @@ local function getRow(i)
         end)
         row.icons[k] = icon
     end
-    row:SetScript("OnClick", function(self)
+    row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    row:SetScript("OnClick", function(self, button)
+        -- tracked view, right click: the quest gets (or loses) the focus window
+        if button == "RightButton" then
+            if mode == "tracked" then
+                ns.Focus_Toggle(self.quest.id)
+                ns.Search_Refresh()
+            end
+            return
+        end
         -- the quest's details open below the table; "View chain" there goes to its tree
         ns.Detail_Show(self.quest)
     end)
@@ -289,6 +298,10 @@ local function getRow(i)
         GameTooltip:AddLine(self.whereText, 0.8, 0.8, 0.8)
         if not self.entry then GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6) end
         GameTooltip:AddLine(L["Click to see its details."], 0.5, 0.8, 1)
+        if mode == "tracked" then
+            GameTooltip:AddLine(ns.Focus_Quest() == self.quest.id and L["Right-click to stop focusing on it."]
+                or L["Right-click to focus on it."], 0.5, 0.8, 1)
+        end
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)
@@ -382,7 +395,7 @@ local function readyToTurnIn(quest)
 end
 
 -- Status icon before a quest's title (quest log and tracked views): ready to turn in ("?") or in progress
--- ("..."), round like the game's. The atlases are tried in order; the classic gossip icons are the fallback.
+-- ("..."), round like the game's; `kind` = "ready" | "progress". The atlases are tried in order; the classic gossip icons are the fallback.
 local STATUS_ICONS = {
     ready = { atlas = { "QuestTurnin", "quest-turnin" }, file = "Interface\\GossipFrame\\ActiveQuestIcon" },
     progress = { atlas = { "QuestIncomplete", "quest-incomplete" }, file = "Interface\\GossipFrame\\IncompleteQuestIcon" },
@@ -400,6 +413,7 @@ local function setStatusIcon(tex, kind)
     if not set then tex:SetTexture(spec.file) end
     tex:Show()
 end
+ns.SetQuestStatusIcon = setStatusIcon -- the focus window's too
 
 -- Lays the quest's steps out from y down; returns the height used. A quest ready to turn in shows only the
 -- turn-in; one still in progress shows its objectives and not the turn-in.

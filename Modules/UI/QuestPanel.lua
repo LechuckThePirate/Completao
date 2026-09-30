@@ -344,6 +344,8 @@ local function render()
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
     detail.btnOpen:SetShown(onQuest)
+    detail.btnFocus:SetShown(onQuest)
+    detail.btnFocus:SetText(ns.Focus_Quest() == q.id and L["Stop focus"] or L["Focus"])
     -- from a table: "View chain" goes to the quest's tree, when it is part of a chain
     detail.btnChain:SetShown(ns.UI_IsSearchMode() and ns.IsInChain(q))
     -- waypoint and map: the chosen step
@@ -579,6 +581,16 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         if current then openQuest(current.id) end
     end)
 
+    -- "Focus": the floating window for this quest (Modules/UI/FocusWindow.lua); again to stop focusing
+    detail.btnFocus = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
+    detail.btnFocus:SetSize(130, 22)
+    detail.btnFocus:SetScript("OnClick", function()
+        if not current then return end
+        ns.Focus_Toggle(current.id)
+        render()
+        ns.Search_Refresh()
+    end)
+
     detail.btnChain = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
     detail.btnChain:SetSize(130, 22)
     detail.btnChain:SetText(L["View chain"])
@@ -606,7 +618,8 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them
     local buttons = {
         { frame = detail.wayGroup, w = WAY_W + 26 },
-        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnChain, w = 130 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnFocus, w = 130 },
+        { frame = detail.btnChain, w = 130 }, { frame = detail.btnMap, w = 130 },
     }
     function detail.layoutButtons()
         local width = detail:GetWidth() - 16

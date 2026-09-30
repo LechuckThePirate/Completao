@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- New: **focus window** -- right-click a quest in Tracked Quests (or press
+  **Focus** in its details) to get a small floating window with its status
+  icon, title and objectives with live progress ("Boars 0/5"); done objectives
+  go grey and struck through, and once all are done they are replaced by
+  "Turn in <quest> (<npc>)". The waypoint goes on the nearest objective left
+  and follows you through the quest; the window closes when the quest is
+  turned in or abandoned. It can be moved (the place is saved), is reset with
+  the other window positions, and lets clicks through in combat.
+- Change: with TomTom, a new waypoint replaces the one the addon set before
+  instead of piling up.
+
 ## 0.3.0-beta
 
 - New: **Tracked Quests** view under Quest Log, with the quests in your

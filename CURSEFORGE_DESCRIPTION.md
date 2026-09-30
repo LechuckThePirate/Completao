@@ -69,6 +69,14 @@ under each quest, its objectives with live progress: finished ones checked, the
 next one in gold, and only the turn-in once the quest is ready. Click an
 objective to set your waypoint on it.
 
+**Right-click** a tracked quest (or use **Focus** in its details) to put it in
+a small floating window of its own: its status icon and title, and the
+objectives below ("Boars 0/5"), struck through in grey once done. The waypoint
+goes on the nearest objective left and moves by itself as you finish them; with
+everything done the list turns into "Turn in <quest> (<npc>)", and the window
+goes away when you hand it in. Drag it wherever you like -- it lets clicks
+through in combat.
+
 ![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png)
 
 ### Filters that keep the tree readable

@@ -39,6 +39,7 @@ Modules\Map\Waypoints.lua
 Modules\UI\Menu.lua
 Modules\UI\QuestPanel.lua
 Modules\UI\Search.lua
+Modules\UI\FocusWindow.lua
 Modules\UI\MainWindow.lua
 Modules\UI\Preferences.lua
 Modules\UI\Welcome.lua

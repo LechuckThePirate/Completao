@@ -6,10 +6,11 @@ local L = ns.L
 -- in progress) and title in its difficulty color, and under it the objectives with their progress
 -- ("Boars 0/5"); done ones go grey and struck through. Once every objective is done they are replaced by
 -- "Turn in <quest> (<npc>)". The waypoint goes to the step to do next (the nearest objective left, or the
--- turn-in) and moves by itself as objectives are completed. The window goes away when the quest is turned
--- in (or abandoned), can be dragged by its title bar ("Focused Quest"; the place is saved). Clicking an
--- objective sets the waypoint on it, and a right click opens the main window on the tracked quests. In
--- combat the window stops taking the mouse, so clicks reach the world.
+-- turn-in) and moves by itself as objectives are completed. When the quest is turned in (or abandoned) the
+-- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged by
+-- its title bar ("Focused Quest"; the place is saved). Clicking an objective sets the waypoint on it, and a
+-- right click opens the main window on the tracked quests. In combat the window stops taking the mouse, so
+-- clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local TOP = TITLE_H + 6 -- where the quest's icon and title start
@@ -21,12 +22,13 @@ local BACKDROP = {
     tile = true, tileSize = 16, edgeSize = 12,
     insets = { left = 3, right = 3, top = 3, bottom = 3 },
 }
-local COLORS = { done = "ff808080", target = "ffffd100", todo = "ffffffff" }
+local COLORS = { done = "ff808080", target = "ffffd100", todo = "ffffffff", hint = "ff9d9d9d" }
 
 local frame, lines = nil, {}
 local ready = false   -- the quest log is loaded (see Focus_Init): before, a quest not in it isn't gone yet
 local lastSignature   -- what the waypoint was last worked out for
 local mouseOn = true  -- false in combat (click-through)
+local idle = false    -- no quest focused but the window stays, saying so (the quest was turned in or abandoned)
 
 function ns.Focus_Quest()
     return ns.char and ns.char.focusQuest
@@ -150,7 +152,7 @@ local function create()
     if not okClose or not close then close = CreateFrame("Button", nil, frame) end
     close:SetSize(TITLE_H + 6, TITLE_H + 6)
     close:SetPoint("TOPRIGHT", 1, 1)
-    close:SetScript("OnClick", function() ns.Focus_Clear() end)
+    close:SetScript("OnClick", function() ns.Focus_Clear() end) -- closes the window for good
     frame.close = close
 
     applyPosition()
@@ -266,35 +268,23 @@ local function retarget(q, steps, target, force, isReady)
     if s and s.loc then ns.SetWaypoint(s.loc, s.label, q.id .. ":" .. target, true) end
 end
 
-function ns.Focus_Refresh(force)
-    local id = ns.Focus_Quest()
-    if not id then
-        if frame then frame:Hide() end
-        return
-    end
-    if C_QuestLog.IsQuestFlaggedCompleted(id) then
-        ns.Focus_Clear() -- turned in
-        return
-    end
-    if not C_QuestLog.IsOnQuest(id) then
-        if ready then ns.Focus_Clear() elseif frame then frame:Hide() end -- abandoned (or the log isn't loaded yet)
-        return
-    end
+-- Draws the window: the header (status icon, or none, and the title in a color) and the lines under it.
+local function draw(iconKind, title, r, g, b, content)
     if not frame then create() end
-
-    local q = questDef(id)
-    local steps = ns.QuestSteps(q)
-    local isReady = ns.IsReadyToTurnIn(id)
-    local target = ns.Focus_PickStep(steps, isReady)
-    retarget(q, steps, target, force, isReady)
-
-    ns.SetQuestStatusIcon(frame.icon, isReady and "ready" or "progress")
-    local title = ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name)
+    frame.title:ClearAllPoints()
+    local indent = 0
+    if iconKind then
+        indent = ICON + 4
+        ns.SetQuestStatusIcon(frame.icon, iconKind)
+        frame.title:SetPoint("LEFT", frame.icon, "RIGHT", 4, 0)
+    else
+        frame.icon:Hide()
+        frame.title:SetPoint("LEFT", frame, "TOPLEFT", PAD, -(TOP + ICON / 2))
+    end
     frame.title:SetText(title)
-    frame.title:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
+    frame.title:SetTextColor(r, g, b)
 
-    local content = buildLines(q, steps, isReady)
-    local width = math.max(ICON + 4 + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
+    local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
     for i, l in ipairs(content) do
         local line = setLine(i, l)
         width = math.max(width, CHECK_W + line.text:GetStringWidth())
@@ -302,7 +292,7 @@ function ns.Focus_Refresh(force)
     for i = #content + 1, #lines do lines[i].button:Hide() end
     width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
     frame:SetSize(width, TOP + HEADER_H + 4 + #content * LINE_H + PAD)
-    frame.title:SetWidth(width - 2 * PAD - ICON - 4)
+    frame.title:SetWidth(width - 2 * PAD - indent)
     for i in ipairs(content) do
         local line = lines[i]
         line.button:SetWidth(width - 2 * PAD)
@@ -312,18 +302,53 @@ function ns.Focus_Refresh(force)
     frame:Show()
 end
 
+-- Nothing focused: the window says so, and how to choose another quest.
+local function drawIdle()
+    draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Right-click to choose another."], kind = "hint", struck = false } })
+end
+
+function ns.Focus_Refresh(force)
+    local id = ns.Focus_Quest()
+    if not id then
+        if idle then drawIdle() elseif frame then frame:Hide() end
+        return
+    end
+    if C_QuestLog.IsQuestFlaggedCompleted(id) then
+        ns.Focus_Clear(true) -- turned in
+        return
+    end
+    if not C_QuestLog.IsOnQuest(id) then
+        -- abandoned, or the log isn't loaded yet
+        if ready then ns.Focus_Clear(true) elseif frame then frame:Hide() end
+        return
+    end
+
+    local q = questDef(id)
+    local steps = ns.QuestSteps(q)
+    local isReady = ns.IsReadyToTurnIn(id)
+    local target = ns.Focus_PickStep(steps, isReady)
+    retarget(q, steps, target, force, isReady)
+    local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
+    draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
+        buildLines(q, steps, isReady))
+end
+
 function ns.Focus_Set(id)
     if not (id and C_QuestLog.IsOnQuest(id)) then return false end
     ns.char.focusQuest = id
     lastSignature = nil
+    idle = false
     ns.Focus_Refresh(true)
     return true
 end
 
-function ns.Focus_Clear()
+-- Stops the focus. The window goes away, unless `keep` (the quest is gone, turned in or abandoned): then it
+-- stays, saying there is no quest focused.
+function ns.Focus_Clear(keep)
     ns.char.focusQuest = nil
     lastSignature = nil
-    if frame then frame:Hide() end
+    idle = keep and true or false
+    ns.Focus_Refresh()
 end
 
 function ns.Focus_Toggle(id)

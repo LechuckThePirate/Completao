@@ -174,27 +174,63 @@ describe("FocusWindow", function()
         assert.near(0.2, WowMock.userWaypoint.x, 1e-9)
     end)
 
-    it("turning the quest in closes the window and forgets the focus", function()
+    it("turning the quest in forgets the focus, and the window says no quest is focused", function()
         focus()
         WowMock.onQuest[999001], WowMock.done[999001] = nil, true
         FireEvent("QUEST_TURNED_IN", 999001)
-        assert.is_false(frame:IsShown())
         assert.is_nil(ns.Focus_Quest())
+        assert.is_true(frame:IsShown())
+        assert.are.equal("No quest focused", frame.title._text)
+        assert.is_false(frame.icon:IsShown())
+        local texts = shownTexts()
+        assert.are.equal(1, #texts)
+        assert.matches("Right%-click to choose another", texts[1])
     end)
 
-    it("abandoning it closes the window too", function()
+    it("abandoning it does the same", function()
         focus()
         WowMock.onQuest[999001] = nil
         FireEvent("QUEST_REMOVED", 999001)
-        assert.is_false(frame:IsShown())
         assert.is_nil(ns.Focus_Quest())
+        assert.is_true(frame:IsShown())
+        assert.are.equal("No quest focused", frame.title._text)
     end)
 
-    it("the close button stops the focus", function()
+    it("the message window opens the tracked quests on a right click, and a new focus takes its place", function()
+        focus()
+        WowMock.onQuest[999001], WowMock.done[999001] = nil, true
+        FireEvent("QUEST_TURNED_IN", 999001)
+        frame._scripts.OnMouseUp(frame, "RightButton")
+        assert.are.equal("tracked", ns.Search_Mode())
+        assert.is_false(ns.Focus_Set(999002)) -- not in the log
+        WowMock.onQuest[999002] = true
+        assert.is_true(ns.Focus_Set(999002))
+        assert.matches("Cave", frame.title._text)
+        assert.is_true(frame.icon:IsShown())
+        assert.matches("Find the cave", shownTexts()[1])
+    end)
+
+    it("the close button closes the window and stops the focus", function()
         focus()
         frame.close:Click()
         assert.is_false(frame:IsShown())
         assert.is_nil(ns.Focus_Quest())
+        FireEvent("QUEST_LOG_UPDATE")
+        assert.is_false(frame:IsShown())
+    end)
+
+    it("the X also closes the message window, and unfocusing by hand doesn't leave one", function()
+        focus()
+        ns.Focus_Toggle(999001) -- from the tracked list
+        assert.is_false(frame:IsShown())
+        focus()
+        WowMock.done[999001], WowMock.onQuest[999001] = true, nil
+        FireEvent("QUEST_TURNED_IN", 999001)
+        assert.is_true(frame:IsShown())
+        frame.close:Click()
+        assert.is_false(frame:IsShown())
+        FireEvent("QUEST_LOG_UPDATE")
+        assert.is_false(frame:IsShown())
     end)
 
     it("can be dragged, and its place is saved", function()

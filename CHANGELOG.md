@@ -7,8 +7,9 @@
   icon, title and objectives with live progress ("Boars 0/5"); done objectives
   go grey and struck through, and once all are done they are replaced by
   "Turn in <quest> (<npc>)". The waypoint goes on the nearest objective left
-  and follows you through the quest; the window closes when the quest is
-  turned in or abandoned. It has a "Focused Quest" title bar, can be moved
+  and follows you through the quest; when the quest is turned in or abandoned
+  the window stays, saying no quest is focused and to right-click to choose
+  another (its X closes it). It has a "Focused Quest" title bar, can be moved
   (the place is saved; reset with the other window positions), and clicking an
   objective sets the waypoint on it, and a right click opens the main window
   on Tracked Quests. In combat it lets every click through.

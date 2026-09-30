@@ -124,6 +124,7 @@ local function isTracked(id)
     if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
     return false
 end
+ns.IsQuestTracked = isTracked -- the focus window's too
 
 -- Quests in the log, with the zone (header) they are listed under. The ones the addon knows open in their
 -- tree; the rest are listed anyway, with the log's title and level.

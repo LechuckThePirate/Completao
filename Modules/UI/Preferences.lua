@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 540
+local WIDTH, HEIGHT = 340, 572
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -143,13 +143,17 @@ local function create()
         function() return ns.char.clickThroughMoving end,
         function(value) ns.char.clickThroughMoving = value or nil end)
 
-    makeButton(prefs, -372, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -402, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -432, L["Reset filters"], function()
+    widgets[#widgets + 1] = makeCheck(prefs, -356, L["Focus the nearest tracked quest after a turn-in"],
+        function() return ns.char.focusAuto end,
+        function(value) ns.char.focusAuto = value or nil end)
+
+    makeButton(prefs, -404, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -434, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -464, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, -466, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, -498, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

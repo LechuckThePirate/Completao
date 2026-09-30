@@ -36,7 +36,11 @@ describe("FocusWindow", function()
         ns.AddQuests("z", { { id = 999001, name = "Pest Control", level = 20,
             start = { npc = "Giver", area = 12, x = 5, y = 5 }, finish = { npc = "Farmer Bob", area = 12, x = 20, y = 21 },
             steps = { boars, wolves } },
-            { id = 999002, name = "Cave", level = 20, steps = { { name = "Find the cave", area = 12 } } } })
+            { id = 999002, name = "Cave", level = 20, steps = { { name = "Find the cave", area = 12 } } },
+            { id = 999003, name = "Fox Hunt", level = 20, finish = { npc = "Hunter Ann", area = 12, x = 31, y = 32 },
+                steps = { { name = "Foxes", area = 12, x = 30, y = 31 } } },
+            { id = 999004, name = "Owl Watch", level = 20, finish = { npc = "Watcher Bo", area = 12, x = 81, y = 82 },
+                steps = { { name = "Owls", area = 12, x = 80, y = 81 } } } })
         WowMock.titles[999001] = "Pest Control"
         WowMock.onQuest[999001] = true
         objectives(false, false)
@@ -352,6 +356,86 @@ describe("FocusWindow", function()
         local ns2 = LoadAddon()
         StartAddon(ns2, nil, { focusQuest = 999001 })
         assert.is_nil(ns2.Focus_Quest())
+    end)
+
+    describe("focusing the nearest tracked quest after a turn-in", function()
+        local tracked, distance
+        local function turnIn()
+            WowMock.onQuest[999001], WowMock.done[999001] = nil, true
+            FireEvent("QUEST_TURNED_IN", 999001)
+        end
+        local function track(ids)
+            tracked = {}
+            WowMock.log = { { isHeader = true, title = "Zone" } }
+            for _, id in ipairs(ids) do
+                tracked[id] = true
+                WowMock.onQuest[id] = true
+                WowMock.titles[id] = ({ [999001] = "Pest Control", [999003] = "Fox Hunt", [999004] = "Owl Watch" })[id]
+                WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
+            end
+        end
+        before_each(function()
+            distance = { [boars.x] = 500, [wolves.x] = 10, [30] = 40, [80] = 900 }
+            ns.DistanceTo = function(loc) return distance[loc.x] end
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+            track({ 999001, 999003, 999004 })
+            ns.char.focusAuto = true
+            focus()
+        end)
+        after_each(function() C_QuestLog.GetQuestWatchType = nil end)
+
+        it("moves the focus to the tracked quest that is nearest, by what it needs next", function()
+            turnIn()
+            assert.are.equal(999003, ns.Focus_Quest())
+            assert.matches("Fox Hunt", frame.title._text)
+            assert.is_true(frame:IsShown())
+            assert.matches("Foxes", shownTexts()[1])
+            assert.near(0.3, WowMock.userWaypoint.x, 1e-9) -- and the waypoint goes with it
+        end)
+
+        it("counts a quest that is ready by the distance to whoever takes it in", function()
+            WowMock.readyForTurnIn[999004] = true
+            distance[80], distance[81] = 900, 5 -- its turn-in is at x = 81
+            turnIn()
+            assert.are.equal(999004, ns.Focus_Quest())
+            assert.matches("Turn in Owl Watch %(Watcher Bo%)", shownTexts()[1])
+        end)
+
+        it("ignores the quests that aren't tracked", function()
+            tracked[999003] = nil
+            turnIn()
+            assert.are.equal(999004, ns.Focus_Quest())
+        end)
+
+        it("with none tracked left, the window says so", function()
+            track({ 999001 })
+            turnIn()
+            assert.is_nil(ns.Focus_Quest())
+            assert.are.equal("No quest focused", frame.title._text)
+        end)
+
+        it("does nothing with the setting off", function()
+            ns.char.focusAuto = nil
+            turnIn()
+            assert.is_nil(ns.Focus_Quest())
+            assert.are.equal("No quest focused", frame.title._text)
+        end)
+
+        it("only when the focused quest is turned in: not when moving around, abandoning or turning in another", function()
+            distance[30] = 1 -- the foxes are now by the player
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.are.equal(999001, ns.Focus_Quest())
+            WowMock.onQuest[999001] = nil -- abandoned
+            FireEvent("QUEST_REMOVED", 999001)
+            assert.is_nil(ns.Focus_Quest())
+            assert.are.equal("No quest focused", frame.title._text)
+        end)
+
+        it("turning in a quest that wasn't the focused one leaves the focus alone", function()
+            WowMock.onQuest[999003], WowMock.done[999003] = nil, true
+            FireEvent("QUEST_TURNED_IN", 999003)
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
     end)
 
     describe("the step for the waypoint", function()

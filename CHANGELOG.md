@@ -16,6 +16,12 @@
   Tracked Quests. In combat it lets every click through.
 - Fix: with a quest's details open under Search, Quest Log or Tracked Quests,
   the quest tree no longer shows through the table.
+- New: **Focus the nearest tracked quest after a turn-in** (Preferences, off by
+  default): when you turn in the quest in the focus window, the focus moves on
+  its own to the tracked quest that is nearest, by what it needs next (its
+  nearest objective left, or its turn-in once ready), and the waypoint goes
+  with it. It only happens at the turn-in: not as you move, and not when you
+  abandon the quest.
 - Fix: "hide too high" only hides quests you can't take yet (their minimum
   level is above yours). Quests with a high level but a low minimum, like a
   level 60 one you can pick up at level 10, are no longer hidden, nor drawn

@@ -339,6 +339,25 @@ local function drawIdle()
     draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Click to choose another."], kind = "hint", struck = false, opens = true } })
 end
 
+-- The tracked quest nearest to the character, other than `skip`, by what each needs next: its nearest
+-- objective left, or the turn-in once it is ready (the step the waypoint would go to). One whose distance can't
+-- be told counts after the ones that have it; with none, the first in the log.
+function ns.Focus_Nearest(skip)
+    local best, bestDist
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local id = info and not info.isHeader and info.questID
+        if id and id > 0 and id ~= skip and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
+            and not C_QuestLog.IsQuestFlaggedCompleted(id) then
+            local steps = ns.QuestSteps(questDef(id))
+            local index = ns.Focus_PickStep(steps, ns.IsReadyToTurnIn(id))
+            local d = index and ns.DistanceTo(steps[index].loc)
+            if not best or (d and (not bestDist or d < bestDist)) then best, bestDist = id, d end
+        end
+    end
+    return best
+end
+
 function ns.Focus_Refresh(force)
     local id = ns.Focus_Quest()
     if not id then
@@ -346,7 +365,10 @@ function ns.Focus_Refresh(force)
         return
     end
     if C_QuestLog.IsQuestFlaggedCompleted(id) then
-        ns.Focus_Clear(true) -- turned in
+        -- turned in: with the setting on, the focus moves to the nearest tracked quest (only now, not as the
+        -- character moves around); else, or with none tracked, the window says there is no quest focused
+        local nextId = ns.char.focusAuto and ns.Focus_Nearest(id)
+        if nextId then ns.Focus_Set(nextId) else ns.Focus_Clear(true) end
         return
     end
     if not C_QuestLog.IsOnQuest(id) then

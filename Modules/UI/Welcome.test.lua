@@ -14,6 +14,25 @@ describe("Welcome", function()
         assert.is_true(welcome:IsShown())
     end)
 
+    it("the changelog's scroll bar takes room only when the text doesn't fit", function()
+        local scroll = welcome.changelogScroll
+        local function right()
+            local x
+            for _, p in ipairs(scroll._points) do if p[1] == "BOTTOMRIGHT" then x = p[#p - 1] end end
+            return x
+        end
+        local function rangeChanged() for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end end
+        scroll:SetVerticalScrollRange(0)
+        rangeChanged()
+        assert.are.equal(-24, right())
+        scroll:SetVerticalScrollRange(100)
+        rangeChanged()
+        assert.are.equal(-48, right())
+        scroll:SetVerticalScrollRange(0)
+        rangeChanged()
+        assert.are.equal(-24, right())
+    end)
+
     it("the issue tracker URL is there to copy", function()
         assert.are.equal("https://github.com/LechuckThePirate/Completao/issues", welcome.urlBox:GetText())
     end)

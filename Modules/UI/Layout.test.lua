@@ -54,41 +54,55 @@ describe("Layout.FlowLayout", function()
     end)
 end)
 
-describe("Layout.HideableScroll", function()
-    local ns
+describe("Layout.AutoScrollBar", function()
+    local ns, scroll, placed
+
+    local function changed()
+        for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end
+    end
 
     before_each(function()
         WowMock.Reset()
         ns = LoadAddon({ files = { "Modules/UI/Layout.lua" } })
+        scroll = WowMock.NewFrame("ScrollFrame")
+        scroll.ScrollBar = WowMock.NewFrame("Slider", nil, scroll)
+        placed = {}
     end)
 
-    after_each(function() _G.ScrollFrame_OnScrollRangeChanged = nil end)
-
-    it("lets the scroll bar hide itself when there is nothing to scroll, now and whenever it is shown", function()
-        local synced = {}
-        _G.ScrollFrame_OnScrollRangeChanged = function(self) synced[#synced + 1] = self end
-        local scroll = WowMock.NewFrame("ScrollFrame")
-        assert.are.equal(scroll, ns.HideableScroll(scroll))
-        assert.is_true(scroll.scrollBarHideable)
-        assert.are.equal(1, #synced)
-        scroll:Hide()
-        scroll:Show()
-        assert.are.equal(2, #synced)
+    it("starts without a bar and places the layout once", function()
+        ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end)
+        assert.are.same({ false }, placed)
+        assert.is_false(scroll.ScrollBar:IsShown())
     end)
 
-    it("works in a client without the template's function", function()
-        local scroll = WowMock.NewFrame("ScrollFrame")
-        ns.HideableScroll(scroll)
-        scroll:Hide()
-        scroll:Show()
-        assert.is_true(scroll.scrollBarHideable)
+    it("shows the bar and re-places when the content overflows, and hides it when it fits again", function()
+        ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end)
+        scroll:SetVerticalScrollRange(120)
+        changed()
+        assert.is_true(scroll.ScrollBar:IsShown())
+        changed() -- nothing changed: nothing is placed again
+        scroll:SetVerticalScrollRange(0)
+        changed()
+        assert.is_false(scroll.ScrollBar:IsShown())
+        assert.are.same({ false, true, false }, placed)
     end)
 
-    it("every scroll frame of the addon is one", function()
+    it("every scroll frame of the addon manages its bar", function()
         local full = OpenAddon("vc")
         full.Welcome_Show()
-        local scrolls = WowMock.FindAll(function(f) return f._kind == "ScrollFrame" end)
+        local scrolls = WowMock.FindAll(function(f) return f._kind == "ScrollFrame" and f ~= scroll end)
         assert.is_true(#scrolls >= 5) -- the side list, the tree, the table, the details and the changelog
-        for _, s in ipairs(scrolls) do assert.is_true(s.scrollBarHideable) end
+        for _, s in ipairs(scrolls) do
+            assert.is_true(#(s._hooks.OnScrollRangeChanged or {}) >= 1)
+        end
+    end)
+
+    it("takes its own test of the overflow, and the update can be asked for", function()
+        local overflow = false
+        local update = ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end, function() return overflow end)
+        overflow = true
+        update()
+        assert.are.same({ false, true }, placed)
+        assert.is_true(scroll.ScrollBar:IsShown())
     end)
 end)

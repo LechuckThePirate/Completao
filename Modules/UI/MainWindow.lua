@@ -30,6 +30,7 @@ local SCROLL_W = 22
 local sideScrolls = false
 local function mainLeft() return sideW() + 30 - (sideScrolls and 0 or SCROLL_W) end
 local function treeLeft() return mainLeft() - 4 end
+local treeBarUpdate -- re-checks whether the tree needs its scroll bar (see createFrame)
 local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 
 local selectedId, expandedCat, listInitialized, viewRestored
@@ -369,6 +370,7 @@ local function renderTree(d)
     end
     for k = i + 1, #nodeButtons do nodeButtons[k]:Hide() end
     for k = segCount + 1, #lines do lines[k]:Hide() end
+    if treeBarUpdate then treeBarUpdate() end
 end
 
 -- In zones, classes and professions only entries with some quest for this character (faction and race)
@@ -660,6 +662,7 @@ function ns.UI_SetSideCollapsed(on)
     GameTooltip:Hide()
     if frame then
         ns.UI_ApplySideWidth()
+        frame.listScroll:SetVerticalScroll(0)
         ns.UI_Refresh()
     end
 end
@@ -977,7 +980,7 @@ local function createFrame()
     hint:SetWordWrap(false)
     hint:SetText(ns.L["Drag: pan  |  Wheel: zoom  |  Shift+wheel: sideways  |  Ctrl+wheel: vertical"])
 
-    local listScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate"))
+    local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     listScroll:SetPoint("TOPLEFT", 12, -top)
     listScroll:SetPoint("BOTTOMLEFT", 12, 14)
     frame.listTop = top
@@ -985,6 +988,9 @@ local function createFrame()
     frame.listChild = CreateFrame("Frame", nil, listScroll)
     frame.listChild:SetSize(sideW() - 26, 1)
     listScroll:SetScrollChild(frame.listChild)
+    frame.listScroll = listScroll
+    -- the bar hides by itself; the room it leaves goes to the main area through refreshList (sideScrolls)
+    ns.AutoScrollBar(listScroll, function() end)
 
     -- "Search quests..." and "Quest Log": first entries of the side panel; they open the table in the main
     -- area (the search with its form, or the quests you carry in your log)
@@ -1027,7 +1033,7 @@ local function createFrame()
     frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
     frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
 
-    local treeScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate"))
+    local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
     canvas = CreateFrame("Frame", nil, treeScroll)
@@ -1035,6 +1041,15 @@ local function createFrame()
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, treeLeft(), frame.searchPanel)
+    -- the tree's scroll bar only when it is taller than the view (the canvas is scaled by the zoom, which the
+    -- client's own scroll range ignores)
+    treeBarUpdate = ns.AutoScrollBar(treeScroll, function(has)
+        ns.TREE_RIGHT = has and 32 or 8
+        treeScroll:SetPoint("BOTTOMRIGHT", -ns.TREE_RIGHT, 30)
+        ns.Detail_Layout()
+    end, function()
+        return (canvas:GetHeight() or 0) * (canvas:GetScale() or 1) - (treeScroll:GetHeight() or 0) > 1
+    end)
 
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
@@ -1049,7 +1064,6 @@ local function createFrame()
 
     -- everything that starts where the side panel ends moves with it when it collapses or expands
     function ns.UI_ApplySideWidth()
-        local w = sideW()
         toolbarLeft = mainLeft()
         frame.header:ClearAllPoints()
         frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
@@ -1057,9 +1071,8 @@ local function createFrame()
         hint:ClearAllPoints()
         hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
         hint:SetPoint("BOTTOMRIGHT", -26, 12)
-        listScroll:SetWidth(w - 22)
-        listScroll:SetVerticalScroll(0)
-        frame.listChild:SetWidth(w - 26)
+        listScroll:SetWidth(sideW() - 22)
+        frame.listChild:SetWidth(sideW() - 26)
         frame.searchPanel:ClearAllPoints()
         frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
         frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
@@ -1088,6 +1101,7 @@ local function createFrame()
         zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
+        treeBarUpdate()
         scrollTo(treeScroll, 0, 0)
     end
 
@@ -1118,6 +1132,7 @@ local function createFrame()
             zoom = newZoom
             ns.char.zoom = zoom
             canvas:SetScale(zoom)
+            treeBarUpdate()
             scrollTo(self, contentX * zoom - cx, contentY * zoom - cy)
         end
     end)

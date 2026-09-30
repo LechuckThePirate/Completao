@@ -681,6 +681,83 @@ describe("FocusWindow", function()
         end)
     end)
 
+    describe("right click: the nearest tracked quest", function()
+        local tracked, distance
+        local function ready(id) WowMock.readyForTurnIn[id] = true end
+        local function rightClick() frame._scripts.OnMouseUp(frame, "RightButton") end
+        before_each(function()
+            -- Pest Control's wolves 10 yd (boars 200); Fox Hunt's foxes 40; Owl Watch's owls 900
+            distance = { [boars.x] = 200, [wolves.x] = 10, [30] = 40, [80] = 900, [81] = 950, [31] = 60 }
+            ns.DistanceTo = function(loc) return distance[loc.x] end
+            tracked = { [999001] = true, [999003] = true, [999004] = true }
+            WowMock.log = { { isHeader = true, title = "Zone" } }
+            for _, id in ipairs({ 999001, 999003, 999004 }) do
+                WowMock.onQuest[id] = true
+                WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
+            end
+            WowMock.titles[999003], WowMock.titles[999004] = "Fox Hunt", "Owl Watch"
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+            focus()
+        end)
+        after_each(function() C_QuestLog.GetQuestWatchType = nil end)
+
+        it("moves the focus to the nearest tracked quest other than this one, with its waypoint", function()
+            rightClick() -- the wolves (10 yd) are this quest's own; the foxes (40) are the nearest other
+            assert.are.equal(999003, ns.Focus_Quest())
+            assert.matches("Fox Hunt", frame.title._text)
+            assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+        end)
+
+        it("again, to the nearest one other than the new one (back to the first)", function()
+            rightClick()
+            rightClick()
+            assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+        end)
+
+        it("also from an objective line", function()
+            lineWith("Boars"):Click("RightButton")
+            assert.are.equal(999003, ns.Focus_Quest())
+        end)
+
+        it("a turn-in counts by the distance to whoever takes it in", function()
+            ready(999004)
+            distance[81] = 5
+            rightClick()
+            assert.are.equal(999004, ns.Focus_Quest())
+        end)
+
+        it("only among the tracked quests that have a known distance", function()
+            tracked[999003] = nil
+            distance[80] = nil
+            rightClick()
+            assert.are.equal(999001, ns.Focus_Quest()) -- nothing else to go to: it stays, and says so
+            assert.is_true(WowMock.chatted)
+        end)
+
+        it("with nothing focused it picks the nearest of all", function()
+            ns.Focus_Clear()
+            rightClick()
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("is by hand: a quest ready to turn in stays under autofocus", function()
+            ns.char.focusAuto = true
+            distance[31], distance[30] = 1, 1000 -- the foxes' turn-in is very near
+            ready(999003)
+            rightClick()
+            assert.are.equal(999003, ns.Focus_Quest())
+            distance[81], distance[31] = 0.1, 500
+            ready(999004)
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.are.equal(999003, ns.Focus_Quest())
+        end)
+
+        it("does nothing in combat, where the window takes no clicks", function()
+            FireEvent("PLAYER_REGEN_DISABLED")
+            assert.is_false(frame:IsMouseEnabled())
+        end)
+    end)
+
     describe("the step for the waypoint", function()
         local function steps(list) return list end
         before_each(function() ns.DistanceTo = function(loc) return loc.d end end)

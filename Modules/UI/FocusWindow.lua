@@ -9,8 +9,9 @@ local L = ns.L
 -- turn-in) and moves by itself as objectives are completed. When the quest is turned in (or abandoned) the
 -- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged
 -- ("Focused Quest" title bar; the place is saved; a padlock there locks it in place). Clicking an objective sets the waypoint on it; clicking the
--- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests. In
--- combat the window stops taking the mouse, so clicks reach the world.
+-- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
+-- right click anywhere on it moves the focus to the nearest other tracked quest. In combat the window stops
+-- taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -144,8 +145,19 @@ local function create()
         savePosition()
     end)
     frame:SetScript("OnMouseUp", function(_, which)
-        if which == "LeftButton" and not dragged then ns.UI_OpenTracked() end
+        if which == "LeftButton" and not dragged then
+            ns.UI_OpenTracked()
+        elseif which == "RightButton" then
+            ns.Focus_SwitchNearest()
+        end
     end)
+    frame:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:AddLine(L["Click to open the tracked quests."], 0.5, 0.8, 1)
+        GameTooltip:AddLine(L["Right-click to focus the nearest tracked quest."], 0.5, 0.8, 1)
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", GameTooltip_Hide)
 
     -- title bar: what the window is, and the close button
     frame.bar = frame:CreateTexture(nil, "BACKGROUND")
@@ -206,7 +218,9 @@ local function getLine(i)
     button:SetHeight(LINE_H)
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     button:EnableMouse(mouseOn)
-    button:SetScript("OnClick", function(self)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetScript("OnClick", function(self, which)
+        if which == "RightButton" then ns.Focus_SwitchNearest() return end
         local step = self.step
         if step and step.opens then ns.UI_OpenTracked() return end -- the "no quest focused" hint
         if not (step and step.loc) then return end
@@ -415,6 +429,22 @@ function ns.Focus_AutoPick()
     local list = trackedCandidates()
     local best = nearest(list, false) or nearest(list, true)
     return best and best.id
+end
+
+-- Right click on the window: the focus goes to the tracked quest nearest to the character other than the one
+-- focused (by what each needs next, as autofocus sees it). Done by hand, so autofocus leaves it be.
+function ns.Focus_SwitchNearest()
+    local cur = ns.Focus_Quest()
+    local others = {}
+    for _, e in ipairs(trackedCandidates()) do
+        if e.id ~= cur then others[#others + 1] = e end
+    end
+    local best = nearest(others)
+    if not best then
+        ns.Print(L["No other tracked quest to go to."])
+        return false
+    end
+    return ns.Focus_Set(best.id)
 end
 
 local function autoFocus()

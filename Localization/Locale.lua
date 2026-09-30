@@ -119,6 +119,9 @@ local es = {
     ["Focus"] = "Enfocar",
     ["Focused Quest"] = "Quest enfocada",
     ["Autofocus tracked quests"] = "Autoenfocar quests seguidas",
+    ["Click to open the tracked quests."] = "Clic para abrir las quests seguidas.",
+    ["Right-click to focus the nearest tracked quest."] = "Clic derecho para enfocar la quest seguida más cercana.",
+    ["No other tracked quest to go to."] = "No hay otra quest seguida a la que ir.",
     ["Hide categories with no quests available or all done"] =
         "Ocultar categorías sin quests disponibles o con todas hechas",
     ["Lock position"] = "Bloquear posición",

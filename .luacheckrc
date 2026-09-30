@@ -27,7 +27,7 @@ read_globals = {
     "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
     "GetCoinTextureString",
     "GetCursorPosition", "GetFactionInfoByID", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
-    "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "HandleModifiedItemClick",
+    "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "UnitOnTaxi", "HandleModifiedItemClick",
     "BreakUpLargeNumbers", "IsControlKeyDown", "IsShiftKeyDown", "ITEM_QUALITY_COLORS", "LOCALIZED_CLASS_NAMES_MALE",
     "Minimap", "OpenQuestLog", "OpenWorldMap", "QuestDifficultyColors", "QuestLogFrame", "QuestLog_SetSelection",
     "QuestMapFrame", "QuestMapFrame_OpenToQuestDetails", "QuestMapFrame_ShowQuestDetails","REWARDS", "REWARD_CHOICES", "REWARD_ITEMS",

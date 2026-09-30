@@ -282,6 +282,17 @@ describe("MainWindow", function()
             assert.near(1, ns.UI:GetAlpha(), 0.02)
         end)
 
+        it("on a flight path it stays opaque: the trip is for reading it", function()
+            WowMock.speed, WowMock.onTaxi = 25, true
+            tick()
+            WowMock.onTaxi = false
+            assert.near(1, ns.UI:GetAlpha(), 0.02)
+            WowMock.speed = 7 -- and back on foot it fades again
+            tick()
+            assert.near(0.5, ns.UI:GetAlpha(), 0.02)
+            WowMock.speed = 0
+        end)
+
         it("stays opaque with the cursor over it", function()
             WowMock.speed = 7
             ns.UI._mouseOver = true
@@ -380,6 +391,17 @@ describe("MainWindow", function()
             WowMock.speed = 0
             tick()
             assert.is_true(ns.UI:IsMouseEnabled())
+        end)
+
+        it("click-through while moving doesn't apply on a flight path", function()
+            ns.char.clickThroughMoving = true
+            WowMock.speed, WowMock.onTaxi = 25, true
+            tick()
+            assert.is_true(ns.UI:IsMouseEnabled())
+            WowMock.onTaxi = false
+            tick()
+            assert.is_false(ns.UI:IsMouseEnabled())
+            WowMock.speed = 0
         end)
 
         it("while click-through the mouse over it doesn't make it opaque", function()

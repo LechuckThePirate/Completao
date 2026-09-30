@@ -717,7 +717,7 @@ function ns.UI_ApplySettings()
     ns.UI_SyncFilters()
 end
 
--- Like the world map: while the character moves, the window turns semi-transparent so it doesn't hide
+-- Like the world map: while the character moves (not on a flight path), the window turns semi-transparent so it doesn't hide
 -- what's ahead (50 % by default; `/completao fade <10-100>` changes it, 100 = no effect), and turns opaque
 -- again when you stop or while the cursor is over it, so it can be used on the move. The change is smooth.
 -- Only the transparency changes, which the game allows even in combat.
@@ -760,7 +760,9 @@ local function fadeOnUpdate(self, elapsed)
     -- window stays opaque
     local speed = GetUnitSpeed("player")
     local known = speed ~= nil and not (issecretvalue and issecretvalue(speed))
-    local moving = known and speed > 0
+    -- on a flight path the character "moves" but isn't steering: the window stays as it is, to read on the trip
+    local onTaxi = UnitOnTaxi and UnitOnTaxi("player")
+    local moving = known and speed > 0 and not onTaxi
     local combat = inCombat()
     local wantClickThrough = (ns.char.clickThroughCombat and combat) or (ns.char.clickThroughMoving and moving) or false
     if wantClickThrough ~= clickThrough then

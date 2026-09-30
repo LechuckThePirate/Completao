@@ -23,6 +23,7 @@ local function resetState()
     WowMock.speed = 0
     WowMock.printed = {}
     WowMock.timers = {}
+    WowMock.onTaxi = false
     WowMock.frames = {}
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
@@ -251,6 +252,7 @@ UnitRace = function() return unpackArgs(WowMock.race) end
 UnitClass = function() return unpackArgs(WowMock.class) end
 UnitName = function() return "Tester" end
 GetUnitSpeed = function() return WowMock.speed end
+UnitOnTaxi = function() return WowMock.onTaxi or false end
 UnitAffectingCombat = function() return WowMock.inCombat or false end
 GetCursorPosition = function() return WowMock.cursor[1], WowMock.cursor[2] end
 IsShiftKeyDown = function() return WowMock.shift or false end

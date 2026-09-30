@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0-beta
 
 - New: with Autofocus on, a quest you just accepted that is a direct turn-in
   (ready the moment you take it) takes the focus from a quest still in

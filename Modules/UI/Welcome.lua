@@ -12,15 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: focus window -- a small movable window (with a padlock) for one tracked quest: its objectives",
-    "  with live progress, the waypoint on the nearest one, and the turn-in once they are done. Right-click",
-    "  a tracked quest, or press Focus in its details, to focus it; click an objective to set its waypoint.",
-    "- New: Autofocus tracked quests (Preferences): the focus picks the nearest tracked quest by itself.",
-    "- Change: with TomTom, a new waypoint replaces the one set before.",
-    "- Fix: scroll bars hide when there is nothing to scroll, and the space goes to the main area.",
-    "- Fix: the quest tree no longer shows through the tables.",
-    "- Fix: \"hide too high\" only hides quests you can't take yet.",
-    "- Fix: the window stays as it is on flight paths (no fading or click-through).",
+    "- New: Hide empty or completed categories (Preferences): the side panel leaves out the zones, dungeons...",
+    "  with nothing left to do for you (done, not available yet, other class or race, a profession you lack).",
+    "- New: right click on the focus window moves the focus to the nearest other tracked quest.",
+    "- New: Autofocus also takes a quest you just accepted that can be handed in at once, if it is nearer.",
+    "- Fix: Preferences texts wrap inside the window.",
 }, "\n")
 
 local welcomeFrame

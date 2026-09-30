@@ -259,6 +259,56 @@ describe("FocusWindow", function()
         assert.is_nil(ns.char.focusWindow)
     end)
 
+    describe("the padlock", function()
+        local function moved()
+            local started = false
+            frame.StartMoving = function() started = true end
+            frame._scripts.OnMouseDown(frame, "LeftButton")
+            frame._scripts.OnDragStart(frame)
+            frame._scripts.OnDragStop(frame)
+            frame._scripts.OnMouseUp(frame, "LeftButton")
+            return started
+        end
+
+        it("starts unlocked, and locks the window in place", function()
+            focus()
+            assert.matches("Unlocked", frame.lock._set.SetNormalTexture[1])
+            assert.is_true(moved())
+            frame.lock:Click()
+            assert.is_true(ns.char.focusLocked)
+            assert.matches("Locked", frame.lock._set.SetNormalTexture[1])
+            assert.is_false(moved())
+            frame.lock:Click()
+            assert.is_nil(ns.char.focusLocked)
+            assert.matches("Unlocked", frame.lock._set.SetNormalTexture[1])
+            assert.is_true(moved())
+        end)
+
+        it("everything else works locked: a click opens the tracked quests, an objective sets its waypoint", function()
+            focus()
+            frame.lock:Click()
+            moved() -- a failed drag isn't a click
+            assert.is_nil(ns.UI)
+            frame._scripts.OnMouseDown(frame, "LeftButton")
+            frame._scripts.OnMouseUp(frame, "LeftButton")
+            assert.is_true(ns.UI:IsShown())
+            lineWith("Boars"):Click()
+            assert.are.equal("999001:2", ns.FocusTag())
+            frame.close:Click()
+            assert.is_false(frame:IsShown())
+        end)
+
+        it("is remembered, and is click-through in combat like the rest", function()
+            ns.char.focusLocked = true
+            focus()
+            assert.matches("Locked", frame.lock._set.SetNormalTexture[1])
+            FireEvent("PLAYER_REGEN_DISABLED")
+            assert.is_false(frame.lock:IsMouseEnabled())
+            FireEvent("PLAYER_REGEN_ENABLED")
+            assert.is_true(frame.lock:IsMouseEnabled())
+        end)
+    end)
+
     it("takes the mouse only out of combat", function()
         focus()
         assert.is_true(frame:IsMouseEnabled())

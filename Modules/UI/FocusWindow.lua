@@ -8,11 +8,12 @@ local L = ns.L
 -- "Turn in <quest> (<npc>)". The waypoint goes to the step to do next (the nearest objective left, or the
 -- turn-in) and moves by itself as objectives are completed. When the quest is turned in (or abandoned) the
 -- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged
--- ("Focused Quest" title bar; the place is saved). Clicking an objective sets the waypoint on it; clicking the
+-- ("Focused Quest" title bar; the place is saved; a padlock there locks it in place). Clicking an objective sets the waypoint on it; clicking the
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests. In
 -- combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
+local LOCK_SIZE = 16 -- the padlock in it
 local TOP = TITLE_H + 6 -- where the quest's icon and title start
 local WIDTH_MIN, WIDTH_MAX = 200, 420
 local CHECK_W = 16 -- room for the check before a done objective
@@ -76,7 +77,7 @@ end
 local function applyMouse(combat)
     mouseOn = not combat
     if not frame then return end
-    local targets = { frame, frame.close }
+    local targets = { frame, frame.close, frame.lock }
     for _, line in ipairs(lines) do targets[#targets + 1] = line.button end
     for _, f in ipairs(targets) do
         f:EnableMouse(mouseOn)
@@ -101,8 +102,18 @@ local function applyPosition()
     end
 end
 
+-- The padlock's picture says whether the window is locked.
+local function updateLock()
+    if not (frame and frame.lock) then return end
+    local texture = ns.char.focusLocked and "Interface\\Buttons\\LockButton-Locked-Up"
+        or "Interface\\Buttons\\LockButton-Unlocked-Up"
+    frame.lock:SetNormalTexture(texture)
+    frame.lock:SetPushedTexture(texture)
+end
+
 function ns.Focus_ApplySettings()
     applyPosition()
+    updateLock()
 end
 
 function ns.Focus_ResetPosition()
@@ -125,8 +136,8 @@ local function create()
     local dragged = false
     frame:SetScript("OnMouseDown", function() dragged = false end)
     frame:SetScript("OnDragStart", function(self)
-        dragged = true
-        self:StartMoving()
+        dragged = true -- (even locked: trying to drag it isn't a click)
+        if not ns.char.focusLocked then self:StartMoving() end
     end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
@@ -160,6 +171,25 @@ local function create()
     close:SetPoint("TOPRIGHT", 1, 1)
     close:SetScript("OnClick", function() ns.Focus_Clear() end) -- closes the window for good
     frame.close = close
+
+    -- padlock at the top left: locked, the window can't be moved (everything else works as always)
+    local lock = CreateFrame("Button", nil, frame)
+    lock:SetSize(LOCK_SIZE, LOCK_SIZE)
+    lock:SetPoint("TOPLEFT", 5, -4)
+    lock:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+    lock:SetScript("OnClick", function()
+        ns.char.focusLocked = (not ns.char.focusLocked) or nil
+        updateLock()
+        if GameTooltip:IsOwned(lock) then lock:GetScript("OnEnter")(lock) end
+    end)
+    lock:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(ns.char.focusLocked and L["Unlock position"] or L["Lock position"], 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    lock:SetScript("OnLeave", GameTooltip_Hide)
+    frame.lock = lock
+    updateLock()
 
     applyPosition()
     applyMouse(inCombat())

@@ -10,9 +10,10 @@
   and follows you through the quest; when the quest is turned in or abandoned
   the window stays, saying no quest is focused and to click to choose
   another (its X closes it). It has a "Focused Quest" title bar, can be moved
-  (the place is saved; reset with the other window positions), and clicking an
-  objective sets the waypoint on it, and a click on the rest of it opens the main window
-  on Tracked Quests. In combat it lets every click through.
+  (the place is saved; reset with the other window positions) unless locked
+  with the padlock at its top left, and clicking an objective sets the
+  waypoint on it, while a click on the rest of it opens the main window on
+  Tracked Quests. In combat it lets every click through.
 - Fix: on a flight path the main window no longer turns translucent or
   click-through "while moving": it stays as it is, to read on the trip.
 - Change: with TomTom, a new waypoint replaces the one the addon set before

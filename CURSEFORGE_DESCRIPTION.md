@@ -75,9 +75,9 @@ objectives below ("Boars 0/5"), struck through in grey once done. The waypoint
 goes on the nearest objective left and moves by itself as you finish them; with
 everything done the list turns into "Turn in <quest> (<npc>)", and the window
 tells you no quest is focused once you hand it in, and a click on it
-takes you to the tracked quests to choose another. Drag it wherever you like by its title bar,
-click an objective to put the waypoint on it -- in combat it lets every click
-through.
+takes you to the tracked quests to choose another. Drag it wherever you like
+(the padlock at its top left keeps it in place), click an objective to put the
+waypoint on it -- in combat it lets every click through.
 
 ![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png)
 

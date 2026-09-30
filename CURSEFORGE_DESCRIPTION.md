@@ -84,7 +84,7 @@ waypoint on it -- in combat it lets every click through.
 ### Filters that keep the tree readable
 Above the tree, a **search box** finds a quest by title and three checkboxes
 trim the noise: **hide low level** (grey) quests, **hide too high** (quests you
-can't take yet, or red for your level) and **hide completed** quests -- every
+can't take yet because of your level) and **hide completed** quests -- every
 quest you've done, even the finished steps of a chain you're still on. By
 level, chains are shown or hidden as a whole, so they are never cut in half: a
 chain is hidden as "too high" when everything it starts with is above your

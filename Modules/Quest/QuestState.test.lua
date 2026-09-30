@@ -96,10 +96,11 @@ describe("QuestState", function()
         it("too high: can't be taken yet", function()
             assert.is_true(ns.IsTooHigh({ level = 21, minLevel = 21 }))
         end)
-        it("too high: red for the game even with a low minimum (Master Angler)", function()
-            assert.is_true(ns.IsTooHigh({ level = 60, minLevel = 1 }))
-            assert.is_true(ns.IsTooHigh({ level = 25, minLevel = 1 }))
-            assert.is_false(ns.IsTooHigh({ level = 24, minLevel = 1 }))
+        it("not too high: a quest you can take is shown, however high its own level (Master Angler)", function()
+            assert.is_false(ns.IsTooHigh({ level = 60, minLevel = 1 }))
+            assert.is_false(ns.IsTooHigh({ level = 60, minLevel = 20 })) -- you are 20
+            assert.is_true(ns.IsTooHigh({ level = 60, minLevel = 21 }))
+            assert.is_false(ns.IsTooHigh({ level = 60 })) -- no minimum in the data: can't tell
         end)
     end)
 

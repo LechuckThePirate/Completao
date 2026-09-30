@@ -126,22 +126,12 @@ function ns.IsLowLevel(q)
     return questLevel <= player - green
 end
 
--- "Too high": the character can't take it yet (its minimum level is above theirs) or the game colors it
--- red in the log (too hard for their level). The latter catches quests with a low minimum and a high
--- level, like "Master Angler" (level 60, can be taken from level 1). The game is asked for the color, as
--- in IsLowLevel; if it doesn't answer, red is 5 or more levels above.
+-- "Too high": the character can't take it yet, its minimum level is above theirs. Only the minimum counts,
+-- not the quest's own level: a level 60 quest that can be taken from level 10 (like "Master Angler") is a
+-- quest the character can take, so it isn't hidden. A quest with no minimum in the data can't be told to be
+-- out of reach, and isn't either.
 function ns.IsTooHigh(q)
-    local player = UnitLevel("player")
-    if (q.minLevel or 0) > player then return true end
-    if not q.level then return false end
-    if GetQuestDifficultyColor then
-        local ok, c = pcall(GetQuestDifficultyColor, q.level)
-        if ok and type(c) == "table" then
-            local red = QuestDifficultyColors and QuestDifficultyColors["impossible"]
-            return c == red or (c.r == 1 and c.g < 0.2 and c.b < 0.2)
-        end
-    end
-    return q.level >= player + 5
+    return (q.minLevel or 0) > UnitLevel("player")
 end
 
 -- Race and class masks: one bit per race/class (races: 1 human, 2 orc, 4 dwarf, 8 night elf, 16 undead,

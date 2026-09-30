@@ -41,7 +41,7 @@ Inspired by BtWQuests.
   narrows its columns (`ns.FlowLayout`).
 - **Filters** above the tree, remembered like the zoom: a search box by title, and
   three checkboxes -- hide low-level (grey) quests, hide quests that are too
-  high (you cannot take them yet, or they are red for your level), hide
+  high (you cannot take them yet: their minimum level is above yours), hide
   completed quests. "Completed" hides every quest you have done, also the done
   steps of a chain you are still on. By level, chains are shown or hidden
   as a whole, so they are never cut in half: "too high" hides a chain when

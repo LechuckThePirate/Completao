@@ -949,7 +949,7 @@ local function createFrame()
         toolbarItems[#toolbarItems + 1] = { frame = cb, w = ns.CheckWidth(cb, text), h = 24 }
     end
     makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
-    makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet or that are red (too hard) for your level."])
+    makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet, because of your level."])
     makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])

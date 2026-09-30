@@ -13,7 +13,7 @@ local es = {
     ["Hide too high"] = "Ocultar muy alto",
     ["Hide completed"] = "Ocultar completadas",
     ["Hides quests that are grey for your level (trivial)."] = "Oculta las quests en gris para tu nivel (triviales).",
-    ["Hides quests you cannot take yet or that are red (too hard) for your level."] =
+    ["Hides quests you cannot take yet, because of your level."] =
         "Oculta las quests que aún no puedes coger o que salen en rojo (demasiado difíciles) para tu nivel.",
     ["Hides the quests you have completed, also inside unfinished chains."] =
         "Oculta las quests que ya has completado, también dentro de cadenas sin terminar.",

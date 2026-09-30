@@ -16,6 +16,10 @@
   Tracked Quests. In combat it lets every click through.
 - Fix: with a quest's details open under Search, Quest Log or Tracked Quests,
   the quest tree no longer shows through the table.
+- Fix: "hide too high" only hides quests you can't take yet (their minimum
+  level is above yours). Quests with a high level but a low minimum, like a
+  level 60 one you can pick up at level 10, are no longer hidden, nor drawn
+  translucent in the tree.
 - Fix: scroll bars (side panel, tree, tables, quest details, what's new) are
   hidden when there is nothing to scroll, instead of sitting there greyed out.
   When the side panel's list fits (for instance collapsed to its icons), the

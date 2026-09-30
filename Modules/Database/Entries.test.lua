@@ -82,6 +82,41 @@ describe("Entries", function()
         assert.is_true(ns.EntryHasWork(ns.entries.e))
     end)
 
+    describe("classes and races", function()
+        before_each(function()
+            for _, c in ipairs({ { "MAGE", "Mage" }, { "WARRIOR", "Warrior" } }) do
+                ns.RegisterEntry({ id = "c_" .. c[1], name = c[2], category = "classes", classFile = c[1] })
+                ns.AddQuests("c_" .. c[1], { { id = c[1] == "MAGE" and 1501 or 1502, name = c[2] .. " quest", level = 10, minLevel = 10 } })
+            end
+            for _, r in ipairs({ { 1, "Human" }, { 2, "Orc" }, { 3, "Dwarf" } }) do
+                ns.RegisterEntry({ id = "r_" .. r[1], name = r[2], category = "races", raceId = r[1] })
+                ns.AddQuests("r_" .. r[1], { { id = 1600 + r[1], name = r[2] .. " quest", level = 10, minLevel = 10 } })
+            end
+            WowMock.level = 20
+        end)
+
+        it("only your own class has work", function()  -- the character is a Mage
+            assert.is_true(ns.EntryHasWork(ns.entries.c_MAGE))
+            assert.is_false(ns.EntryHasWork(ns.entries.c_WARRIOR))
+            WowMock.class = { "Warrior", "WARRIOR", 1 }
+            assert.is_true(ns.EntryHasWork(ns.entries.c_WARRIOR))
+            assert.is_false(ns.EntryHasWork(ns.entries.c_MAGE))
+        end)
+
+        it("only your own race has work", function()  -- a Human
+            assert.is_true(ns.EntryHasWork(ns.entries.r_1))
+            assert.is_false(ns.EntryHasWork(ns.entries.r_2))
+            assert.is_false(ns.EntryHasWork(ns.entries.r_3))
+        end)
+
+        it("with 'Show other faction', the races of the other faction too, not the ones of your own", function()
+            ns.char = { filters = { otherFaction = true } }
+            assert.is_true(ns.EntryHasWork(ns.entries.r_2))   -- Orc: Horde
+            assert.is_false(ns.EntryHasWork(ns.entries.r_3))  -- Dwarf: Alliance, like you
+            assert.is_true(ns.EntryHasWork(ns.entries.r_1))
+        end)
+    end)
+
     describe("professions", function()
         before_each(function()
             ns.RegisterEntry({ id = "p_356", name = "Fishing", category = "professions", skillLine = 356 })

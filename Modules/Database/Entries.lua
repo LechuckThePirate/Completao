@@ -131,6 +131,13 @@ end
 -- alchemy, blacksmithing, enchanting, engineering, leatherworking, tailoring, cooking.
 local CRAFTING_SKILLS = { 171, 164, 333, 202, 165, 197, 185 }
 
+-- The character's race, or (with the "Show other faction" filter) one of the other faction's.
+local function isOwnRace(raceId)
+    if select(3, UnitRace("player")) == raceId then return true end
+    local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
+    return otherFaction and ns.QuestFaction({ races = 2 ^ (raceId - 1) }) ~= UnitFactionGroup("player") or false
+end
+
 -- A profession's quests are for those who have it: true / false, nil when it can't be told.
 local function canDoProfession(d)
     if d.skillLine then return ns.HasProfession(d.skillLine) end
@@ -155,9 +162,14 @@ local INSTANCE_SLACK = 10
 --  * holiday quests outside the events section: the ones also listed there (the Lunar Festival elders stand in
 --    instances: level 60, but from level 1) and the ones marked `holiday` in Data/Overrides.lua;
 --  * the quests of an instance far above the character's level;
---  * a profession's quests, without that profession.
+--  * a profession's quests, without that profession;
+--  * the class and race entries of the others: the side panel lists every class and race so they can be looked
+--    at, but only the character's own have something to do (a race of the other faction too, with "Show other
+--    faction" on).
 function ns.EntryHasWork(d)
     if d.category == "professions" and canDoProfession(d) == false then return false end
+    if d.category == "classes" and d.classFile and select(2, UnitClass("player")) ~= d.classFile then return false end
+    if d.category == "races" and d.raceId and not isOwnRace(d.raceId) then return false end
     if INSTANCE_CATEGORIES[d.category] and UnitLevel("player") < (d.minLevel or 0) - INSTANCE_SLACK then return false end
     local isEvents = d.category == "events"
     for _, q in ipairs(d.quests) do

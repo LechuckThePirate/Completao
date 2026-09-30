@@ -23,7 +23,10 @@
   - the quests of a dungeon, raid or battleground when you are more than 10
     levels under its minimum (e.g. Alterac Valley's "Launch the Attack!");
   - a profession's quests (Fishing, Alchemy...) without that profession; the
-    crafting writs need any crafting one.
+    crafting writs need any crafting one;
+  - the class and race entries that aren't yours (the panel lists them all to
+    look at, but only your class and race have anything to do; with "Show
+    other faction", the other faction's races too).
 
 ## 0.4.0-beta
 

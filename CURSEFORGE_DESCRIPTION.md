@@ -74,7 +74,7 @@ a small floating window of its own: its status icon and title, and the
 objectives below ("Boars 0/5"), struck through in grey once done. The waypoint
 goes on the nearest objective left and moves by itself as you finish them; with
 everything done the list turns into "Turn in <quest> (<npc>)", and the window
-tells you no quest is focused once you hand it in, and a right click on it
+tells you no quest is focused once you hand it in, and a click on it
 takes you to the tracked quests to choose another. Drag it wherever you like by its title bar,
 click an objective to put the waypoint on it -- in combat it lets every click
 through.

@@ -8,10 +8,10 @@
   go grey and struck through, and once all are done they are replaced by
   "Turn in <quest> (<npc>)". The waypoint goes on the nearest objective left
   and follows you through the quest; when the quest is turned in or abandoned
-  the window stays, saying no quest is focused and to right-click to choose
+  the window stays, saying no quest is focused and to click to choose
   another (its X closes it). It has a "Focused Quest" title bar, can be moved
   (the place is saved; reset with the other window positions), and clicking an
-  objective sets the waypoint on it, and a right click opens the main window
+  objective sets the waypoint on it, and a click on the rest of it opens the main window
   on Tracked Quests. In combat it lets every click through.
 - Change: with TomTom, a new waypoint replaces the one the addon set before
   instead of piling up.

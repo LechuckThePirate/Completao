@@ -1,16 +1,16 @@
 local _, ns = ...
 local L = ns.L
 
--- Focus window: a small floating window for the one quest being focused on (right click in Tracked Quests,
+-- Focus window: a small floating window for the one quest being focused on (right click on a quest in Tracked Quests,
 -- or the Focus button in a quest's details). It shows the quest's status icon ("?" ready to turn in, "..."
 -- in progress) and title in its difficulty color, and under it the objectives with their progress
 -- ("Boars 0/5"); done ones go grey and struck through. Once every objective is done they are replaced by
 -- "Turn in <quest> (<npc>)". The waypoint goes to the step to do next (the nearest objective left, or the
 -- turn-in) and moves by itself as objectives are completed. When the quest is turned in (or abandoned) the
--- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged by
--- its title bar ("Focused Quest"; the place is saved). Clicking an objective sets the waypoint on it, and a
--- right click opens the main window on the tracked quests. In combat the window stops taking the mouse, so
--- clicks reach the world.
+-- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged
+-- ("Focused Quest" title bar; the place is saved). Clicking an objective sets the waypoint on it; clicking the
+-- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests. In
+-- combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local TOP = TITLE_H + 6 -- where the quest's icon and title start
@@ -120,14 +120,20 @@ local function create()
     frame:SetMovable(true)
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
+    -- a click on the window (not a drag) opens the main window on the tracked quests; dragging also ends in a
+    -- mouse-up, so that one doesn't count
+    local dragged = false
+    frame:SetScript("OnMouseDown", function() dragged = false end)
+    frame:SetScript("OnDragStart", function(self)
+        dragged = true
+        self:StartMoving()
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         savePosition()
     end)
-    -- right click anywhere on it: the main window, on the tracked quests
     frame:SetScript("OnMouseUp", function(_, which)
-        if which == "RightButton" then ns.UI_OpenTracked() end
+        if which == "LeftButton" and not dragged then ns.UI_OpenTracked() end
     end)
 
     -- title bar: what the window is, and the close button
@@ -170,13 +176,9 @@ local function getLine(i)
     button:SetHeight(LINE_H)
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     button:EnableMouse(mouseOn)
-    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    button:SetScript("OnClick", function(self, which)
-        if which == "RightButton" then
-            ns.UI_OpenTracked()
-            return
-        end
+    button:SetScript("OnClick", function(self)
         local step = self.step
+        if step and step.opens then ns.UI_OpenTracked() return end -- the "no quest focused" hint
         if not (step and step.loc) then return end
         if ns.CanWaypoint(step.loc) then
             ns.SetWaypoint(step.loc, step.label, step.tag)
@@ -304,7 +306,7 @@ end
 
 -- Nothing focused: the window says so, and how to choose another quest.
 local function drawIdle()
-    draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Right-click to choose another."], kind = "hint", struck = false } })
+    draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Click to choose another."], kind = "hint", struck = false, opens = true } })
 end
 
 function ns.Focus_Refresh(force)

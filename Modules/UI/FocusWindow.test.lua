@@ -89,21 +89,34 @@ describe("FocusWindow", function()
         assert.matches("ffffff", shownTexts()[2])
     end)
 
-    it("a right click on the window, or on an objective, opens the main window on the tracked quests", function()
+    it("a click on the window opens the main window on the tracked quests", function()
         focus()
         assert.is_nil(ns.UI)
+        frame._scripts.OnMouseDown(frame, "LeftButton")
+        frame._scripts.OnMouseUp(frame, "RightButton") -- only the normal click
+        assert.is_nil(ns.UI)
+        frame._scripts.OnMouseUp(frame, "LeftButton")
+        assert.is_true(ns.UI:IsShown())
+        assert.are.equal("tracked", ns.Search_Mode())
+    end)
+
+    it("the mouse-up that ends a drag doesn't open it", function()
+        focus()
+        frame._scripts.OnMouseDown(frame, "LeftButton")
+        frame._scripts.OnDragStart(frame)
+        frame._scripts.OnDragStop(frame)
         frame._scripts.OnMouseUp(frame, "LeftButton")
         assert.is_nil(ns.UI)
-        frame._scripts.OnMouseUp(frame, "RightButton")
+        frame._scripts.OnMouseDown(frame, "LeftButton") -- and the next plain click does
+        frame._scripts.OnMouseUp(frame, "LeftButton")
         assert.is_true(ns.UI:IsShown())
-        assert.are.equal("tracked", ns.Search_Mode())
-        ns.UI_Toggle() -- closed, and then from an objective
-        assert.is_false(ns.UI:IsShown())
-        ns.UI_SetSearchMode(true, "log")
-        lineWith("Boars"):Click("RightButton")
-        assert.is_true(ns.UI:IsShown())
-        assert.are.equal("tracked", ns.Search_Mode())
-        assert.are.equal("999001:3", ns.FocusTag()) -- and it is no click on the objective
+    end)
+
+    it("an objective only sets its waypoint, it doesn't open the main window", function()
+        focus()
+        lineWith("Boars"):Click()
+        assert.is_nil(ns.UI)
+        assert.are.equal("999001:2", ns.FocusTag())
     end)
 
     it("clicking the turn-in puts the waypoint on who takes it", function()
@@ -184,7 +197,7 @@ describe("FocusWindow", function()
         assert.is_false(frame.icon:IsShown())
         local texts = shownTexts()
         assert.are.equal(1, #texts)
-        assert.matches("Right%-click to choose another", texts[1])
+        assert.matches("Click to choose another", texts[1])
     end)
 
     it("abandoning it does the same", function()
@@ -196,11 +209,14 @@ describe("FocusWindow", function()
         assert.are.equal("No quest focused", frame.title._text)
     end)
 
-    it("the message window opens the tracked quests on a right click, and a new focus takes its place", function()
+    it("the message window opens the tracked quests on a click, and a new focus takes its place", function()
         focus()
         WowMock.onQuest[999001], WowMock.done[999001] = nil, true
         FireEvent("QUEST_TURNED_IN", 999001)
-        frame._scripts.OnMouseUp(frame, "RightButton")
+        frame._scripts.OnMouseUp(frame, "LeftButton")
+        assert.are.equal("tracked", ns.Search_Mode())
+        ns.UI_SetSearchMode(true, "log")
+        lineWith("Click to choose"):Click() -- and so does its hint
         assert.are.equal("tracked", ns.Search_Mode())
         assert.is_false(ns.Focus_Set(999002)) -- not in the log
         WowMock.onQuest[999002] = true

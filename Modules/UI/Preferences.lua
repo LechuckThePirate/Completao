@@ -4,6 +4,7 @@ local L = ns.L
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
 local WIDTH, HEIGHT = 340, 600
+local LABEL_W = WIDTH - 48 - 16 -- a checkbox's text: from after the box (x = 48) to the window's right margin
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -47,6 +48,10 @@ local function makeCheck(parent, y, text, getValue, setValue)
     check:SetPoint("TOPLEFT", 20, y)
     local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     label:SetPoint("LEFT", check, "RIGHT", 4, 0)
+    -- a long text (or a longer translation) wraps to a second line instead of running out of the window
+    label:SetWidth(LABEL_W)
+    label:SetJustifyH("LEFT")
+    label:SetWordWrap(true)
     label:SetText(text)
     check:SetScript("OnClick", function(self) setValue(self:GetChecked() and true or false) end)
     function check.Refresh() check:SetChecked(getValue() and true or false) end
@@ -147,7 +152,7 @@ local function create()
         function() return ns.char.focusAuto end,
         function(value) ns.Focus_SetAuto(value) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -384, L["Hide categories with no quests available or all done"],
+    widgets[#widgets + 1] = makeCheck(prefs, -384, L["Hide empty or completed categories"],
         function() return ns.char.hideDone end,
         function(value)
             ns.char.hideDone = value or nil

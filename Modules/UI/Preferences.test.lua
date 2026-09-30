@@ -46,6 +46,17 @@ describe("Preferences", function()
         assert.is_false(ns.Minimap_IsShown())
     end)
 
+    it("the checkboxes' texts stay inside the window, wrapping if they are long", function()
+        local labels = WowMock.FindAll(function(f)
+            return f._kind == "FontString" and f._parent == prefs and f._set.SetWordWrap and f._w ~= nil
+        end)
+        assert.is_true(#labels >= 9)
+        for _, label in ipairs(labels) do
+            assert.is_true(label._w <= 340 - 48 - 16, label._text)
+            assert.is_true(label._set.SetWordWrap[1])
+        end
+    end)
+
     it("the opacity while moving comes from the slider", function()
         local slider = WowMock.Find(function(f) return f._kind == "Slider" end)
         slider._scripts.OnValueChanged(slider, 0.3)

@@ -5,10 +5,11 @@
 - New: with Autofocus on, a quest you just accepted that is a direct turn-in
   (ready the moment you take it) takes the focus from a quest still in
   progress when its turn-in is nearer than what that quest needs next.
+- Fix: the Preferences texts wrap inside the window instead of running out of it.
 - New: a right click on the focus window (or on one of its objectives) moves
   the focus to the nearest other tracked quest, by what each needs next, with
   the waypoint. Autofocus leaves a quest chosen that way alone.
-- New: **Hide categories with no quests available or all done** (Preferences,
+- New: **Hide empty or completed categories** (Preferences,
   off by default): the side panel leaves out the zones, dungeons and other
   entries where everything is done or nothing is available to you now (not
   done, your level, requirements met), and the categories left with none. The

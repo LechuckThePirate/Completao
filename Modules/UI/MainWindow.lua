@@ -23,6 +23,13 @@ local HEADER_H, ENTRY_H, ENTRY_INDENT = 28, 34, 12
 local COLLAPSED_W, ICON_BTN_H, TOGGLE_H = 64, 30, 20
 local function collapsed() return ns.char and ns.char.sideCollapsed and true or false end
 local function sideW() return collapsed() and COLLAPSED_W or LIST_W end
+-- The side list's scroll bar sits between the list and the main area; when the list fits, there is no bar and
+-- the main area takes its room (SCROLL_W) instead of leaving a gap. Set by refreshList, which knows the list's
+-- height.
+local SCROLL_W = 22
+local sideScrolls = false
+local function mainLeft() return sideW() + 30 - (sideScrolls and 0 or SCROLL_W) end
+local function treeLeft() return mainLeft() - 4 end
 local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 
 local selectedId, expandedCat, listInitialized, viewRestored
@@ -603,6 +610,11 @@ local function refreshList()
     for k = hi + 1, #headerButtons do headerButtons[k]:Hide() end
     for k = ei + 1, #listButtons do listButtons[k]:Hide() end
     frame.listChild:SetSize(listW, math.max(1, y))
+    local needed = y > frame:GetHeight() - (frame.listTop or 0) - 14
+    if needed ~= sideScrolls then
+        sideScrolls = needed
+        if ns.UI_ApplySideWidth then ns.UI_ApplySideWidth() end
+    end
 end
 
 function ns.UI_Refresh()
@@ -879,14 +891,14 @@ local function createFrame()
     gear:SetScript("OnLeave", GameTooltip_Hide)
 
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    frame.header:SetPoint("TOPLEFT", sideW() + 30, -top)
+    frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
     frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
     frame.header:SetJustifyH("LEFT")
     frame.header:SetWordWrap(false)
 
     -- Filter bar under the title: search by title and checkboxes, placed in rows that rearrange with the
     -- window's width (layoutToolbar, below).
-    local toolbarLeft = sideW() + 30
+    local toolbarLeft = mainLeft()
     local toolbarItems = {}
     local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
     if not okSearch or not box then
@@ -944,7 +956,7 @@ local function createFrame()
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("BOTTOMLEFT", sideW() + 30, 12)
+    hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
     hint:SetJustifyH("RIGHT")
     hint:SetWordWrap(false)
@@ -953,6 +965,7 @@ local function createFrame()
     local listScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate"))
     listScroll:SetPoint("TOPLEFT", 12, -top)
     listScroll:SetPoint("BOTTOMLEFT", 12, 14)
+    frame.listTop = top
     listScroll:SetWidth(sideW() - 22)
     frame.listChild = CreateFrame("Frame", nil, listScroll)
     frame.listChild:SetSize(sideW() - 26, 1)
@@ -996,24 +1009,24 @@ local function createFrame()
     sideToggle:SetScript("OnLeave", GameTooltip_Hide)
 
     frame.searchPanel = ns.Search_Create(frame)
-    frame.searchPanel:SetPoint("TOPLEFT", sideW() + 30, -top)
+    frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
     frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
 
     local treeScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate"))
-    treeScroll:SetPoint("TOPLEFT", sideW() + 26, -ns.TREE_TOP)
+    treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
     canvas = CreateFrame("Frame", nil, treeScroll)
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
-    ns.Detail_Create(frame, treeScroll, sideW() + 26, frame.searchPanel)
+    ns.Detail_Create(frame, treeScroll, treeLeft(), frame.searchPanel)
 
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
         local width = frame:GetWidth() - toolbarLeft - 32
         local h = ns.FlowLayout(frame, toolbarItems, toolbarLeft, top + 26, width, 10, 2)
         ns.TREE_TOP = top + 26 + h + 8
-        treeScroll:SetPoint("TOPLEFT", sideW() + 26, -ns.TREE_TOP)
+        treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
         ns.Detail_Layout()
     end
     layoutToolbar()
@@ -1022,20 +1035,20 @@ local function createFrame()
     -- everything that starts where the side panel ends moves with it when it collapses or expands
     function ns.UI_ApplySideWidth()
         local w = sideW()
-        toolbarLeft = w + 30
+        toolbarLeft = mainLeft()
         frame.header:ClearAllPoints()
-        frame.header:SetPoint("TOPLEFT", w + 30, -top)
+        frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
         frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
         hint:ClearAllPoints()
-        hint:SetPoint("BOTTOMLEFT", w + 30, 12)
+        hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
         hint:SetPoint("BOTTOMRIGHT", -26, 12)
         listScroll:SetWidth(w - 22)
         listScroll:SetVerticalScroll(0)
         frame.listChild:SetWidth(w - 26)
         frame.searchPanel:ClearAllPoints()
-        frame.searchPanel:SetPoint("TOPLEFT", w + 30, -top)
+        frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
         frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
-        ns.Detail_SetOffset(w + 26)
+        ns.Detail_SetOffset(treeLeft())
         layoutToolbar()
     end
 

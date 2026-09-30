@@ -69,7 +69,7 @@ describe("MainWindow", function()
                 assert.is_not_nil(h.label:find(cat.name, 1, true))
             end
             assert.is_true(lastTopLeftX(ns.UI.treeScroll) < wide)
-            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+            assert.are.equal(64 + 26 - 22, lastTopLeftX(ns.UI.treeScroll)) -- the icons fit: no scroll bar, no gap for it
         end)
 
         it("no entry is listed, and expanding brings back the names and the width", function()
@@ -101,7 +101,36 @@ describe("MainWindow", function()
             assert.is_true(ns.char.sideCollapsed)
             ns = OpenAddon("vc", { selected = "vc", sideCollapsed = true })
             assert.is_false(header("dungeons").text:IsShown())
-            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+            assert.are.equal(64 + 26 - 22, lastTopLeftX(ns.UI.treeScroll))
+        end)
+    end)
+
+    describe("the room of the side list's scroll bar", function()
+        local function treeX()
+            local x
+            for _, p in ipairs(ns.UI.treeScroll._points) do if p[1] == "TOPLEFT" then x = p[#p - 1] end end
+            return x
+        end
+        local function headerX()
+            local x
+            for _, p in ipairs(ns.UI.header._points) do if p[1] == "TOPLEFT" then x = p[#p - 1] end end
+            return x
+        end
+
+        it("is given back to the main area when the list fits, and taken when it doesn't", function()
+            ns.UI_SetSideCollapsed(true) -- a short list of icons
+            local fits = treeX()
+            ns.UI_SetSideCollapsed(false) -- the full list, longer than the window
+            assert.are.equal(210 + 26, treeX())
+            assert.are.equal(210 + 30, headerX())
+            ns.UI:SetHeight(4000) -- a window tall enough for all of it
+            ns.UI_Refresh()
+            assert.are.equal(210 + 26 - 22, treeX())
+            assert.are.equal(210 + 30 - 22, headerX())
+            ns.UI:SetHeight(580)
+            ns.UI_Refresh()
+            assert.are.equal(210 + 26, treeX())
+            assert.is_true(fits < treeX())
         end)
     end)
 

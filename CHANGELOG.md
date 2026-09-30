@@ -18,6 +18,9 @@
   the quest tree no longer shows through the table.
 - Fix: scroll bars (side panel, tree, tables, quest details, what's new) are
   hidden when there is nothing to scroll, instead of sitting there greyed out.
+  When the side panel's list fits (for instance collapsed to its icons), the
+  room its bar used goes to the main area, so the views sit closer to the
+  buttons.
 - Fix: on a flight path the main window no longer turns translucent or
   click-through "while moving": it stays as it is, to read on the trip.
 - Change: with TomTom, a new waypoint replaces the one the addon set before

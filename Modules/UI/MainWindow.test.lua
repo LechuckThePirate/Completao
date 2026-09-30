@@ -47,6 +47,64 @@ describe("MainWindow", function()
         assert.is_false(ns.char.category)
     end)
 
+    describe("the collapsed side panel", function()
+        local function header(id)
+            return WowMock.Find(function(f) return f.cat and f.cat.id == id end)
+        end
+        local function lastTopLeftX(f)
+            local x
+            for _, p in ipairs(f._points) do if p[1] == "TOPLEFT" then x = p[#p - 1] end end
+            return x
+        end
+
+        it("shows the icons of the sections, without their names, and the tree moves to the left", function()
+            local wide = lastTopLeftX(ns.UI.treeScroll)
+            ns.UI_SetSideCollapsed(true)
+            assert.is_true(ns.char.sideCollapsed)
+            for _, cat in ipairs(ns.categories) do
+                local h = header(cat.id)
+                assert.is_true(h:IsShown())
+                assert.is_false(h.text:IsShown())
+                assert.are.equal(cat.icon, h.icon._set.SetTexture[1])
+                assert.is_not_nil(h.label:find(cat.name, 1, true))
+            end
+            assert.is_true(lastTopLeftX(ns.UI.treeScroll) < wide)
+            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+        end)
+
+        it("no entry is listed, and expanding brings back the names and the width", function()
+            ns.UI_SetSideCollapsed(true)
+            assert.is_nil(WowMock.FindByText("Dungeons (%d+)"))
+            for _, f in ipairs(WowMock.frames) do
+                if f.entry then assert.is_false(f:IsShown()) end
+            end
+            ns.UI_SetSideCollapsed(false)
+            assert.is_false(ns.char.sideCollapsed)
+            assert.is_true(header("dungeons").text:IsShown())
+            assert.is_nil(header("dungeons").label)
+            assert.are.equal(210 + 26, lastTopLeftX(ns.UI.treeScroll))
+        end)
+
+        it("a section's icon opens a menu with its entries; picking one goes to it", function()
+            ns.UI_SetSideCollapsed(true)
+            header("raids"):Click()
+            local options = WowMock.FindAll(function(f) return f.text and f._scripts.OnClick and f._shown and f._parent and f._parent.buttons end)
+            assert.is_true(#options > 0)
+            options[1]:Click()
+            assert.are.equal("raids", ns.entries[ns.char.selected].category)
+            assert.are.equal("raids", ns.char.category)
+        end)
+
+        it("the toggle button collapses and expands, and it is remembered", function()
+            local toggle = WowMock.Find(function(f) return f.tex and f._scripts.OnClick and f.text and f.text._text == "Collapse menu" end)
+            toggle:Click()
+            assert.is_true(ns.char.sideCollapsed)
+            ns = OpenAddon("vc", { selected = "vc", sideCollapsed = true })
+            assert.is_false(header("dungeons").text:IsShown())
+            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+        end)
+    end)
+
     describe("the view it opens on", function()
         local function reopen(charDB)
             WowMock.Reset()

@@ -459,6 +459,11 @@ local function layout()
     if setMaxState then setMaxState(maximized) end
 end
 
+-- The side panel changed width (collapsed / expanded): the panel starts where the main area does.
+function ns.Detail_SetOffset(leftOffset)
+    leftOff = leftOffset
+end
+
 function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     parentFrame, treeScroll, leftOff, companion = parent, tree, leftOffset, companionPanel
     detail = CreateFrame("Frame", nil, parent, "BackdropTemplate")

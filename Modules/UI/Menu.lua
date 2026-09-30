@@ -3,11 +3,12 @@ local _, ns = ...
 -- Our own dropdown menu (a popup list of buttons under a control): it doesn't depend on Blizzard's menus,
 -- which change between client versions. options: { { name = , color = {r,g,b}, disabled = } }.
 -- Clicking the same control again closes it; picking an option closes it and calls onPick(option, index).
+-- It opens under the control, or to its right with side = "right".
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 local ROW_H, PER_COL = 18, 18
 local popup
 
-function ns.PopupMenu(anchor, options, onPick, width)
+function ns.PopupMenu(anchor, options, onPick, width, side)
     if not popup then
         popup = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
         popup:SetBackdrop(BACKDROP)
@@ -56,7 +57,11 @@ function ns.PopupMenu(anchor, options, onPick, width)
     for i = #options + 1, #popup.buttons do popup.buttons[i]:Hide() end
     popup:SetSize(cols * colW, 8 + math.min(#options, PER_COL) * ROW_H)
     popup:ClearAllPoints()
-    popup:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+    if side == "right" then
+        popup:SetPoint("TOPLEFT", anchor, "TOPRIGHT", 2, 0)
+    else
+        popup:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+    end
     popup:Show()
 end
 

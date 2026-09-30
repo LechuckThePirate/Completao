@@ -19,6 +19,10 @@ local BACKDROP = {
 }
 
 local HEADER_H, ENTRY_H, ENTRY_INDENT = 28, 34, 12
+-- The side panel collapses to a strip of icons (a tooltip gives each one's name)
+local COLLAPSED_W, ICON_BTN_H, TOGGLE_H = 64, 30, 20
+local function collapsed() return ns.char and ns.char.sideCollapsed and true or false end
+local function sideW() return collapsed() and COLLAPSED_W or LIST_W end
 local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 
 local selectedId, expandedCat, listInitialized, viewRestored
@@ -30,6 +34,7 @@ local openedWithLog = false -- the quest log opened the window (see the end)
 local searchMode = false
 local treeWidgets = {}
 local searchButtons, nodePos = {}, {}
+local sideToggle
 
 local function showNodeTooltip(btn)
     local q, status, reasons = btn.quest, btn.status, btn.reasons
@@ -402,6 +407,14 @@ local function entriesOf(catId)
     return items
 end
 
+-- Collapsed: the side panel's buttons only show an icon, so their name is in the tooltip.
+local function showSideTooltip(self)
+    if not (collapsed() and self.label) then return end
+    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+    GameTooltip:SetText(self.label)
+    GameTooltip:Show()
+end
+
 local function selectEntry(id)
     ns.Detail_Hide()
     searchText = ""
@@ -412,7 +425,29 @@ local function selectEntry(id)
     frame.treeScroll:SetVerticalScroll(0)
 end
 
+-- Collapsed side panel: a section's icon opens a menu with its entries, next to the strip.
+local function openEntryMenu(self)
+    local items = entriesOf(self.cat.id)
+    local options = {}
+    for i, d in ipairs(items) do
+        local done, total = ns.EntryProgress(d)
+        local sel = d.id == selectedId and not searchMode
+        options[i] = { name = ("%s  %d/%d"):format(ns.EntryName(d), done, total), color = sel and { 1, 0.82, 0 } or nil }
+    end
+    ns.PopupMenu(self, options, function(_, i)
+        searchMode = false
+        expandedCat = self.cat.id
+        ns.char.category = expandedCat
+        selectEntry(items[i].id)
+        ns.UI_Refresh()
+    end, 230, "right")
+end
+
 local function onHeaderClick(self)
+    if collapsed() then
+        openEntryMenu(self)
+        return
+    end
     local catId = self.cat.id
     if expandedCat == catId then
         expandedCat = nil
@@ -443,9 +478,12 @@ local function getHeaderButton(i)
     b:SetBackdrop(BACKDROP)
     b:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
     b:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetSize(18, 18)
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    b.text:SetPoint("LEFT", 8, 0)
     b:SetScript("OnClick", onHeaderClick)
+    b:SetScript("OnEnter", showSideTooltip)
+    b:SetScript("OnLeave", GameTooltip_Hide)
     headerButtons[i] = b
     return b
 end
@@ -471,8 +509,21 @@ local function refreshList()
     for _, b in ipairs(headerButtons) do b:Hide() end
     for _, b in ipairs(listButtons) do b:Hide() end
 
-    local listW = LIST_W - 26
+    local narrow = collapsed()
+    local listW = sideW() - 26
     local y, hi, ei = 0, 0, 0
+
+    -- collapse / expand the panel
+    sideToggle:ClearAllPoints()
+    sideToggle:SetPoint("TOPLEFT", 0, -y)
+    sideToggle:SetWidth(listW)
+    sideToggle.tex:SetTexture(narrow and "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up"
+        or "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
+    sideToggle.tex:ClearAllPoints()
+    sideToggle.tex:SetPoint(narrow and "CENTER" or "LEFT", narrow and 0 or 4, 0)
+    sideToggle.text:SetShown(not narrow)
+    sideToggle.label = narrow and ns.L["Expand menu"] or nil
+    y = y + TOGGLE_H + 4
 
     -- first entries: the global search and the quest log (same table, Search.lua)
     for _, b in ipairs(searchButtons) do
@@ -480,25 +531,49 @@ local function refreshList()
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", 0, -y)
         b:SetWidth(listW)
+        b:SetHeight(narrow and ICON_BTN_H or 26)
+        b.tex:ClearAllPoints()
+        b.tex:SetPoint(narrow and "CENTER" or "LEFT", narrow and 0 or 8, 0)
+        b.text:SetShown(not narrow)
+        b.label = narrow and b.title or nil
         b:SetBackdropColor(on and 0.15 or 0.05, on and 0.25 or 0.05, on and 0.4 or 0.05, 0.9)
         b:SetBackdropBorderColor(on and 0.35 or 0.4, on and 0.65 or 0.4, on and 1 or 0.4, 1)
         y = y + b:GetHeight() + 2
     end
     y = y + 4
 
+    local current = ns.entries[selectedId]
     for _, cat in ipairs(ns.categories) do
         local items = entriesOf(cat.id)
-        local open = cat.id == expandedCat
+        local open = cat.id == expandedCat and not narrow
 
         hi = hi + 1
         local h = getHeaderButton(hi)
         h.cat = cat
+        h.label = narrow and ("%s (%d)"):format(cat.name, #items) or nil
         h:ClearAllPoints()
         h:SetPoint("TOPLEFT", 0, -y)
         h:SetWidth(listW)
+        h:SetHeight(narrow and ICON_BTN_H or HEADER_H)
+        h.icon:SetTexture(cat.icon)
+        h.icon:ClearAllPoints()
+        h.text:ClearAllPoints()
+        if narrow then
+            h.icon:SetPoint("CENTER", 0, 0)
+            -- the section of the entry you are on
+            local on = current and current.category == cat.id and not searchMode
+            h:SetBackdropColor(on and 0.15 or 0.12, on and 0.25 or 0.10, on and 0.4 or 0.02, 0.95)
+            h:SetBackdropBorderColor(on and 0.35 or 0.6, on and 0.65 or 0.5, on and 1 or 0.1, 1)
+        else
+            h.icon:SetPoint("LEFT", 8, 0)
+            h.text:SetPoint("LEFT", 32, 0)
+            h:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
+            h:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+        end
+        h.text:SetShown(not narrow)
         h.text:SetText(("%s %s (%d)"):format(open and "-" or "+", cat.name, #items))
         h:Show()
-        y = y + HEADER_H + 2
+        y = y + h:GetHeight() + 2
 
         if open then
             for _, d in ipairs(items) do
@@ -549,6 +624,17 @@ function ns.UI_Refresh()
     frame.header:SetText(d and ns.EntryName(d) or "")
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
+end
+
+-- Collapses the side panel to its icons (or expands it back); remembered with the settings.
+function ns.UI_SetSideCollapsed(on)
+    ns.char.sideCollapsed = on and true or false
+    ns.PopupMenu_Hide()
+    GameTooltip:Hide()
+    if frame then
+        ns.UI_ApplySideWidth()
+        ns.UI_Refresh()
+    end
 end
 
 function ns.UI_IsSearchMode()
@@ -624,6 +710,7 @@ function ns.UI_ApplySettings()
             frame:SetPoint("CENTER")
         end
         ns.UI_SetZoom(ns.char.zoom or 1)
+        ns.UI_ApplySideWidth()
     end
     ns.UI_SyncFilters()
 end
@@ -788,14 +875,14 @@ local function createFrame()
     gear:SetScript("OnLeave", GameTooltip_Hide)
 
     frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    frame.header:SetPoint("TOPLEFT", LIST_W + 30, -top)
+    frame.header:SetPoint("TOPLEFT", sideW() + 30, -top)
     frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
     frame.header:SetJustifyH("LEFT")
     frame.header:SetWordWrap(false)
 
     -- Filter bar under the title: search by title and checkboxes, placed in rows that rearrange with the
     -- window's width (layoutToolbar, below).
-    local toolbarLeft = LIST_W + 30
+    local toolbarLeft = sideW() + 30
     local toolbarItems = {}
     local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
     if not okSearch or not box then
@@ -853,7 +940,7 @@ local function createFrame()
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("BOTTOMLEFT", LIST_W + 30, 12)
+    hint:SetPoint("BOTTOMLEFT", sideW() + 30, 12)
     hint:SetPoint("BOTTOMRIGHT", -26, 12)
     hint:SetJustifyH("RIGHT")
     hint:SetWordWrap(false)
@@ -862,56 +949,91 @@ local function createFrame()
     local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     listScroll:SetPoint("TOPLEFT", 12, -top)
     listScroll:SetPoint("BOTTOMLEFT", 12, 14)
-    listScroll:SetWidth(LIST_W - 22)
+    listScroll:SetWidth(sideW() - 22)
     frame.listChild = CreateFrame("Frame", nil, listScroll)
-    frame.listChild:SetSize(LIST_W - 26, 1)
+    frame.listChild:SetSize(sideW() - 26, 1)
     listScroll:SetScrollChild(frame.listChild)
 
     -- "Search quests..." and "Quest Log": first entries of the side panel; they open the table in the main
     -- area (the search with its form, or the quests you carry in your log)
     local function sideButton(kind, icon, label)
         local b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
-        b.kind = kind
+        b.kind, b.title = kind, label
         b:SetHeight(26)
         b:SetBackdrop(BACKDROP)
         local tex = b:CreateTexture(nil, "ARTWORK")
         tex:SetSize(14, 14)
-        tex:SetPoint("LEFT", 8, 0)
         tex:SetTexture(icon)
         local text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         text:SetPoint("LEFT", tex, "RIGHT", 6, 0)
         text:SetText(label)
+        b.tex, b.text = tex, text
         b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
         b:SetScript("OnClick", function() ns.UI_SetSearchMode(true, kind) end)
+        b:SetScript("OnEnter", showSideTooltip)
+        b:SetScript("OnLeave", GameTooltip_Hide)
         searchButtons[#searchButtons + 1] = b
     end
     sideButton("search", "Interface\\Common\\UI-Searchbox-Icon", ns.L["Search quests..."])
     sideButton("log", "Interface\\GossipFrame\\ActiveQuestIcon", ns.L["Quest Log"])
     sideButton("tracked", "Interface\\GossipFrame\\AvailableQuestIcon", ns.L["Tracked Quests"])
 
+    -- first row of the side panel: collapses it to the icons, or expands it back
+    sideToggle = CreateFrame("Button", nil, frame.listChild)
+    sideToggle:SetHeight(TOGGLE_H)
+    sideToggle.tex = sideToggle:CreateTexture(nil, "ARTWORK")
+    sideToggle.tex:SetSize(16, 16)
+    sideToggle.text = sideToggle:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    sideToggle.text:SetPoint("LEFT", sideToggle.tex, "RIGHT", 4, 0)
+    sideToggle.text:SetText(ns.L["Collapse menu"])
+    sideToggle:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    sideToggle:SetScript("OnClick", function() ns.UI_SetSideCollapsed(not collapsed()) end)
+    sideToggle:SetScript("OnEnter", showSideTooltip)
+    sideToggle:SetScript("OnLeave", GameTooltip_Hide)
+
     frame.searchPanel = ns.Search_Create(frame)
-    frame.searchPanel:SetPoint("TOPLEFT", LIST_W + 30, -top)
+    frame.searchPanel:SetPoint("TOPLEFT", sideW() + 30, -top)
     frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
 
     local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -ns.TREE_TOP)
+    treeScroll:SetPoint("TOPLEFT", sideW() + 26, -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
     canvas = CreateFrame("Frame", nil, treeScroll)
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(canvas)
     frame.treeScroll = treeScroll
-    ns.Detail_Create(frame, treeScroll, LIST_W + 26, frame.searchPanel)
+    ns.Detail_Create(frame, treeScroll, sideW() + 26, frame.searchPanel)
 
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
         local width = frame:GetWidth() - toolbarLeft - 32
         local h = ns.FlowLayout(frame, toolbarItems, toolbarLeft, top + 26, width, 10, 2)
         ns.TREE_TOP = top + 26 + h + 8
-        treeScroll:SetPoint("TOPLEFT", LIST_W + 26, -ns.TREE_TOP)
+        treeScroll:SetPoint("TOPLEFT", sideW() + 26, -ns.TREE_TOP)
         ns.Detail_Layout()
     end
     layoutToolbar()
     frame:HookScript("OnSizeChanged", layoutToolbar)
+
+    -- everything that starts where the side panel ends moves with it when it collapses or expands
+    function ns.UI_ApplySideWidth()
+        local w = sideW()
+        toolbarLeft = w + 30
+        frame.header:ClearAllPoints()
+        frame.header:SetPoint("TOPLEFT", w + 30, -top)
+        frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
+        hint:ClearAllPoints()
+        hint:SetPoint("BOTTOMLEFT", w + 30, 12)
+        hint:SetPoint("BOTTOMRIGHT", -26, 12)
+        listScroll:SetWidth(w - 22)
+        listScroll:SetVerticalScroll(0)
+        frame.listChild:SetWidth(w - 26)
+        frame.searchPanel:ClearAllPoints()
+        frame.searchPanel:SetPoint("TOPLEFT", w + 30, -top)
+        frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
+        ns.Detail_SetOffset(w + 26)
+        layoutToolbar()
+    end
 
     -- what is hidden while the search is open
     treeWidgets = { frame.header, searchBox, hint, treeScroll }

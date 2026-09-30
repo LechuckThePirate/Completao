@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 
 -- Entries (a dungeon, a zone, a class...) and their quests. The Data/ files register them while loading:
 -- ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Overrides.lua fixes them with ns.PatchQuest.
@@ -6,17 +6,18 @@ ns.entries = {}
 ns.entryList = {}
 
 -- Sections of the side panel, in order. To add one: add it here and register entries with
--- category = "<id>".
+-- category = "<id>". The icon is what the side panel shows when it is collapsed.
+local ICONS = "Interface\\Icons\\"
 ns.categories = {
-    { id = "dungeons", name = ns.L["Dungeons"], sortByLevel = true },
-    { id = "raids",    name = ns.L["Raids"], sortByLevel = true },
-    { id = "battlegrounds", name = ns.L["Battlegrounds"] },
-    { id = "zones",    name = ns.L["Zones"] },
-    { id = "classes",  name = ns.L["Class Quests"] },
-    { id = "professions", name = ns.L["Professions"] },
-    { id = "races",    name = ns.L["Races"] },
-    { id = "events",   name = ns.L["Events"] },
-    { id = "misc",     name = ns.L["Miscellaneous"] },
+    { id = "dungeons", name = ns.L["Dungeons"], sortByLevel = true, icon = "Interface\\AddOns\\" .. ADDON .. "\\Icons\\Dungeon.png" },
+    { id = "raids",    name = ns.L["Raids"], sortByLevel = true, icon = ICONS .. "INV_Misc_Head_Dragon_01" },
+    { id = "battlegrounds", name = ns.L["Battlegrounds"], icon = ICONS .. "INV_BannerPVP_02" },
+    { id = "zones",    name = ns.L["Zones"], icon = ICONS .. "INV_Misc_Map_01" },
+    { id = "classes",  name = ns.L["Class Quests"], icon = ICONS .. "INV_Misc_Book_09" },
+    { id = "professions", name = ns.L["Professions"], icon = ICONS .. "Trade_Blacksmithing" },
+    { id = "races",    name = ns.L["Races"], icon = ICONS .. "INV_Misc_Head_Human_01" },
+    { id = "events",   name = ns.L["Events"], icon = ICONS .. "INV_Misc_Gift_01" },
+    { id = "misc",     name = ns.L["Miscellaneous"], icon = ICONS .. "INV_Misc_QuestionMark" },
 }
 
 -- Name shown for an entry: classes, zones, races and professions use the client's name (its language).

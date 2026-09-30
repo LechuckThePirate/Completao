@@ -7,6 +7,7 @@ local _, ns = ...
 local SWITCHABLE = {
     fadeAlpha = true, fadeAlphaCombat = true, quiet = true, minimap = true, filters = true, zoom = true, window = true, openWithQuestLog = true,
     openOnQuestLog = true, clickThroughCombat = true, clickThroughMoving = true,
+    sideCollapsed = true,
 }
 
 local function deepCopy(value)

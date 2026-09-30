@@ -53,3 +53,42 @@ describe("Layout.FlowLayout", function()
         assert.are.equal(24 + #"Hide low level" * 6 + 4, w())
     end)
 end)
+
+describe("Layout.HideableScroll", function()
+    local ns
+
+    before_each(function()
+        WowMock.Reset()
+        ns = LoadAddon({ files = { "Modules/UI/Layout.lua" } })
+    end)
+
+    after_each(function() _G.ScrollFrame_OnScrollRangeChanged = nil end)
+
+    it("lets the scroll bar hide itself when there is nothing to scroll, now and whenever it is shown", function()
+        local synced = {}
+        _G.ScrollFrame_OnScrollRangeChanged = function(self) synced[#synced + 1] = self end
+        local scroll = WowMock.NewFrame("ScrollFrame")
+        assert.are.equal(scroll, ns.HideableScroll(scroll))
+        assert.is_true(scroll.scrollBarHideable)
+        assert.are.equal(1, #synced)
+        scroll:Hide()
+        scroll:Show()
+        assert.are.equal(2, #synced)
+    end)
+
+    it("works in a client without the template's function", function()
+        local scroll = WowMock.NewFrame("ScrollFrame")
+        ns.HideableScroll(scroll)
+        scroll:Hide()
+        scroll:Show()
+        assert.is_true(scroll.scrollBarHideable)
+    end)
+
+    it("every scroll frame of the addon is one", function()
+        local full = OpenAddon("vc")
+        full.Welcome_Show()
+        local scrolls = WowMock.FindAll(function(f) return f._kind == "ScrollFrame" end)
+        assert.is_true(#scrolls >= 5) -- the side list, the tree, the table, the details and the changelog
+        for _, s in ipairs(scrolls) do assert.is_true(s.scrollBarHideable) end
+    end)
+end)

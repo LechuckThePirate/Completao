@@ -742,7 +742,7 @@ function ns.Search_Create(parent)
         requestRefresh()
     end)
 
-    panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+    panel.scroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate"))
     panel.scroll:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, -2)
     panel.scroll:SetPoint("BOTTOMRIGHT", -24, 0)
     panel.content = CreateFrame("Frame", nil, panel.scroll)

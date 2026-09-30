@@ -88,7 +88,7 @@ local function create()
     welcomeFrame.changelogLabel = welcomeFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     welcomeFrame.changelogLabel:SetPoint("TOPLEFT", welcomeFrame.urlBox, "BOTTOMLEFT", -6, -18)
 
-    welcomeFrame.changelogScroll = CreateFrame("ScrollFrame", nil, welcomeFrame, "UIPanelScrollFrameTemplate")
+    welcomeFrame.changelogScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, welcomeFrame, "UIPanelScrollFrameTemplate"))
     welcomeFrame.changelogScroll:SetPoint("TOPLEFT", welcomeFrame.changelogLabel, "BOTTOMLEFT", 0, -8)
     welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", -48, 56)
 

@@ -497,7 +497,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         layout()
     end)
 
-    detail.scroll = CreateFrame("ScrollFrame", nil, detail, "UIPanelScrollFrameTemplate")
+    detail.scroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, detail, "UIPanelScrollFrameTemplate"))
     detail.scroll:SetPoint("TOPLEFT", 8, -46)
     detail.scroll:SetPoint("BOTTOMRIGHT", -28, 38)
     detail.content = CreateFrame("Frame", nil, detail.scroll)

@@ -118,9 +118,7 @@ local es = {
     ["No quests are being tracked."] = "No sigues ninguna misión.",
     ["Focus"] = "Enfocar",
     ["Focused Quest"] = "Quest enfocada",
-    ["Focus the nearest tracked quest after a turn-in"] = "Enfocar la quest seguida más cercana al entregar",
-    ["Switch to a nearer tracked quest when the focused one is ready"] =
-        "Pasar a otra quest seguida más cercana cuando la enfocada esté lista",
+    ["Autofocus tracked quests"] = "Autoenfocar quests seguidas",
     ["Lock position"] = "Bloquear posición",
     ["Unlock position"] = "Desbloquear posición",
     ["No quest focused"] = "Ninguna quest enfocada",

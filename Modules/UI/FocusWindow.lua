@@ -30,7 +30,6 @@ local ready = false   -- the quest log is loaded (see Focus_Init): before, a que
 local lastSignature   -- what the waypoint was last worked out for
 local mouseOn = true  -- false in combat (click-through)
 local idle = false    -- no quest focused but the window stays, saying so (the quest was turned in or abandoned)
-local progressSeen = {} -- [questId] = true: seen with objectives left while focused, so finishing them is news
 
 function ns.Focus_Quest()
     return ns.char and ns.char.focusQuest
@@ -340,36 +339,87 @@ local function drawIdle()
     draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Click to choose another."], kind = "hint", struck = false, opens = true } })
 end
 
--- The tracked quest nearest to the character, other than `skip`, by what each needs next: its nearest
--- objective left, or the turn-in once it is ready (the step the waypoint would go to). Only quests whose
--- distance can be told count; with none, nil: the window is left for the player to choose.
-function ns.Focus_Nearest(skip)
-    local best, bestDist
+-- Autofocus (Preferences): the focus picks its quest by itself, by how near each tracked quest's next step is
+-- (its nearest objective left, or the turn-in once it is ready: the step the waypoint goes to). Only quests
+-- whose distance can be told count.
+--  * Nothing focused: the quest with the nearest objective; with no quest that has an objective to do, the
+--    nearest turn-in.
+--  * The focused quest is ready to turn in: the tracked quest with the nearest objective or turn-in (its own
+--    turn-in too, so it stays when that is the nearest). A quest that was ready when the player focused it by
+--    hand is left alone.
+-- Looked at when the quest log changes and every few seconds. Closing the window or unfocusing by hand pauses
+-- it until the player focuses a quest or switches the setting.
+local AUTO_EVERY = 2
+local sticky, suspended, picking = {}, false, false
+
+local function trackedCandidates()
+    local list = {}
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         local id = info and not info.isHeader and info.questID
-        if id and id > 0 and id ~= skip and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
+        if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
             and not C_QuestLog.IsQuestFlaggedCompleted(id) then
             local steps = ns.QuestSteps(questDef(id))
-            local index = ns.Focus_PickStep(steps, ns.IsReadyToTurnIn(id))
+            local isReady = ns.IsReadyToTurnIn(id)
+            local index = ns.Focus_PickStep(steps, isReady)
             local d = index and ns.DistanceTo(steps[index].loc)
-            if d and (not bestDist or d < bestDist) then best, bestDist = id, d end
+            if d then list[#list + 1] = { id = id, dist = d, ready = isReady } end
         end
     end
-    return best, bestDist
+    return list
+end
+
+-- The nearest of the list; `ready` true / false keeps only the ones ready to turn in / with objectives left.
+local function nearest(list, ready)
+    local best
+    for _, e in ipairs(list) do
+        if (ready == nil or e.ready == ready) and (not best or e.dist < best.dist) then best = e end
+    end
+    return best
+end
+
+-- The quest autofocus would put the focus on now, or nil to leave it as it is.
+function ns.Focus_AutoPick()
+    local cur = ns.Focus_Quest()
+    if cur then
+        if sticky[cur] or not (C_QuestLog.IsOnQuest(cur) and ns.IsReadyToTurnIn(cur)) then return nil end
+        local best = nearest(trackedCandidates())
+        return best and best.id ~= cur and best.id or nil
+    end
+    local list = trackedCandidates()
+    local best = nearest(list, false) or nearest(list, true)
+    return best and best.id
+end
+
+local function autoFocus()
+    if picking or not ready or suspended or not (ns.char and ns.char.focusAuto) or inCombat() then return false end
+    local id = ns.Focus_AutoPick()
+    if not id then return false end
+    picking = true -- (Focus_Set refreshes, which comes back here)
+    local ok = ns.Focus_Set(id, true)
+    picking = false
+    return ok
+end
+
+-- Preferences: the setting was switched.
+function ns.Focus_SetAuto(on)
+    ns.char.focusAuto = on and true or nil
+    suspended = false
+    ns.Focus_Refresh()
 end
 
 function ns.Focus_Refresh(force)
+    if autoFocus() then return end
     local id = ns.Focus_Quest()
     if not id then
-        if idle then drawIdle() elseif frame then frame:Hide() end
+        -- nothing focused: the message stays up (after a turn-in, or with autofocus on and nothing it can pick,
+        -- like quests with no known spot) for the player to click and choose
+        local autoWaiting = ready and not suspended and ns.char and ns.char.focusAuto
+        if idle or autoWaiting then drawIdle() elseif frame then frame:Hide() end
         return
     end
     if C_QuestLog.IsQuestFlaggedCompleted(id) then
-        -- turned in: with the setting on, the focus moves to the nearest tracked quest (only now, not as the
-        -- character moves around); else, or with none tracked, the window says there is no quest focused
-        local nextId = ns.char.focusAuto and ns.Focus_Nearest(id)
-        if nextId then ns.Focus_Set(nextId) else ns.Focus_Clear(true) end
+        ns.Focus_Clear(true) -- turned in
         return
     end
     if not C_QuestLog.IsOnQuest(id) then
@@ -382,45 +432,35 @@ function ns.Focus_Refresh(force)
     local steps = ns.QuestSteps(q)
     local isReady = ns.IsReadyToTurnIn(id)
     local target = ns.Focus_PickStep(steps, isReady)
-    if not isReady then
-        progressSeen[id] = true
-    elseif progressSeen[id] then
-        -- the objectives have just been finished. With the setting on, if another tracked quest has something
-        -- nearer to do than this one's turn-in, the focus goes there (once: a quest that was already ready
-        -- when it got the focus stays)
-        progressSeen[id] = nil
-        if ns.char.focusNext then
-            local other, otherDist = ns.Focus_Nearest(id)
-            local mine = target and ns.DistanceTo(steps[target].loc)
-            if other and mine and otherDist < mine then
-                ns.Focus_Set(other)
-                return
-            end
-        end
-    end
     retarget(q, steps, target, force, isReady)
     local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
         buildLines(q, steps, isReady))
 end
 
-function ns.Focus_Set(id)
+-- `auto`: chosen by autofocus rather than by the player.
+function ns.Focus_Set(id, auto)
     if not (id and C_QuestLog.IsOnQuest(id)) then return false end
     ns.char.focusQuest = id
     lastSignature = nil
     idle = false
-    progressSeen[id] = nil -- news only if it is seen unfinished from now on
+    sticky = {}
+    if not auto then
+        suspended = false
+        sticky[id] = ns.IsReadyToTurnIn(id) or nil
+    end
     ns.Focus_Refresh(true)
     return true
 end
 
 -- Stops the focus. The window goes away, unless `keep` (the quest is gone, turned in or abandoned): then it
--- stays, saying there is no quest focused.
+-- stays, saying there is no quest focused (or autofocus picks the next one).
 function ns.Focus_Clear(keep)
     ns.char.focusQuest = nil
     lastSignature = nil
-    progressSeen = {}
+    sticky = {}
     idle = keep and true or false
+    suspended = not keep
     ns.Focus_Refresh()
 end
 
@@ -432,7 +472,8 @@ function ns.Focus_Toggle(id)
     end
 end
 
--- Events: entering the game (the quest being focused on comes back once the log is loaded) and combat.
+-- Events: entering the game (the quest being focused on comes back once the log is loaded), combat, and the
+-- autofocus's clock.
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_DISABLED")
@@ -450,4 +491,11 @@ events:SetScript("OnEvent", function(_, event)
             ns.Focus_Refresh()
         end)
     end
+end)
+local sinceAuto = 0
+events:SetScript("OnUpdate", function(_, elapsed)
+    sinceAuto = sinceAuto + elapsed
+    if sinceAuto < AUTO_EVERY then return end
+    sinceAuto = 0
+    if ns.char and ns.char.focusAuto then autoFocus() end
 end)

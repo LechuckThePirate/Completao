@@ -16,19 +16,19 @@
   Tracked Quests. In combat it lets every click through.
 - Fix: with a quest's details open under Search, Quest Log or Tracked Quests,
   the quest tree no longer shows through the table.
-- New: **Focus the nearest tracked quest after a turn-in** (Preferences, off by
-  default): when you turn in the quest in the focus window, the focus moves on
-  its own to the tracked quest that is nearest, by what it needs next (its
-  nearest objective left, or its turn-in once ready), and the waypoint goes
-  with it; if none of them has a known distance, the window is left empty for
-  you to choose. It only happens at the turn-in: not as you move, and not when you
-  abandon the quest.
-- New: **Switch to a nearer tracked quest when the focused one is ready**
-  (Preferences, off by default): when you finish the objectives of the focused
-  quest, if another tracked quest has an objective or a turn-in nearer than
-  this one's turn-in, the focus goes there, with the waypoint. It is decided
-  once, at the moment the objectives are done -- a quest that was already ready
-  when you focused it stays -- and only when both distances are known.
+- New: **Autofocus tracked quests** (Preferences, off by default): the focus
+  window picks its quest by itself, by how near each tracked quest's next step
+  is (its nearest objective left, or its turn-in once ready):
+  - with nothing focused (at login, after a turn-in or an abandon, or when a
+    quest is accepted), the quest with the nearest objective; if no quest has an
+    objective to do, the nearest turn-in;
+  - with the focused quest ready to turn in, the tracked quest with the
+    nearest objective or turn-in (its own included);
+  - a quest still in progress keeps the focus, whatever you accept or however
+    near the others are; one you focused by hand while already ready stays too.
+  Quests whose distance can't be told (no known spot) are left out, and if none
+  is left the window says "No quest focused" for you to click and choose.
+  Closing the window or unfocusing by hand pauses it until you focus a quest.
 - Fix: "hide too high" only hides quests you can't take yet (their minimum
   level is above yours). Quests with a high level but a low minimum, like a
   level 60 one you can pick up at level 10, are no longer hidden, nor drawn

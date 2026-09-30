@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 604
+local WIDTH, HEIGHT = 340, 572
 local prefs
 
 local function makeSlider(parent, y, getValue, setValue, labelFor)
@@ -143,21 +143,17 @@ local function create()
         function() return ns.char.clickThroughMoving end,
         function(value) ns.char.clickThroughMoving = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -356, L["Focus the nearest tracked quest after a turn-in"],
+    widgets[#widgets + 1] = makeCheck(prefs, -356, L["Autofocus tracked quests"],
         function() return ns.char.focusAuto end,
-        function(value) ns.char.focusAuto = value or nil end)
+        function(value) ns.Focus_SetAuto(value) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -384, L["Switch to a nearer tracked quest when the focused one is ready"],
-        function() return ns.char.focusNext end,
-        function(value) ns.char.focusNext = value or nil end)
-
-    makeButton(prefs, -436, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -466, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -496, L["Reset filters"], function()
+    makeButton(prefs, -404, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -434, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -464, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, -530, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, -498, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

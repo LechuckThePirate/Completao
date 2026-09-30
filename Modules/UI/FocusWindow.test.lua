@@ -30,6 +30,7 @@ describe("FocusWindow", function()
 
     before_each(function()
         WowMock.Reset()
+        WowMock.inCombat = false
         WowMock.maps[1429] = { name = "Area12", mapType = Enum.UIMapType.Zone }
         ns = LoadAddon()
         ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
@@ -358,180 +359,266 @@ describe("FocusWindow", function()
         assert.is_nil(ns2.Focus_Quest())
     end)
 
-    describe("focusing the nearest tracked quest after a turn-in", function()
+    describe("autofocus", function()
         local tracked, distance
-        local function turnIn()
-            WowMock.onQuest[999001], WowMock.done[999001] = nil, true
-            FireEvent("QUEST_TURNED_IN", 999001)
-        end
-        local function track(ids)
-            tracked = {}
-            WowMock.log = { { isHeader = true, title = "Zone" } }
-            for _, id in ipairs(ids) do
-                tracked[id] = true
-                WowMock.onQuest[id] = true
-                WowMock.titles[id] = ({ [999001] = "Pest Control", [999003] = "Fox Hunt", [999004] = "Owl Watch" })[id]
-                WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
-            end
+        -- distances by the x of the spot: Pest Control's boars 10 (200 yd), wolves 60 (10 yd) and turn-in 20;
+        -- Fox Hunt's foxes 30 and turn-in 31; Owl Watch's owls 80 and turn-in 81
+        local function ready(id) WowMock.readyForTurnIn[id] = true end
+        local events
+        local function tick() events._scripts.OnUpdate(events, 2) end
+        local function turnIn(id)
+            WowMock.onQuest[id], WowMock.done[id] = nil, true
+            FireEvent("QUEST_TURNED_IN", id)
         end
         before_each(function()
-            distance = { [boars.x] = 500, [wolves.x] = 10, [30] = 40, [80] = 900 }
-            ns.DistanceTo = function(loc) return distance[loc.x] end
-            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
-            track({ 999001, 999003, 999004 })
-            ns.char.focusAuto = true
-            focus()
-        end)
-        after_each(function() C_QuestLog.GetQuestWatchType = nil end)
-
-        it("moves the focus to the tracked quest that is nearest, by what it needs next", function()
-            turnIn()
-            assert.are.equal(999003, ns.Focus_Quest())
-            assert.matches("Fox Hunt", frame.title._text)
-            assert.is_true(frame:IsShown())
-            assert.matches("Foxes", shownTexts()[1])
-            assert.near(0.3, WowMock.userWaypoint.x, 1e-9) -- and the waypoint goes with it
-        end)
-
-        it("counts a quest that is ready by the distance to whoever takes it in", function()
-            WowMock.readyForTurnIn[999004] = true
-            distance[80], distance[81] = 900, 5 -- its turn-in is at x = 81
-            turnIn()
-            assert.are.equal(999004, ns.Focus_Quest())
-            assert.matches("Turn in Owl Watch %(Watcher Bo%)", shownTexts()[1])
-        end)
-
-        it("ignores the quests that aren't tracked", function()
-            tracked[999003] = nil
-            turnIn()
-            assert.are.equal(999004, ns.Focus_Quest())
-        end)
-
-        it("with none tracked left, the window says so", function()
-            track({ 999001 })
-            turnIn()
-            assert.is_nil(ns.Focus_Quest())
-            assert.are.equal("No quest focused", frame.title._text)
-        end)
-
-        it("with no distance known for any of them, it leaves the window for the player to choose", function()
-            ns.DistanceTo = function() return nil end
-            turnIn()
-            assert.is_nil(ns.Focus_Quest())
-            assert.are.equal("No quest focused", frame.title._text)
-            assert.matches("Click to choose another", shownTexts()[1])
-        end)
-
-        it("one with a known distance is chosen even if the others have none", function()
-            distance = { [80] = 900, [30] = nil }
-            ns.DistanceTo = function(loc) return distance[loc.x] end
-            turnIn()
-            assert.are.equal(999004, ns.Focus_Quest())
-        end)
-
-        it("does nothing with the setting off", function()
-            ns.char.focusAuto = nil
-            turnIn()
-            assert.is_nil(ns.Focus_Quest())
-            assert.are.equal("No quest focused", frame.title._text)
-        end)
-
-        it("only when the focused quest is turned in: not when moving around, abandoning or turning in another", function()
-            distance[30] = 1 -- the foxes are now by the player
-            FireEvent("QUEST_LOG_UPDATE")
-            assert.are.equal(999001, ns.Focus_Quest())
-            WowMock.onQuest[999001] = nil -- abandoned
-            FireEvent("QUEST_REMOVED", 999001)
-            assert.is_nil(ns.Focus_Quest())
-            assert.are.equal("No quest focused", frame.title._text)
-        end)
-
-        it("turning in a quest that wasn't the focused one leaves the focus alone", function()
-            WowMock.onQuest[999003], WowMock.done[999003] = nil, true
-            FireEvent("QUEST_TURNED_IN", 999003)
-            assert.are.equal(999001, ns.Focus_Quest())
-        end)
-    end)
-
-    describe("switching to a nearer tracked quest when the focused one is ready", function()
-        local tracked, distance
-        local function finish()
-            objectives(true, true)
-            WowMock.readyForTurnIn[999001] = true
-            FireEvent("QUEST_LOG_UPDATE")
-        end
-        before_each(function()
-            -- the pest control turn-in is at x = 20; the foxes at 30, the owls at 80
-            distance = { [20] = 100, [30] = 40, [80] = 900 }
+            distance = { [boars.x] = 200, [wolves.x] = 10, [20] = 300, [30] = 40, [31] = 60, [80] = 900, [81] = 950 }
             ns.DistanceTo = function(loc) return distance[loc.x] end
             tracked = { [999001] = true, [999003] = true, [999004] = true }
             WowMock.log = { { isHeader = true, title = "Zone" } }
-            for id in pairs(tracked) do
+            for _, id in ipairs({ 999001, 999003, 999004 }) do
                 WowMock.onQuest[id] = true
                 WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
             end
             WowMock.titles[999003], WowMock.titles[999004] = "Fox Hunt", "Owl Watch"
             C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
-            ns.char.focusNext = true
-            focus()
+            events = WowMock.Find(function(f) return f._scripts.OnUpdate and f._events and f._events.PLAYER_ENTERING_WORLD end)
+            ns.char.focusAuto = true
+            frame = nil
         end)
         after_each(function() C_QuestLog.GetQuestWatchType = nil end)
 
-        it("goes to a tracked quest with something nearer than this one's turn-in", function()
-            finish()
-            assert.are.equal(999003, ns.Focus_Quest())
-            assert.matches("Fox Hunt", frame.title._text)
-            assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+        local function update() FireEvent("QUEST_LOG_UPDATE") frame = CompletaoFocusFrame end
+
+        describe("with nothing focused", function()
+            it("focuses the quest with the nearest objective", function()
+                update()
+                assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+                assert.is_true(frame:IsShown())
+                assert.near(0.6, WowMock.userWaypoint.x, 1e-9)
+            end)
+
+            it("prefers objectives to turn-ins, even nearer ones", function()
+                ready(999003)
+                distance[31] = 1
+                update()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("with no objectives left anywhere, the nearest turn-in", function()
+                objectives(true, true)
+                ready(999001); ready(999003); ready(999004)
+                update()
+                assert.are.equal(999003, ns.Focus_Quest()) -- the foxes' turn-in, 60 yd (the others: 300, 950)
+                distance[20] = 30
+                ns.Focus_Clear(true) -- (turned in, say)
+                assert.are.equal(999001, ns.Focus_Quest())
+                assert.matches("Turn in Pest Control", shownTexts()[1])
+            end)
+
+            it("skips the quests whose distance isn't known, and leaves the window empty if none is", function()
+                distance = {}
+                update()
+                assert.is_nil(ns.Focus_Quest())
+                assert.is_true(frame:IsShown()) -- it says so, for the player to choose
+                assert.are.equal("No quest focused", frame.title._text)
+                assert.matches("Click to choose another", shownTexts()[1])
+                ns.DistanceTo = function(loc) return loc.x == 80 and 900 or nil end
+                update()
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("only looks at the tracked quests", function()
+                tracked = { [999004] = true }
+                update()
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("does nothing with the setting off", function()
+                ns.char.focusAuto = nil
+                update()
+                assert.is_nil(ns.Focus_Quest())
+            end)
+
+            it("picks up again when the focused quest is turned in or abandoned", function()
+                assert.is_true(ns.Focus_Set(999004))
+                turnIn(999004)
+                assert.are.equal(999001, ns.Focus_Quest())
+                WowMock.onQuest[999001] = nil
+                FireEvent("QUEST_REMOVED", 999001)
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("catches up as the clock ticks, when the distances become known", function()
+                local real = ns.DistanceTo
+                ns.DistanceTo = function() return nil end
+                update()
+                assert.is_nil(ns.Focus_Quest())
+                ns.DistanceTo = real
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("closing the window, or unfocusing by hand, pauses it until a quest is focused or the setting is switched", function()
+                update()
+                frame.close:Click()
+                assert.is_nil(ns.Focus_Quest())
+                tick(); update()
+                assert.is_nil(ns.Focus_Quest())
+                assert.is_false(frame:IsShown())
+                ns.Focus_SetAuto(true)
+                assert.are.equal(999001, ns.Focus_Quest())
+                ns.Focus_Toggle(999001) -- unfocused from the list
+                tick()
+                assert.is_nil(ns.Focus_Quest())
+                assert.is_true(ns.Focus_Set(999003)) -- by hand: it is back on
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("is quiet in combat", function()
+                WowMock.inCombat = true
+                update()
+                assert.is_nil(ns.Focus_Quest())
+                WowMock.inCombat = false
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
         end)
 
-        it("also counts another quest's turn-in", function()
-            WowMock.readyForTurnIn[999004] = true
-            distance[81], distance[30] = 10, 500 -- the owls' turn-in is close now, the foxes far
-            finish()
-            assert.are.equal(999004, ns.Focus_Quest())
+        describe("with the focused quest ready to turn in", function()
+            local function finish()
+                objectives(true, true)
+                ready(999001)
+                update()
+            end
+            before_each(function()
+                assert.is_true(ns.Focus_Set(999001, true))
+                frame = CompletaoFocusFrame
+            end)
+
+            it("goes to the quest with the nearest objective or turn-in", function()
+                finish() -- its turn-in: 300 yd; the foxes are at 40
+                assert.are.equal(999003, ns.Focus_Quest())
+                assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+            end)
+
+            it("a turn-in counts too", function()
+                ready(999004)
+                distance[81] = 5
+                finish()
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("stays when its own turn-in is the nearest", function()
+                distance[20] = 5
+                finish()
+                assert.are.equal(999001, ns.Focus_Quest())
+                assert.matches("Turn in Pest Control", shownTexts()[1])
+            end)
+
+            it("goes on when its own distance isn't known", function()
+                distance[20] = nil
+                finish()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("stays when no other quest has a known distance", function()
+                distance[30], distance[80], distance[10], distance[60] = nil, nil, nil, nil
+                finish()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("keeps following the nearest while it is ready", function()
+                distance[30] = 500
+                distance[20] = 100
+                finish()
+                assert.are.equal(999001, ns.Focus_Quest())
+                distance[30] = 1 -- now the foxes are by the player
+                tick()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("does nothing with the setting off", function()
+                ns.char.focusAuto = nil
+                finish()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
         end)
 
-        it("stays when its own turn-in is the nearest", function()
-            distance[20] = 5
-            finish()
-            assert.are.equal(999001, ns.Focus_Quest())
-            assert.matches("Turn in Pest Control", shownTexts()[1])
+        describe("when a quest is accepted", function()
+            local function accept(id, x)
+                distance[x] = 1 -- its objective is right here
+                tracked[id] = true
+                WowMock.onQuest[id] = true
+                WowMock.log[#WowMock.log + 1] = { questID = id, title = "New " .. id, level = 20 }
+                FireEvent("QUEST_ACCEPTED", 1, id)
+                frame = CompletaoFocusFrame
+            end
+
+            it("is looked at, but the focus stays on a quest still in progress", function()
+                assert.is_true(ns.Focus_Set(999001, true))
+                accept(999004, 80)
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("the focus goes to it when the focused quest is ready and the new one has objectives nearer", function()
+                assert.is_true(ns.Focus_Set(999001, true))
+                objectives(true, true)
+                ready(999001)
+                distance[20] = 5 -- its own turn-in is 5 yd away: it stays
+                FireEvent("QUEST_LOG_UPDATE")
+                assert.are.equal(999001, ns.Focus_Quest())
+                accept(999004, 80) -- the new one's objective: 1 yd
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("not when the new one is farther than the ready quest's turn-in", function()
+                assert.is_true(ns.Focus_Set(999001, true))
+                objectives(true, true)
+                ready(999001)
+                distance[20] = 0.5
+                FireEvent("QUEST_LOG_UPDATE")
+                accept(999004, 80) -- 1 yd, against a turn-in 0.5 yd away
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("is chosen when nothing is focused, if it is the nearest", function()
+                tracked = {}
+                WowMock.log = { { isHeader = true, title = "Zone" } }
+                ns.Focus_Clear(true)
+                assert.is_nil(ns.Focus_Quest()) -- "No quest focused": nothing tracked
+                accept(999004, 80)
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("when nothing is focused and another tracked quest is nearer, that one stays the pick", function()
+                ns.Focus_Clear(true)
+                assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+                ns.Focus_Clear(true)
+                distance[60] = 0.5
+                ns.Focus_Clear(true)
+                accept(999004, 80) -- 1 yd: farther than the wolves now
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
         end)
 
-        it("does nothing with the setting off", function()
-            ns.char.focusNext = nil
-            finish()
-            assert.are.equal(999001, ns.Focus_Quest())
-        end)
+        describe("with the focused quest still in progress", function()
+            it("stays, however near the other quests are", function()
+                assert.is_true(ns.Focus_Set(999001))
+                distance[30] = 1
+                update(); tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
 
-        it("stays when a distance can't be told: its own, or the others'", function()
-            distance[20] = nil
-            finish()
-            assert.are.equal(999001, ns.Focus_Quest())
-        end)
-
-        it("stays when no other tracked quest has a known distance", function()
-            distance[30], distance[80] = nil, nil
-            finish()
-            assert.are.equal(999001, ns.Focus_Quest())
-        end)
-
-        it("only at the moment the objectives are finished, not as you move afterwards", function()
-            distance[30] = 500 -- the foxes are far
-            finish()
-            assert.are.equal(999001, ns.Focus_Quest())
-            distance[30] = 1 -- and now you are by them
-            FireEvent("QUEST_LOG_UPDATE")
-            assert.are.equal(999001, ns.Focus_Quest())
-        end)
-
-        it("a quest that was already ready when it got the focus stays", function()
-            ns.Focus_Clear()
-            finish() -- ready while unfocused
-            assert.is_true(ns.Focus_Set(999001))
-            assert.are.equal(999001, ns.Focus_Quest())
-            FireEvent("QUEST_LOG_UPDATE")
-            assert.are.equal(999001, ns.Focus_Quest())
+            it("a quest that was ready when focused by hand is left alone", function()
+                objectives(true, true)
+                ready(999001)
+                assert.is_true(ns.Focus_Set(999001))
+                update(); tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+                assert.is_true(ns.Focus_Set(999001, true)) -- but one chosen by autofocus is not
+                update()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
         end)
     end)
 

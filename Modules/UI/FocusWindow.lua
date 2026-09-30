@@ -30,6 +30,7 @@ local ready = false   -- the quest log is loaded (see Focus_Init): before, a que
 local lastSignature   -- what the waypoint was last worked out for
 local mouseOn = true  -- false in combat (click-through)
 local idle = false    -- no quest focused but the window stays, saying so (the quest was turned in or abandoned)
+local progressSeen = {} -- [questId] = true: seen with objectives left while focused, so finishing them is news
 
 function ns.Focus_Quest()
     return ns.char and ns.char.focusQuest
@@ -355,7 +356,7 @@ function ns.Focus_Nearest(skip)
             if d and (not bestDist or d < bestDist) then best, bestDist = id, d end
         end
     end
-    return best
+    return best, bestDist
 end
 
 function ns.Focus_Refresh(force)
@@ -381,6 +382,22 @@ function ns.Focus_Refresh(force)
     local steps = ns.QuestSteps(q)
     local isReady = ns.IsReadyToTurnIn(id)
     local target = ns.Focus_PickStep(steps, isReady)
+    if not isReady then
+        progressSeen[id] = true
+    elseif progressSeen[id] then
+        -- the objectives have just been finished. With the setting on, if another tracked quest has something
+        -- nearer to do than this one's turn-in, the focus goes there (once: a quest that was already ready
+        -- when it got the focus stays)
+        progressSeen[id] = nil
+        if ns.char.focusNext then
+            local other, otherDist = ns.Focus_Nearest(id)
+            local mine = target and ns.DistanceTo(steps[target].loc)
+            if other and mine and otherDist < mine then
+                ns.Focus_Set(other)
+                return
+            end
+        end
+    end
     retarget(q, steps, target, force, isReady)
     local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
@@ -392,6 +409,7 @@ function ns.Focus_Set(id)
     ns.char.focusQuest = id
     lastSignature = nil
     idle = false
+    progressSeen[id] = nil -- news only if it is seen unfinished from now on
     ns.Focus_Refresh(true)
     return true
 end
@@ -401,6 +419,7 @@ end
 function ns.Focus_Clear(keep)
     ns.char.focusQuest = nil
     lastSignature = nil
+    progressSeen = {}
     idle = keep and true or false
     ns.Focus_Refresh()
 end

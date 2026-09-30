@@ -453,6 +453,88 @@ describe("FocusWindow", function()
         end)
     end)
 
+    describe("switching to a nearer tracked quest when the focused one is ready", function()
+        local tracked, distance
+        local function finish()
+            objectives(true, true)
+            WowMock.readyForTurnIn[999001] = true
+            FireEvent("QUEST_LOG_UPDATE")
+        end
+        before_each(function()
+            -- the pest control turn-in is at x = 20; the foxes at 30, the owls at 80
+            distance = { [20] = 100, [30] = 40, [80] = 900 }
+            ns.DistanceTo = function(loc) return distance[loc.x] end
+            tracked = { [999001] = true, [999003] = true, [999004] = true }
+            WowMock.log = { { isHeader = true, title = "Zone" } }
+            for id in pairs(tracked) do
+                WowMock.onQuest[id] = true
+                WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
+            end
+            WowMock.titles[999003], WowMock.titles[999004] = "Fox Hunt", "Owl Watch"
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+            ns.char.focusNext = true
+            focus()
+        end)
+        after_each(function() C_QuestLog.GetQuestWatchType = nil end)
+
+        it("goes to a tracked quest with something nearer than this one's turn-in", function()
+            finish()
+            assert.are.equal(999003, ns.Focus_Quest())
+            assert.matches("Fox Hunt", frame.title._text)
+            assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+        end)
+
+        it("also counts another quest's turn-in", function()
+            WowMock.readyForTurnIn[999004] = true
+            distance[81], distance[30] = 10, 500 -- the owls' turn-in is close now, the foxes far
+            finish()
+            assert.are.equal(999004, ns.Focus_Quest())
+        end)
+
+        it("stays when its own turn-in is the nearest", function()
+            distance[20] = 5
+            finish()
+            assert.are.equal(999001, ns.Focus_Quest())
+            assert.matches("Turn in Pest Control", shownTexts()[1])
+        end)
+
+        it("does nothing with the setting off", function()
+            ns.char.focusNext = nil
+            finish()
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("stays when a distance can't be told: its own, or the others'", function()
+            distance[20] = nil
+            finish()
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("stays when no other tracked quest has a known distance", function()
+            distance[30], distance[80] = nil, nil
+            finish()
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("only at the moment the objectives are finished, not as you move afterwards", function()
+            distance[30] = 500 -- the foxes are far
+            finish()
+            assert.are.equal(999001, ns.Focus_Quest())
+            distance[30] = 1 -- and now you are by them
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("a quest that was already ready when it got the focus stays", function()
+            ns.Focus_Clear()
+            finish() -- ready while unfocused
+            assert.is_true(ns.Focus_Set(999001))
+            assert.are.equal(999001, ns.Focus_Quest())
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+    end)
+
     describe("the step for the waypoint", function()
         local function steps(list) return list end
         before_each(function() ns.DistanceTo = function(loc) return loc.d end end)

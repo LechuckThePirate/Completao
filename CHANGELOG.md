@@ -23,6 +23,12 @@
   with it; if none of them has a known distance, the window is left empty for
   you to choose. It only happens at the turn-in: not as you move, and not when you
   abandon the quest.
+- New: **Switch to a nearer tracked quest when the focused one is ready**
+  (Preferences, off by default): when you finish the objectives of the focused
+  quest, if another tracked quest has an objective or a turn-in nearer than
+  this one's turn-in, the focus goes there, with the waypoint. It is decided
+  once, at the moment the objectives are done -- a quest that was already ready
+  when you focused it stays -- and only when both distances are known.
 - Fix: "hide too high" only hides quests you can't take yet (their minimum
   level is above yours). Quests with a high level but a low minimum, like a
   level 60 one you can pick up at level 10, are no longer hidden, nor drawn

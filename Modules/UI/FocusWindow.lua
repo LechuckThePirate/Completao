@@ -8,7 +8,8 @@ local L = ns.L
 -- "Turn in <quest> (<npc>)". The waypoint goes to the step to do next (the nearest objective left, or the
 -- turn-in) and moves by itself as objectives are completed. The window goes away when the quest is turned
 -- in (or abandoned), can be dragged by its title bar ("Focused Quest"; the place is saved). Clicking an
--- objective sets the waypoint on it. In combat the window stops taking the mouse, so clicks reach the world.
+-- objective sets the waypoint on it, and a right click opens the main window on the tracked quests. In
+-- combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local TOP = TITLE_H + 6 -- where the quest's icon and title start
@@ -122,6 +123,10 @@ local function create()
         self:StopMovingOrSizing()
         savePosition()
     end)
+    -- right click anywhere on it: the main window, on the tracked quests
+    frame:SetScript("OnMouseUp", function(_, which)
+        if which == "RightButton" then ns.UI_OpenTracked() end
+    end)
 
     -- title bar: what the window is, and the close button
     frame.bar = frame:CreateTexture(nil, "BACKGROUND")
@@ -163,7 +168,12 @@ local function getLine(i)
     button:SetHeight(LINE_H)
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     button:EnableMouse(mouseOn)
-    button:SetScript("OnClick", function(self)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetScript("OnClick", function(self, which)
+        if which == "RightButton" then
+            ns.UI_OpenTracked()
+            return
+        end
         local step = self.step
         if not (step and step.loc) then return end
         if ns.CanWaypoint(step.loc) then

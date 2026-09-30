@@ -10,7 +10,8 @@
   and follows you through the quest; the window closes when the quest is
   turned in or abandoned. It has a "Focused Quest" title bar, can be moved
   (the place is saved; reset with the other window positions), and clicking an
-  objective sets the waypoint on it. In combat it lets every click through.
+  objective sets the waypoint on it, and a right click opens the main window
+  on Tracked Quests. In combat it lets every click through.
 - Change: with TomTom, a new waypoint replaces the one the addon set before
   instead of piling up.
 

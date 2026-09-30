@@ -1153,6 +1153,13 @@ function ns.UI_Toggle()
     frame:SetShown(not frame:IsShown())
 end
 
+-- Opens the window (if it isn't) on the Tracked Quests view (the focus window's right click).
+function ns.UI_OpenTracked()
+    if not frame then createFrame() end
+    frame:Show()
+    ns.UI_SetSearchMode(true, "tracked")
+end
+
 -- Preferences -> "Sync with Blizzard Quest Log": opening the log (the L key or its button, both through
 -- ToggleQuestLog) also opens this window, and if it was opened that way it closes with it. The log can be
 -- the classic one (QuestLogFrame) or the map's (QuestMapFrame); checked after the game shows it.

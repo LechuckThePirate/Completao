@@ -89,6 +89,23 @@ describe("FocusWindow", function()
         assert.matches("ffffff", shownTexts()[2])
     end)
 
+    it("a right click on the window, or on an objective, opens the main window on the tracked quests", function()
+        focus()
+        assert.is_nil(ns.UI)
+        frame._scripts.OnMouseUp(frame, "LeftButton")
+        assert.is_nil(ns.UI)
+        frame._scripts.OnMouseUp(frame, "RightButton")
+        assert.is_true(ns.UI:IsShown())
+        assert.are.equal("tracked", ns.Search_Mode())
+        ns.UI_Toggle() -- closed, and then from an objective
+        assert.is_false(ns.UI:IsShown())
+        ns.UI_SetSearchMode(true, "log")
+        lineWith("Boars"):Click("RightButton")
+        assert.is_true(ns.UI:IsShown())
+        assert.are.equal("tracked", ns.Search_Mode())
+        assert.are.equal("999001:3", ns.FocusTag()) -- and it is no click on the objective
+    end)
+
     it("clicking the turn-in puts the waypoint on who takes it", function()
         focus()
         WowMock.readyForTurnIn[999001] = true

@@ -42,6 +42,20 @@ describe("Entries", function()
         assert.is_false(ns.EntryHasWork(ns.entries.dm))  -- all done (the Horde one isn't yours)
     end)
 
+    it("a holiday quest that is also in a dungeon counts as work only in the events section", function()
+        ns.RegisterEntry({ id = "brd", name = "Blackrock Depths" })
+        ns.RegisterEntry({ id = "lunar", name = "Lunar Festival", category = "events" })
+        local elder = { id = 8619, name = "Morndeep the Elder", level = 60, minLevel = 1 }
+        ns.AddQuests("brd", { elder, { id = 4001, name = "A dungeon quest", minLevel = 52 } })
+        ns.AddQuests("lunar", { { id = 8619, name = "Morndeep the Elder", level = 60, minLevel = 1 } })
+        assert.is_true(ns.QuestIsIn(8619, "events"))
+        assert.is_false(ns.QuestIsIn(4001, "events"))
+        assert.is_false(ns.EntryHasWork(ns.entries.brd))  -- only the elder is open to a level 20, and it is the festival's
+        assert.is_true(ns.EntryHasWork(ns.entries.lunar))
+        WowMock.level = 52
+        assert.is_true(ns.EntryHasWork(ns.entries.brd))   -- a quest of its own is
+    end)
+
     it("an entry with no quests has no work", function()
         ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
         assert.is_false(ns.EntryHasWork(ns.entries.dm))

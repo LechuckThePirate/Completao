@@ -13,8 +13,10 @@
   off by default): the side panel leaves out the zones, dungeons and other
   entries where everything is done or nothing is available to you now (not
   done, your level, requirements met), and the categories left with none. The
-  counts next to each category follow. The entry you are looking at stays
-  until you leave it.
+  counts next to each category follow. Holiday quests that are also listed in a
+  dungeon (the Lunar Festival elders: level 60, but open from level 1) count
+  only in the events section. The entry you are looking at stays until you
+  leave it.
 
 ## 0.4.0-beta
 

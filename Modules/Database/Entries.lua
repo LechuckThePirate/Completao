@@ -87,11 +87,24 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
+-- Whether the quest is also listed in an entry of that section (a quest can sit in several entries).
+function ns.QuestIsIn(id, category)
+    for _, q in ipairs(copies[id] or {}) do
+        local e = ns.entries[q.entryId]
+        if e and e.category == category then return true end
+    end
+    return false
+end
+
 -- Whether an entry has anything left to do for the character: a quest they can see that is in their log or
--- available now (not done, not locked by level or by quests they lack). Stops at the first one.
+-- available now (not done, not locked by level or by quests they lack). Stops at the first one. A holiday
+-- quest that shows up in a dungeon too (the Lunar Festival elders stand in instances: level 60, but from
+-- level 1) counts only in the events section, or every such dungeon would look like it had work.
 function ns.EntryHasWork(d)
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) then return true end
+        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (d.category == "events" or not ns.QuestIsIn(q.id, "events")) then
+            return true
+        end
     end
     return false
 end

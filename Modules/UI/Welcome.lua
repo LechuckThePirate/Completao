@@ -12,14 +12,15 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: Tracked Quests view, with your tracked quests and their objectives; click an objective to set",
-    "  the waypoint on it.",
-    "- New: clicking a quest in a table opens its details below it, with a View chain button.",
-    "- New: a live Distance column to each quest's next step (sortable).",
-    "- New: [level] prefix on titles (D dungeon, + elite) and ready / in progress icons.",
-    "- New: Sync with Blizzard Quest Log -- selecting a quest in it opens it here.",
-    "- New: click-through in combat / while moving, and a separate opacity in combat.",
-    "- New: the table's sort order is remembered.",
+    "- New: focus window -- a small movable window (with a padlock) for one tracked quest: its objectives",
+    "  with live progress, the waypoint on the nearest one, and the turn-in once they are done. Right-click",
+    "  a tracked quest, or press Focus in its details, to focus it; click an objective to set its waypoint.",
+    "- New: Autofocus tracked quests (Preferences): the focus picks the nearest tracked quest by itself.",
+    "- Change: with TomTom, a new waypoint replaces the one set before.",
+    "- Fix: scroll bars hide when there is nothing to scroll, and the space goes to the main area.",
+    "- Fix: the quest tree no longer shows through the tables.",
+    "- Fix: \"hide too high\" only hides quests you can't take yet.",
+    "- Fix: the window stays as it is on flight paths (no fading or click-through).",
 }, "\n")
 
 local welcomeFrame

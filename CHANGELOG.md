@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0-beta
 
 - New: **focus window** -- right-click a quest in Tracked Quests (or press
   **Focus** in its details) to get a small floating window with its status

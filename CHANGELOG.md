@@ -20,7 +20,8 @@
   default): when you turn in the quest in the focus window, the focus moves on
   its own to the tracked quest that is nearest, by what it needs next (its
   nearest objective left, or its turn-in once ready), and the waypoint goes
-  with it. It only happens at the turn-in: not as you move, and not when you
+  with it; if none of them has a known distance, the window is left empty for
+  you to choose. It only happens at the turn-in: not as you move, and not when you
   abandon the quest.
 - Fix: "hide too high" only hides quests you can't take yet (their minimum
   level is above yours). Quests with a high level but a low minimum, like a

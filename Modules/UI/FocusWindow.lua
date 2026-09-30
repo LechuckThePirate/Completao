@@ -340,8 +340,8 @@ local function drawIdle()
 end
 
 -- The tracked quest nearest to the character, other than `skip`, by what each needs next: its nearest
--- objective left, or the turn-in once it is ready (the step the waypoint would go to). One whose distance can't
--- be told counts after the ones that have it; with none, the first in the log.
+-- objective left, or the turn-in once it is ready (the step the waypoint would go to). Only quests whose
+-- distance can be told count; with none, nil: the window is left for the player to choose.
 function ns.Focus_Nearest(skip)
     local best, bestDist
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
@@ -352,7 +352,7 @@ function ns.Focus_Nearest(skip)
             local steps = ns.QuestSteps(questDef(id))
             local index = ns.Focus_PickStep(steps, ns.IsReadyToTurnIn(id))
             local d = index and ns.DistanceTo(steps[index].loc)
-            if not best or (d and (not bestDist or d < bestDist)) then best, bestDist = id, d end
+            if d and (not bestDist or d < bestDist) then best, bestDist = id, d end
         end
     end
     return best

@@ -414,6 +414,21 @@ describe("FocusWindow", function()
             assert.are.equal("No quest focused", frame.title._text)
         end)
 
+        it("with no distance known for any of them, it leaves the window for the player to choose", function()
+            ns.DistanceTo = function() return nil end
+            turnIn()
+            assert.is_nil(ns.Focus_Quest())
+            assert.are.equal("No quest focused", frame.title._text)
+            assert.matches("Click to choose another", shownTexts()[1])
+        end)
+
+        it("one with a known distance is chosen even if the others have none", function()
+            distance = { [80] = 900, [30] = nil }
+            ns.DistanceTo = function(loc) return distance[loc.x] end
+            turnIn()
+            assert.are.equal(999004, ns.Focus_Quest())
+        end)
+
         it("does nothing with the setting off", function()
             ns.char.focusAuto = nil
             turnIn()

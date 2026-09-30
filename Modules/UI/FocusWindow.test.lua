@@ -581,6 +581,65 @@ describe("FocusWindow", function()
                 assert.are.equal(999001, ns.Focus_Quest())
             end)
 
+            describe("a direct turn-in", function()
+                -- Owl Watch (999004) is the one just accepted; Pest Control (999001) is focused, its wolves 10 yd away
+                local function acceptTurnIn(turnInX, turnInDist)
+                    tracked = { [999001] = true }
+                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999001, title = "Pest", level = 20 } }
+                    WowMock.onQuest[999004] = nil
+                    assert.is_true(ns.Focus_Set(999001))
+                    distance[turnInX] = turnInDist
+                    tracked[999004] = true
+                    WowMock.onQuest[999004] = true
+                    WowMock.log[#WowMock.log + 1] = { questID = 999004, title = "Owl Watch", level = 20 }
+                    ready(999004) -- ready the moment it is taken
+                    FireEvent("QUEST_ACCEPTED", 2, 999004)
+                    frame = CompletaoFocusFrame
+                end
+
+                it("takes the focus from a quest in progress when its turn-in is nearer", function()
+                    acceptTurnIn(81, 3) -- 3 yd, against the wolves at 10
+                    assert.are.equal(999004, ns.Focus_Quest())
+                    assert.matches("Turn in Owl Watch", shownTexts()[1])
+                end)
+
+                it("not when its turn-in is farther than what the focused quest needs next", function()
+                    acceptTurnIn(81, 50)
+                    assert.are.equal(999001, ns.Focus_Quest())
+                end)
+
+                it("takes it when the focused quest has no known spot to go to", function()
+                    distance[wolves.x], distance[boars.x] = nil, nil
+                    acceptTurnIn(81, 50)
+                    assert.are.equal(999004, ns.Focus_Quest())
+                end)
+
+                it("only counts in the moments after it is accepted, not when it becomes ready much later", function()
+                    tracked = { [999001] = true, [999004] = true }
+                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999001, title = "Pest", level = 20 },
+                        { questID = 999004, title = "Owl Watch", level = 20 } }
+                    assert.is_true(ns.Focus_Set(999001))
+                    FireEvent("QUEST_ACCEPTED", 2, 999004) -- accepted with objectives to do
+                    WowMock.time = 100
+                    distance[81] = 1
+                    ready(999004) -- and finished ages later
+                    FireEvent("QUEST_LOG_UPDATE")
+                    assert.are.equal(999001, ns.Focus_Quest())
+                    WowMock.time = 0
+                end)
+
+                it("does nothing with autofocus off, or when the new quest isn't tracked", function()
+                    ns.char.focusAuto = nil
+                    acceptTurnIn(81, 3)
+                    assert.are.equal(999001, ns.Focus_Quest())
+                    ns.char.focusAuto = true
+                    ns.Focus_Set(999001)
+                    tracked[999004] = nil
+                    FireEvent("QUEST_ACCEPTED", 2, 999004)
+                    assert.are.equal(999001, ns.Focus_Quest())
+                end)
+            end)
+
             it("is chosen when nothing is focused, if it is the nearest", function()
                 tracked = {}
                 WowMock.log = { { isHeader = true, title = "Zone" } }

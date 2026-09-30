@@ -347,10 +347,14 @@ end
 --  * The focused quest is ready to turn in: the tracked quest with the nearest objective or turn-in (its own
 --    turn-in too, so it stays when that is the nearest). A quest that was ready when the player focused it by
 --    hand is left alone.
+--  * The focused quest is still in progress: only a quest just accepted that is a direct turn-in (ready the
+--    moment it is taken) and whose turn-in is nearer than what the focused quest needs next takes the focus.
 -- Looked at when the quest log changes and every few seconds. Closing the window or unfocusing by hand pauses
 -- it until the player focuses a quest or switches the setting.
 local AUTO_EVERY = 2
 local sticky, suspended, picking = {}, false, false
+local FRESH_SECONDS = 10 -- how long an accepted quest counts as new (its tracking and state can lag a moment)
+local fresh = {}         -- [questId] = GetTime() until which it counts as just accepted
 
 local function trackedCandidates()
     local list = {}
@@ -378,11 +382,33 @@ local function nearest(list, ready)
     return best
 end
 
+-- A just accepted quest, tracked and ready to turn in, whose turn-in is nearer than what the focused quest
+-- `cur` needs next (or than nothing, if that can't be told): the nearest such one, or nil.
+local function freshTurnIn(cur)
+    local now, list, best, bestDist = GetTime(), nil, nil, nil
+    for id, untilTime in pairs(fresh) do
+        if now > untilTime then
+            fresh[id] = nil
+        elseif id ~= cur and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id) and ns.IsReadyToTurnIn(id) then
+            list = list or trackedCandidates()
+            local mine, theirs
+            for _, e in ipairs(list) do
+                if e.id == cur then mine = e.dist elseif e.id == id then theirs = e.dist end
+            end
+            if theirs and (not mine or theirs < mine) and (not bestDist or theirs < bestDist) then best, bestDist = id, theirs end
+        end
+    end
+    if best then fresh[best] = nil end
+    return best
+end
+
 -- The quest autofocus would put the focus on now, or nil to leave it as it is.
 function ns.Focus_AutoPick()
     local cur = ns.Focus_Quest()
     if cur then
-        if sticky[cur] or not (C_QuestLog.IsOnQuest(cur) and ns.IsReadyToTurnIn(cur)) then return nil end
+        if not C_QuestLog.IsOnQuest(cur) then return nil end
+        if not ns.IsReadyToTurnIn(cur) then return freshTurnIn(cur) end
+        if sticky[cur] then return nil end
         local best = nearest(trackedCandidates())
         return best and best.id ~= cur and best.id or nil
     end
@@ -478,11 +504,17 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_DISABLED")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_ENABLED")
-events:SetScript("OnEvent", function(_, event)
+pcall(events.RegisterEvent, events, "QUEST_ACCEPTED")
+events:SetScript("OnEvent", function(_, event, arg1, arg2)
     if event == "PLAYER_REGEN_DISABLED" then
         applyMouse(true)
     elseif event == "PLAYER_REGEN_ENABLED" then
         applyMouse(false)
+    elseif event == "QUEST_ACCEPTED" then
+        -- (log index, quest id) in this client's payload; just the id in others. The main refresh (Completao.lua)
+        -- comes a moment after the event, and finds it marked
+        local id = arg2 or arg1
+        if id then fresh[id] = GetTime() + FRESH_SECONDS end
     else
         lastSignature = nil
         ns.Focus_Refresh(true)

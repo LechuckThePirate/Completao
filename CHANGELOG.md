@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New: with Autofocus on, a quest you just accepted that is a direct turn-in
+  (ready the moment you take it) takes the focus from a quest still in
+  progress when its turn-in is nearer than what that quest needs next.
+
 ## 0.4.0-beta
 
 - New: **focus window** -- right-click a quest in Tracked Quests (or press

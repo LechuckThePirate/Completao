@@ -5,6 +5,11 @@ local DETAIL_H = 210
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 
 local detail, parentFrame, treeScroll, current, leftOff, companion
+-- the text's scroll bar only shows when the text doesn't fit; without it the text gets its room
+local scrollBar, scrollBottom = false, 38
+local function anchorScroll()
+    detail.scroll:SetPoint("BOTTOMRIGHT", -(scrollBar and 28 or 4), scrollBottom)
+end
 local maximized = false
 
 local function describeLocation(loc)
@@ -438,20 +443,21 @@ end
 
 -- Panel at the bottom (with the tree above) or maximized over the whole tree area.
 local function layout()
+    local right = ns.TREE_RIGHT or 32 -- where the tree ends (its scroll bar takes room only when it shows)
     local shown = detail:IsShown()
     if not shown then maximized = false end
     detail:ClearAllPoints()
     if maximized then
         detail:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", leftOff, -(ns.TREE_TOP or 62))
-        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, 30)
+        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, 30)
         treeScroll:Hide()
     else
         detail:SetPoint("BOTTOMLEFT", parentFrame, "BOTTOMLEFT", leftOff, 30)
-        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, 30)
+        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, 30)
         detail:SetHeight(DETAIL_H)
         -- the tree only with a tree open: under a table (search, log, tracked) it stays hidden
         treeScroll:SetShown(not (ns.UI_IsSearchMode and ns.UI_IsSearchMode()))
-        treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, shown and (30 + DETAIL_H + 8) or 30)
+        treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, shown and (30 + DETAIL_H + 8) or 30)
     end
     -- the table (search, log, tracked) shares the space too: it ends above the panel
     if companion then
@@ -497,7 +503,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
 
     detail.scroll = CreateFrame("ScrollFrame", nil, detail, "UIPanelScrollFrameTemplate")
     detail.scroll:SetPoint("TOPLEFT", 8, -46)
-    detail.scroll:SetPoint("BOTTOMRIGHT", -28, 38)
+    anchorScroll()
     detail.content = CreateFrame("Frame", nil, detail.scroll)
     detail.content:SetSize(1, 1)
     detail.scroll:SetScrollChild(detail.content)
@@ -507,6 +513,10 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     detail.text:SetJustifyV("TOP")
     detail.text:SetWordWrap(true)
     detail.scroll:SetScript("OnSizeChanged", function() if current then relayout() end end)
+    ns.AutoScrollBar(detail.scroll, function(has)
+        scrollBar = has
+        anchorScroll()
+    end)
 
     detail.rewards = CreateFrame("Frame", nil, detail.content)
     detail.rewards:SetPoint("TOPLEFT", detail.text, "BOTTOMLEFT", 0, -16)
@@ -613,7 +623,8 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         local width = detail:GetWidth() - 16
         if width <= 0 then return end
         local h = ns.FlowLayout(detail, buttons, 8, 8, width, 6, 4, true, true)
-        detail.scroll:SetPoint("BOTTOMRIGHT", -28, 8 + h + 8)
+        scrollBottom = 8 + h + 8
+        anchorScroll()
     end
     detail:HookScript("OnSizeChanged", detail.layoutButtons)
 

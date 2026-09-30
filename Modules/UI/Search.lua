@@ -36,6 +36,8 @@ end
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 
 local panel
+-- room the table's scroll bar takes (it only shows when the rows don't fit)
+local barInset = 0
 local state = {
     text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
     sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "money", by the header
@@ -635,10 +637,10 @@ function ns.Search_Create(parent)
         for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
         local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -12
         panel.count:ClearAllPoints()
-        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -26, -(28 + h + 6))
+        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(28 + h + 6))
         panel.head:ClearAllPoints()
         panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -(28 + h + 22))
-        panel.head:SetPoint("RIGHT", panel, "RIGHT", -24, 0)
+        panel.head:SetPoint("RIGHT", panel, "RIGHT", -barInset, 0)
     end
     panel.typeButton:SetScript("OnClick", function(self)
         local options = { { name = L["Any"] } }
@@ -730,11 +732,16 @@ function ns.Search_Create(parent)
 
     panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     panel.scroll:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, -2)
-    panel.scroll:SetPoint("BOTTOMRIGHT", -24, 0)
+    panel.scroll:SetPoint("BOTTOMRIGHT", -barInset, 0)
     panel.content = CreateFrame("Frame", nil, panel.scroll)
     panel.content:SetSize(1, 1)
     panel.scroll:SetScrollChild(panel.content)
     panel.scroll:SetScript("OnSizeChanged", function() requestRefresh() end)
+    ns.AutoScrollBar(panel.scroll, function(has)
+        barInset = has and 24 or 0
+        panel.scroll:SetPoint("BOTTOMRIGHT", -barInset, 0)
+        panel.layoutForm()
+    end)
 
     panel.empty = panel.content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     panel.empty:SetPoint("TOPLEFT", 8, -8)

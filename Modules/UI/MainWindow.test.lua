@@ -69,7 +69,7 @@ describe("MainWindow", function()
                 assert.is_not_nil(h.label:find(cat.name, 1, true))
             end
             assert.is_true(lastTopLeftX(ns.UI.treeScroll) < wide)
-            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+            assert.are.equal(64 - 22 + 26, lastTopLeftX(ns.UI.treeScroll)) -- no scroll bar
         end)
 
         it("no entry is listed, and expanding brings back the names and the width", function()
@@ -82,7 +82,7 @@ describe("MainWindow", function()
             assert.is_false(ns.char.sideCollapsed)
             assert.is_true(header("dungeons").text:IsShown())
             assert.is_nil(header("dungeons").label)
-            assert.are.equal(210 + 26, lastTopLeftX(ns.UI.treeScroll))
+            assert.are.equal(210 - 22 + 26, lastTopLeftX(ns.UI.treeScroll))
         end)
 
         it("a section's icon opens a menu with its entries; picking one goes to it", function()
@@ -95,13 +95,24 @@ describe("MainWindow", function()
             assert.are.equal("raids", ns.char.category)
         end)
 
+        it("the side panel's scroll bar only shows when its content doesn't fit, and then the main area moves over", function()
+            local scroll = ns.UI.listScroll
+            assert.are.equal(210 - 22 + 26, lastTopLeftX(ns.UI.treeScroll))
+            scroll:SetVerticalScrollRange(300)
+            for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end
+            assert.are.equal(210 + 26, lastTopLeftX(ns.UI.treeScroll))
+            scroll:SetVerticalScrollRange(0)
+            for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end
+            assert.are.equal(210 - 22 + 26, lastTopLeftX(ns.UI.treeScroll))
+        end)
+
         it("the toggle button collapses and expands, and it is remembered", function()
             local toggle = WowMock.Find(function(f) return f.tex and f._scripts.OnClick and f.text and f.text._text == "Collapse menu" end)
             toggle:Click()
             assert.is_true(ns.char.sideCollapsed)
             ns = OpenAddon("vc", { selected = "vc", sideCollapsed = true })
             assert.is_false(header("dungeons").text:IsShown())
-            assert.are.equal(64 + 26, lastTopLeftX(ns.UI.treeScroll))
+            assert.are.equal(64 - 22 + 26, lastTopLeftX(ns.UI.treeScroll)) -- no scroll bar
         end)
     end)
 

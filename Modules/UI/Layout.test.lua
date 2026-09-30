@@ -53,3 +53,46 @@ describe("Layout.FlowLayout", function()
         assert.are.equal(24 + #"Hide low level" * 6 + 4, w())
     end)
 end)
+
+describe("Layout.AutoScrollBar", function()
+    local ns, scroll, placed
+
+    local function changed()
+        for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end
+    end
+
+    before_each(function()
+        WowMock.Reset()
+        ns = LoadAddon({ files = { "Modules/UI/Layout.lua" } })
+        scroll = WowMock.NewFrame("ScrollFrame")
+        scroll.ScrollBar = WowMock.NewFrame("Slider", nil, scroll)
+        placed = {}
+    end)
+
+    it("starts without a bar and places the layout once", function()
+        ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end)
+        assert.are.same({ false }, placed)
+        assert.is_false(scroll.ScrollBar:IsShown())
+    end)
+
+    it("shows the bar and re-places when the content overflows, and hides it when it fits again", function()
+        ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end)
+        scroll:SetVerticalScrollRange(120)
+        changed()
+        assert.is_true(scroll.ScrollBar:IsShown())
+        changed() -- nothing changed: nothing is placed again
+        scroll:SetVerticalScrollRange(0)
+        changed()
+        assert.is_false(scroll.ScrollBar:IsShown())
+        assert.are.same({ false, true, false }, placed)
+    end)
+
+    it("takes its own test of the overflow, and the update can be asked for", function()
+        local overflow = false
+        local update = ns.AutoScrollBar(scroll, function(has) placed[#placed + 1] = has end, function() return overflow end)
+        overflow = true
+        update()
+        assert.are.same({ false, true }, placed)
+        assert.is_true(scroll.ScrollBar:IsShown())
+    end)
+end)

@@ -19,6 +19,12 @@ describe("QuestState", function()
             assert.are.equal("First", ns.QuestTitle(10, "First"))
             assert.are.equal("Quest 99", ns.QuestTitle(99))
         end)
+        it("asks the client to load a quest only once, or every answer would redraw the window again", function()
+            local calls = 0
+            C_QuestLog.RequestLoadQuestByID = function() calls = calls + 1 end
+            ns.QuestTitle(99, "x"); ns.QuestTitle(99, "x"); ns.IsEliteQuest(99); ns.IsEliteQuest(99)
+            assert.are.equal(1, calls)
+        end)
         it("keeps the step number of chains with repeated names", function()
             WowMock.titles[11] = "Second"
             assert.are.equal("Second (2/3)", ns.QuestTitle(11, "Second (2/3)"))

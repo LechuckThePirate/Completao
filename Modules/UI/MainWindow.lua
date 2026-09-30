@@ -213,9 +213,8 @@ end
 local function renderTree(d)
     local layout = ns.BuildLayout(d.quests, makeFilter(d))
 
-    for _, b in ipairs(nodeButtons) do b:Hide() end
-    for _, l in ipairs(lines) do l:Hide() end
-
+    -- what is not used is hidden at the end, not everything up front: a frame hidden and shown again during a
+    -- redraw loses the click that was in progress on it
     emptyText:SetShown(layout.count == 0)
     if layout.count == 0 then
         local hasData = false
@@ -361,6 +360,8 @@ local function renderTree(d)
             if chainSet[e.from] and chainSet[e.to] then drawEdge(e, CHAIN_COLOR) end
         end
     end
+    for k = i + 1, #nodeButtons do nodeButtons[k]:Hide() end
+    for k = segCount + 1, #lines do lines[k]:Hide() end
 end
 
 -- In zones, classes and professions only entries with some quest for this character (faction and race)
@@ -506,9 +507,6 @@ local function getEntryButton(i)
 end
 
 local function refreshList()
-    for _, b in ipairs(headerButtons) do b:Hide() end
-    for _, b in ipairs(listButtons) do b:Hide() end
-
     local narrow = collapsed()
     local listW = sideW() - 26
     local y, hi, ei = 0, 0, 0
@@ -602,6 +600,8 @@ local function refreshList()
             y = y + 4
         end
     end
+    for k = hi + 1, #headerButtons do headerButtons[k]:Hide() end
+    for k = ei + 1, #listButtons do listButtons[k]:Hide() end
     frame.listChild:SetSize(listW, math.max(1, y))
 end
 

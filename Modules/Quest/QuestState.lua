@@ -3,6 +3,16 @@ local _, ns = ...
 -- A quest's state for the character: title, done / in progress / available / locked, low or too high
 -- level, whether it is meant for them (class, race, faction) and its long description.
 
+-- Asks the client for a quest's data (title, tags), once per session: every answer fires an event that
+-- redraws the window, which would ask again for the quests the client never has an answer for (an endless
+-- redraw loop: clicks lost, menus closing themselves).
+local requested = {}
+local function requestLoad(id)
+    if requested[id] then return end
+    requested[id] = true
+    C_QuestLog.RequestLoadQuestByID(id)
+end
+
 -- Title in the client's language. Chain steps that share a name are numbered in the data
 -- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it.
 function ns.QuestTitle(id, fallback)
@@ -12,7 +22,7 @@ function ns.QuestTitle(id, fallback)
         if step and not title:find(step, 1, true) then title = title .. step end
         return title
     end
-    C_QuestLog.RequestLoadQuestByID(id)
+    requestLoad(id)
     return fallback or ("Quest " .. id)
 end
 
@@ -32,7 +42,7 @@ function ns.IsEliteQuest(id)
     if not C_QuestLog.GetQuestTagInfo then return false end
     local tagId = C_QuestLog.GetQuestTagInfo(id)
     if tagId == nil then
-        C_QuestLog.RequestLoadQuestByID(id)
+        requestLoad(id)
         return false
     end
     return tagId == ELITE_TAG_ID

@@ -18,6 +18,14 @@ function ns.PopupMenu(anchor, options, onPick, width, side)
         popup:SetClampedToScreen(true)
         popup:EnableMouse(true)
         popup.buttons = {}
+        -- a click anywhere else closes it (on its own control, that click toggles it)
+        popup:SetScript("OnUpdate", function(self)
+            if not IsMouseButtonDown then return end
+            if (IsMouseButtonDown("LeftButton") or IsMouseButtonDown("RightButton")) and not self:IsMouseOver()
+                and not (self.anchor and self.anchor:IsMouseOver()) then
+                self:Hide()
+            end
+        end)
         popup:Hide()
     end
     if popup:IsShown() and popup.anchor == anchor then popup:Hide() return end

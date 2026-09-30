@@ -92,6 +92,25 @@ function ns.QuestStatus(q)
     return "available"
 end
 
+-- Something to do with it now: in the log, or not done and with nothing still in the way (its level, the quests
+-- it requires). The light version of "available" in QuestStatus, for counting over thousands of quests.
+function ns.IsQuestAvailable(q)
+    if C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
+    if C_QuestLog.IsOnQuest(q.id) then return true end
+    if q.minLevel and UnitLevel("player") < q.minLevel then return false end
+    for _, reqId in ipairs(q.requires or {}) do
+        if not C_QuestLog.IsQuestFlaggedCompleted(reqId) then return false end
+    end
+    if q.requiresAny and #q.requiresAny > 0 then
+        local anyDone = false
+        for _, reqId in ipairs(q.requiresAny) do
+            if C_QuestLog.IsQuestFlaggedCompleted(reqId) then anyDone = true break end
+        end
+        if not anyDone then return false end
+    end
+    return true
+end
+
 -- Color escape (|cffRRGGBB) the game gives a quest of this level for this character (grey, green,
 -- yellow, orange, red); plain grey if the client doesn't answer.
 function ns.QuestLevelColorRGB(level)

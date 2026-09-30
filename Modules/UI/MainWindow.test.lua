@@ -47,6 +47,92 @@ describe("MainWindow", function()
         assert.is_false(ns.char.category)
     end)
 
+    describe("hiding categories with nothing left to do", function()
+        local function header(id)
+            return WowMock.Find(function(f) return f.cat and f.cat.id == id end)
+        end
+        local function entryButton(id)
+            return WowMock.Find(function(f) return f.entry and f.entry.id == id end)
+        end
+        -- the section's header if it is listed (a header button is reused for the next section when one goes)
+        local function listed(id)
+            return WowMock.Find(function(f) return f.cat and f.cat.id == id and f:IsShown() end)
+        end
+        local function finish(entry)
+            for _, q in ipairs(entry.quests) do WowMock.done[q.id] = true end
+        end
+        local function withWork(category, skip)
+            for _, d in ipairs(ns.entryList) do
+                if d.category == category and d.id ~= skip and ns.EntryHasWork(d) then return d end
+            end
+        end
+        local function look()
+            ns.UI_SetSearchMode(true, "log") -- looking at none of them
+            header("dungeons"):Click()        -- and dungeons opened
+            ns.UI_Refresh()
+        end
+
+        it("off (the default): everything is listed, done or not", function()
+            finish(ns.entries.vc)
+            look()
+            assert.is_true(entryButton("vc"):IsShown())
+            assert.is_true(header("dungeons"):IsShown())
+        end)
+
+        it("on: an entry with everything done, or nothing available, is left out; the others stay", function()
+            local other = withWork("dungeons", "vc")
+            assert.is_not_nil(other)
+            finish(ns.entries.vc)
+            ns.char.hideDone = true
+            look()
+            assert.is_nil(entryButton("vc") and entryButton("vc"):IsShown() and true or nil)
+            assert.is_true(entryButton(other.id):IsShown())
+            assert.is_true(header("dungeons"):IsShown())
+            ns.char.hideDone = nil
+            ns.UI_Refresh()
+            assert.is_true(entryButton("vc"):IsShown())
+        end)
+
+        it("the count of a category is of the entries that are listed", function()
+            look()
+            local all = tonumber(header("dungeons").text._text:match("%((%d+)%)"))
+            finish(ns.entries.vc)
+            ns.char.hideDone = true
+            ns.UI_Refresh()
+            local expected = 0
+            for _, d in ipairs(ns.entryList) do
+                if d.category == "dungeons" and ns.EntryHasWork(d) then expected = expected + 1 end
+            end
+            local shown = tonumber(header("dungeons").text._text:match("%((%d+)%)"))
+            assert.are.equal(expected, shown)
+            assert.is_true(shown < all)
+        end)
+
+        it("a category with no entry left goes away, and comes back when something is available", function()
+            for _, d in ipairs(ns.entryList) do
+                if d.category == "dungeons" then finish(d) end
+            end
+            ns.char.hideDone = true
+            ns.UI_SetSearchMode(true, "log")
+            assert.is_nil(listed("dungeons"))
+            assert.is_not_nil(listed("zones"))
+            for _, q in ipairs(ns.entries.vc.quests) do WowMock.done[q.id] = nil end
+            ns.UI_Refresh()
+            assert.is_not_nil(listed("dungeons"))
+        end)
+
+        it("the entry you are looking at stays until you leave it", function()
+            finish(ns.entries.vc)
+            ns.char.hideDone = true
+            ns.UI_Refresh()
+            assert.is_true(entryButton("vc"):IsShown())
+            assert.is_true(header("dungeons"):IsShown())
+            look() -- leaving it for the log, with dungeons opened
+            local button = entryButton("vc")
+            assert.is_false(button ~= nil and button:IsShown() and button.entry.id == "vc")
+        end)
+    end)
+
     describe("the collapsed side panel", function()
         local function header(id)
             return WowMock.Find(function(f) return f.cat and f.cat.id == id end)

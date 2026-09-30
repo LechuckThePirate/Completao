@@ -87,6 +87,15 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
+-- Whether an entry has anything left to do for the character: a quest they can see that is in their log or
+-- available now (not done, not locked by level or by quests they lack). Stops at the first one.
+function ns.EntryHasWork(d)
+    for _, q in ipairs(d.quests) do
+        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) then return true end
+    end
+    return false
+end
+
 -- Progress of an entry: quests done / quests the character can see.
 function ns.EntryProgress(d)
     local done, total = 0, 0

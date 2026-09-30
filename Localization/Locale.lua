@@ -119,6 +119,8 @@ local es = {
     ["Focus"] = "Enfocar",
     ["Focused Quest"] = "Quest enfocada",
     ["Autofocus tracked quests"] = "Autoenfocar quests seguidas",
+    ["Hide categories with no quests available or all done"] =
+        "Ocultar categorías sin quests disponibles o con todas hechas",
     ["Lock position"] = "Bloquear posición",
     ["Unlock position"] = "Desbloquear posición",
     ["No quest focused"] = "Ninguna quest enfocada",

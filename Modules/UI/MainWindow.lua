@@ -392,8 +392,12 @@ end
 
 local function entriesOf(catId)
     local items = {}
+    -- Preferences "hide categories with no quests available or all done": an entry with nothing left to do is
+    -- left out -- except the one being looked at, so it doesn't vanish under the player as they finish it
+    local hideDone = ns.char and ns.char.hideDone
     for _, d in ipairs(ns.entryList) do
-        if d.category == catId and (not HIDE_WHEN_EMPTY[catId] or select(2, ns.EntryProgress(d)) > 0) then
+        if d.category == catId and (not HIDE_WHEN_EMPTY[catId] or select(2, ns.EntryProgress(d)) > 0)
+            and not (hideDone and not (d.id == selectedId and not searchMode) and not ns.EntryHasWork(d)) then
             items[#items + 1] = d
         end
     end
@@ -513,6 +517,17 @@ local function getEntryButton(i)
     return b
 end
 
+-- The sections to list, each with its entries; with "hide categories with no quests available or all done" on,
+-- the ones left without any entry are not.
+local function visibleCategories()
+    local list = {}
+    for _, cat in ipairs(ns.categories) do
+        local items = entriesOf(cat.id)
+        if #items > 0 or not (ns.char and ns.char.hideDone) then list[#list + 1] = { cat = cat, items = items } end
+    end
+    return list
+end
+
 local function refreshList()
     local narrow = collapsed()
     local listW = sideW() - 26
@@ -548,8 +563,8 @@ local function refreshList()
     y = y + 4
 
     local current = ns.entries[selectedId]
-    for _, cat in ipairs(ns.categories) do
-        local items = entriesOf(cat.id)
+    for _, shown in ipairs(visibleCategories()) do
+        local cat, items = shown.cat, shown.items
         local open = cat.id == expandedCat and not narrow
 
         hi = hi + 1

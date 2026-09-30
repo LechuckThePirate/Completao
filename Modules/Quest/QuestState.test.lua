@@ -87,6 +87,37 @@ describe("QuestState", function()
         end)
     end)
 
+    describe("IsQuestAvailable", function()
+        it("a quest to do now: not done, your level, nothing missing", function()
+            assert.is_true(ns.IsQuestAvailable({ id = 10, minLevel = 20 }))
+            assert.is_true(ns.IsQuestAvailable({ id = 10 }))
+        end)
+        it("done is not", function()
+            WowMock.done[10] = true
+            assert.is_false(ns.IsQuestAvailable({ id = 10 }))
+        end)
+        it("in the log is", function()
+            WowMock.onQuest[10] = true
+            assert.is_true(ns.IsQuestAvailable({ id = 10, minLevel = 40, requires = { 99 } }))
+        end)
+        it("not with the level still to reach", function()
+            assert.is_false(ns.IsQuestAvailable({ id = 10, minLevel = 21 }))
+        end)
+        it("not with a required quest still to do; with the last one done it is", function()
+            local q = { id = 10, requires = { 98, 99 } }
+            WowMock.done[98] = true
+            assert.is_false(ns.IsQuestAvailable(q))
+            WowMock.done[99] = true
+            assert.is_true(ns.IsQuestAvailable(q))
+        end)
+        it("with 'one of': any of them done", function()
+            local q = { id = 10, requiresAny = { 97, 98 } }
+            assert.is_false(ns.IsQuestAvailable(q))
+            WowMock.done[98] = true
+            assert.is_true(ns.IsQuestAvailable(q))
+        end)
+    end)
+
     describe("level", function()
         it("low level: grey for the game", function()
             assert.is_true(ns.IsLowLevel({ level = 10 }))

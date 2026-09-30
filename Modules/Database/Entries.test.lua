@@ -22,6 +22,31 @@ describe("Entries", function()
         assert.are.equal("dm", ns.entries.dm.quests[1].entryId)
     end)
 
+    it("an entry has work while a quest you can see is in your log or available", function()
+        ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
+        ns.AddQuests("dm", {
+            { id = 1, name = "First", minLevel = 10 },
+            { id = 2, name = "Second", requires = { 1 } },
+            { id = 3, name = "Hordish", faction = "Horde" },
+            { id = 4, name = "Too high", minLevel = 40 },
+        })
+        assert.is_true(ns.EntryHasWork(ns.entries.dm))   -- the first one
+        WowMock.done[1] = true
+        assert.is_true(ns.EntryHasWork(ns.entries.dm))   -- the second is open now
+        WowMock.done[2] = true
+        assert.is_false(ns.EntryHasWork(ns.entries.dm))  -- the other two: not for you, not yet
+        WowMock.level = 40
+        assert.is_true(ns.EntryHasWork(ns.entries.dm))
+        WowMock.onQuest[4] = nil
+        WowMock.done[4] = true
+        assert.is_false(ns.EntryHasWork(ns.entries.dm))  -- all done (the Horde one isn't yours)
+    end)
+
+    it("an entry with no quests has no work", function()
+        ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
+        assert.is_false(ns.EntryHasWork(ns.entries.dm))
+    end)
+
     it("ignores quests of an entry that doesn't exist", function()
         assert.has_no.errors(function() ns.AddQuests("nope", { { id = 1, name = "x" } }) end)
         assert.is_nil(ns.FindQuestDef(1))

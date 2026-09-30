@@ -318,6 +318,23 @@ describe("Search", function()
             ns.QuestSteps = realSteps
         end)
 
+        it("the tree stays hidden behind the table, also with a quest's details open and after redraws", function()
+            local tree = ns.UI.treeScroll
+            assert.is_false(tree:IsShown())
+            ShownRows()[1]:Click()
+            assert.is_false(tree:IsShown())
+            ns.UI_Refresh()
+            assert.is_false(tree:IsShown())
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.is_false(tree:IsShown())
+            ns.Detail_Hide()
+            ns.UI_Refresh()
+            assert.is_false(tree:IsShown())
+            -- and it comes back in the tree view
+            ns.UI_SetSearchMode(false)
+            assert.is_true(tree:IsShown())
+        end)
+
         it("follows the tracker and says so when nothing is tracked", function()
             tracked = { [166] = true, [999999] = true }
             ns.Search_Refresh()

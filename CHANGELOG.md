@@ -14,6 +14,8 @@
   with the padlock at its top left, and clicking an objective sets the
   waypoint on it, while a click on the rest of it opens the main window on
   Tracked Quests. In combat it lets every click through.
+- Fix: with a quest's details open under Search, Quest Log or Tracked Quests,
+  the quest tree no longer shows through the table.
 - Fix: on a flight path the main window no longer turns translucent or
   click-through "while moving": it stays as it is, to read on the trip.
 - Change: with TomTom, a new waypoint replaces the one the addon set before

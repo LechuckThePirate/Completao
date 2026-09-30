@@ -7,8 +7,11 @@ local L = ns.L
 -- ("Boars 0/5"); done ones go grey and struck through. Once every objective is done they are replaced by
 -- "Turn in <quest> (<npc>)". The waypoint goes to the step to do next (the nearest objective left, or the
 -- turn-in) and moves by itself as objectives are completed. The window goes away when the quest is turned
--- in (or abandoned), can be dragged (its place is saved) and stops taking the mouse in combat.
+-- in (or abandoned), can be dragged by its title bar ("Focused Quest"; the place is saved). Clicking an
+-- objective sets the waypoint on it. In combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
+local TITLE_H = 18 -- the title bar
+local TOP = TITLE_H + 6 -- where the quest's icon and title start
 local WIDTH_MIN, WIDTH_MAX = 200, 420
 local CHECK_W = 16 -- room for the check before a done objective
 local BACKDROP = {
@@ -22,6 +25,7 @@ local COLORS = { done = "ff808080", target = "ffffd100", todo = "ffffffff" }
 local frame, lines = nil, {}
 local ready = false   -- the quest log is loaded (see Focus_Init): before, a quest not in it isn't gone yet
 local lastSignature   -- what the waypoint was last worked out for
+local mouseOn = true  -- false in combat (click-through)
 
 function ns.Focus_Quest()
     return ns.char and ns.char.focusQuest
@@ -64,16 +68,18 @@ function ns.Focus_PickStep(steps, isReady)
     return best
 end
 
--- Click-through in combat: the window and its button stop taking the mouse, so clicks reach the game world.
+-- Click-through in combat: the window, its button and the objectives stop taking the mouse, so clicks reach
+-- the game world.
 local function applyMouse(combat)
+    mouseOn = not combat
     if not frame then return end
-    local on = not combat
-    frame:EnableMouse(on)
-    frame.close:EnableMouse(on)
-    if combat then
-        frame:StopMovingOrSizing()
-        if GameTooltip:IsOwned(frame) or GameTooltip:IsOwned(frame.close) then GameTooltip:Hide() end
+    local targets = { frame, frame.close }
+    for _, line in ipairs(lines) do targets[#targets + 1] = line.button end
+    for _, f in ipairs(targets) do
+        f:EnableMouse(mouseOn)
+        if combat and GameTooltip:IsOwned(f) then GameTooltip:Hide() end
     end
+    if combat then frame:StopMovingOrSizing() end
 end
 
 local function savePosition()
@@ -117,9 +123,19 @@ local function create()
         savePosition()
     end)
 
+    -- title bar: what the window is, and the close button
+    frame.bar = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bar:SetPoint("TOPLEFT", 3, -3)
+    frame.bar:SetPoint("TOPRIGHT", -3, -3)
+    frame.bar:SetHeight(TITLE_H)
+    frame.bar:SetColorTexture(0.25, 0.2, 0.05, 0.9)
+    frame.barText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    frame.barText:SetPoint("CENTER", frame.bar, "CENTER", 0, 0)
+    frame.barText:SetText(L["Focused Quest"])
+
     frame.icon = frame:CreateTexture(nil, "ARTWORK")
     frame.icon:SetSize(ICON, ICON)
-    frame.icon:SetPoint("TOPLEFT", PAD, -PAD)
+    frame.icon:SetPoint("TOPLEFT", PAD, -TOP)
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.title:SetPoint("LEFT", frame.icon, "RIGHT", 4, 0)
     frame.title:SetJustifyH("LEFT")
@@ -127,8 +143,8 @@ local function create()
 
     local okClose, close = pcall(CreateFrame, "Button", nil, frame, "UIPanelCloseButton")
     if not okClose or not close then close = CreateFrame("Button", nil, frame) end
-    close:SetSize(HEADER_H + 4, HEADER_H + 4)
-    close:SetPoint("TOPRIGHT", 0, 0)
+    close:SetSize(TITLE_H + 6, TITLE_H + 6)
+    close:SetPoint("TOPRIGHT", 1, 1)
     close:SetScript("OnClick", function() ns.Focus_Clear() end)
     frame.close = close
 
@@ -137,54 +153,85 @@ local function create()
     frame:Hide()
 end
 
--- A line of the list (created as needed): a check, the text and the strike-through line over it.
+-- A line of the list (created as needed): a button with the check, the text and the strike-through line over
+-- it. Clicking it sets the waypoint on its step (or opens the map on its zone when the spot isn't known).
 local function getLine(i)
     local line = lines[i]
     if line then return line end
     line = {}
-    line.check = frame:CreateTexture(nil, "ARTWORK")
+    local button = CreateFrame("Button", nil, frame)
+    button:SetHeight(LINE_H)
+    button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    button:EnableMouse(mouseOn)
+    button:SetScript("OnClick", function(self)
+        local step = self.step
+        if not (step and step.loc) then return end
+        if ns.CanWaypoint(step.loc) then
+            ns.SetWaypoint(step.loc, step.label, step.tag)
+            ns.Focus_Refresh()
+        else
+            ns.ShowOnMap(step.loc, step.label)
+        end
+    end)
+    button:SetScript("OnEnter", function(self)
+        if not (self.step and self.step.loc) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:AddLine(ns.CanWaypoint(self.step.loc) and L["Click to set the waypoint."]
+            or L["Click to show it on the map."], 0.5, 0.8, 1)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", GameTooltip_Hide)
+    line.button = button
+    line.check = button:CreateTexture(nil, "ARTWORK")
     line.check:SetSize(CHECK_W - 4, CHECK_W - 4)
+    line.check:SetPoint("LEFT", button, "LEFT", 0, 0)
     line.check:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
-    line.text = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    line.text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    line.text:SetPoint("LEFT", button, "LEFT", CHECK_W, 0)
     line.text:SetJustifyH("LEFT")
     line.text:SetWordWrap(false)
-    line.strike = frame:CreateTexture(nil, "OVERLAY")
+    line.strike = button:CreateTexture(nil, "OVERLAY")
     line.strike:SetHeight(1)
     line.strike:SetColorTexture(0.5, 0.5, 0.5, 1)
+    line.strike:SetPoint("LEFT", line.text, "LEFT", 0, 0)
     lines[i] = line
     return line
 end
 
-local function setLine(i, text, kind, struck)
+local function setLine(i, l)
     local line = getLine(i)
-    local y = -(PAD + HEADER_H + 4 + (i - 1) * LINE_H)
-    line.check:ClearAllPoints()
-    line.check:SetPoint("TOPLEFT", PAD, y - 1)
-    line.check:SetShown(struck and true or false)
-    line.text:ClearAllPoints()
-    line.text:SetPoint("TOPLEFT", PAD + CHECK_W, y)
-    line.text:SetText(("|c%s%s|r"):format(COLORS[kind], text))
-    line.strike:ClearAllPoints()
-    line.strike:SetPoint("LEFT", line.text, "LEFT", 0, 0)
-    line.strike:SetShown(struck and true or false)
+    line.button:ClearAllPoints()
+    line.button:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -(TOP + HEADER_H + 4 + (i - 1) * LINE_H))
+    line.button.step = l
+    line.check:SetShown(l.struck)
+    line.text:SetText(("|c%s%s|r"):format(COLORS[l.kind], l.text))
+    line.strike:SetShown(l.struck)
+    line.button:Show()
     return line
 end
 
--- What the lines say: the objectives, or the turn-in once the quest is ready.
-local function buildLines(q, steps, isReady, target)
+-- What the lines say: the objectives, or the turn-in once the quest is ready. Each carries its step, for the
+-- click; the one the waypoint is on is in gold.
+local function buildLines(q, steps, isReady)
     local out = {}
+    local function place(step) return step.loc or (step.area and { area = step.area }) or nil end
+    local function canShow(loc) return loc and ns.CanShowMap(loc) and loc or nil end
     if isReady then
         local finish = steps[#steps]
         local npc = finish.loc and finish.loc.npc
         local name = ns.QuestTitle(q.id, q.name)
-        out[1] = { text = npc and L["Turn in %s (%s)"]:format(name, npc) or L["Turn in %s"]:format(name), kind = "target" }
+        out[1] = { text = npc and L["Turn in %s (%s)"]:format(name, npc) or L["Turn in %s"]:format(name), kind = "target",
+            struck = false, loc = canShow(place(finish)), label = finish.label, tag = q.id .. ":" .. #steps }
         return out
     end
+    local focusTag = ns.FocusTag()
     for i, s in ipairs(steps) do
         if s.kind == "obj" then
+            local tag = q.id .. ":" .. i
             out[#out + 1] = {
                 text = s.label .. (s.progress and (" " .. s.progress) or ""),
-                kind = s.done and "done" or i == target and "target" or "todo", struck = s.done and true or false,
+                kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
+                loc = canShow(place(s)), label = s.label, tag = tag,
             }
         end
     end
@@ -236,24 +283,20 @@ function ns.Focus_Refresh(force)
     frame.title:SetText(title)
     frame.title:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
 
-    local content = buildLines(q, steps, isReady, target)
-    local width = ICON + 4 + frame.title:GetStringWidth() + HEADER_H + 4
+    local content = buildLines(q, steps, isReady)
+    local width = math.max(ICON + 4 + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
     for i, l in ipairs(content) do
-        local line = setLine(i, l.text, l.kind, l.struck)
+        local line = setLine(i, l)
         width = math.max(width, CHECK_W + line.text:GetStringWidth())
     end
-    for i = #content + 1, #lines do
-        lines[i].check:Hide()
-        lines[i].text:Hide()
-        lines[i].strike:Hide()
-    end
+    for i = #content + 1, #lines do lines[i].button:Hide() end
     width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
-    frame:SetSize(width, PAD * 2 + HEADER_H + 4 + #content * LINE_H)
-    frame.title:SetWidth(width - 2 * PAD - ICON - 4 - HEADER_H)
+    frame:SetSize(width, TOP + HEADER_H + 4 + #content * LINE_H + PAD)
+    frame.title:SetWidth(width - 2 * PAD - ICON - 4)
     for i in ipairs(content) do
         local line = lines[i]
+        line.button:SetWidth(width - 2 * PAD)
         line.text:SetWidth(width - 2 * PAD - CHECK_W)
-        line.text:Show()
         line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - CHECK_W))
     end
     frame:Show()

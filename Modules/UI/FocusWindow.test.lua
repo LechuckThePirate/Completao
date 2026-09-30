@@ -6,14 +6,19 @@ describe("FocusWindow", function()
     local wolves = { name = "Wolves", area = 12, x = 60, y = 61 }
 
     -- lines of the window that are showing, in order (color codes and all)
+    local function isLine(button)
+        return button and button._parent == frame and button._kind == "Button" and button ~= frame.close
+    end
     local function shownTexts()
         local out = {}
         for _, f in ipairs(WowMock.frames) do
-            if f._parent == frame and f._kind == "FontString" and f._shown and f ~= frame.title then
-                out[#out + 1] = f._text
-            end
+            if f._kind == "FontString" and isLine(f._parent) and f:IsVisible() then out[#out + 1] = f._text end
         end
         return out
+    end
+    -- the clickable line showing that text
+    local function lineWith(text)
+        return WowMock.Find(function(f) return isLine(f) and f:IsVisible() and f.step and f.step.text:find(text, 1, true) end)
     end
 
     local function objectives(boarsDone, wolvesDone)
@@ -30,12 +35,14 @@ describe("FocusWindow", function()
         ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
         ns.AddQuests("z", { { id = 999001, name = "Pest Control", level = 20,
             start = { npc = "Giver", area = 12, x = 5, y = 5 }, finish = { npc = "Farmer Bob", area = 12, x = 20, y = 21 },
-            steps = { boars, wolves } } })
+            steps = { boars, wolves } },
+            { id = 999002, name = "Cave", level = 20, steps = { { name = "Find the cave", area = 12 } } } })
         WowMock.titles[999001] = "Pest Control"
         WowMock.onQuest[999001] = true
         objectives(false, false)
         -- the player stands by the wolves: they are the nearest
         ns.DistanceTo = function(loc) return loc.x == wolves.x and 10 or 200 end
+        WowMock.chatted = nil
         ns.Print = function() WowMock.chatted = true end
         StartAddon(ns, nil, {})
         frame = nil
@@ -65,6 +72,41 @@ describe("FocusWindow", function()
         assert.matches("Wolves 1/3", texts[2])
     end)
 
+    it("has a title bar saying what it is", function()
+        focus()
+        assert.are.equal("Focused Quest", frame.barText._text)
+        assert.is_true(frame.barText:IsVisible())
+    end)
+
+    it("clicking an objective puts the waypoint on it, and the gold follows", function()
+        focus()
+        assert.are.equal("999001:3", ns.FocusTag()) -- the nearest: the wolves
+        lineWith("Boars"):Click()
+        assert.are.equal("999001:2", ns.FocusTag())
+        assert.near(0.1, WowMock.userWaypoint.x, 1e-9)
+        assert.is_true(WowMock.chatted) -- a click of the player's says so, unlike the automatic one
+        assert.matches("ffd100", shownTexts()[1])
+        assert.matches("ffffff", shownTexts()[2])
+    end)
+
+    it("clicking the turn-in puts the waypoint on who takes it", function()
+        focus()
+        WowMock.readyForTurnIn[999001] = true
+        FireEvent("QUEST_LOG_UPDATE")
+        lineWith("Turn in"):Click()
+        assert.near(0.2, WowMock.userWaypoint.x, 1e-9)
+    end)
+
+    it("an objective with only a zone opens the map on it", function()
+        local opened
+        ns.ShowOnMap = function(loc) opened = loc end
+        WowMock.onQuest[999002] = true
+        assert.is_true(ns.Focus_Set(999002))
+        frame = CompletaoFocusFrame
+        lineWith("Find the cave"):Click()
+        assert.are.equal(12, opened.area)
+    end)
+
     it("puts the waypoint on the nearest objective, quietly, and marks it in gold", function()
         focus()
         assert.are.equal(1429, WowMock.userWaypoint.mapID)
@@ -79,7 +121,7 @@ describe("FocusWindow", function()
         -- the lines drawn over the text (the only textures of the window with a plain color)
         local function strikes()
             return #WowMock.FindAll(function(f)
-                return f._parent == frame and f._kind == "Texture" and f._set.SetColorTexture ~= nil and f._shown
+                return f._kind == "Texture" and isLine(f._parent) and f._set.SetColorTexture ~= nil and f:IsVisible()
             end)
         end
         focus()
@@ -154,9 +196,21 @@ describe("FocusWindow", function()
         FireEvent("PLAYER_REGEN_DISABLED")
         assert.is_false(frame:IsMouseEnabled())
         assert.is_false(frame.close:IsMouseEnabled())
+        assert.is_false(lineWith("Boars"):IsMouseEnabled()) -- the objectives too: clicks go through
         FireEvent("PLAYER_REGEN_ENABLED")
         assert.is_true(frame:IsMouseEnabled())
         assert.is_true(frame.close:IsMouseEnabled())
+        assert.is_true(lineWith("Boars"):IsMouseEnabled())
+    end)
+
+    it("objectives that appear during combat are click-through too", function()
+        focus()
+        FireEvent("PLAYER_REGEN_DISABLED")
+        WowMock.objectives[999001][3] = { text = "Bears: 0/2", finished = false, numFulfilled = 0, numRequired = 2 }
+        FireEvent("QUEST_LOG_UPDATE")
+        local bears = lineWith("Bears")
+        assert.is_not_nil(bears)
+        assert.is_false(bears:IsMouseEnabled())
     end)
 
     it("a window made during combat is click-through from the start", function()

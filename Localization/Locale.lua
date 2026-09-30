@@ -117,6 +117,7 @@ local es = {
     ["Click to show it on the map."] = "Clic para mostrarlo en el mapa.",
     ["No quests are being tracked."] = "No sigues ninguna misión.",
     ["Focus"] = "Enfocar",
+    ["Focused Quest"] = "Quest enfocada",
     ["Stop focus"] = "Dejar de enfocar",
     ["Right-click to focus on it."] = "Clic derecho para enfocarla.",
     ["Right-click to stop focusing on it."] = "Clic derecho para dejar de enfocarla.",

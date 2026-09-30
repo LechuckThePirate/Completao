@@ -41,9 +41,15 @@ local function create()
     border:SetPoint("TOPLEFT")
     border:SetTexture(136430) -- Interface\Minimap\MiniMap-TrackingBorder
 
-    button:RegisterForClicks("LeftButtonUp")
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:RegisterForDrag("LeftButton")
-    button:SetScript("OnClick", function() ns.UI_Toggle() end)
+    button:SetScript("OnClick", function(_, mouseButton)
+        if mouseButton == "RightButton" then
+            ns.Prefs_Toggle()
+        else
+            ns.UI_Toggle()
+        end
+    end)
     button:SetScript("OnDragStart", function(self)
         self:LockHighlight()
         self:SetScript("OnUpdate", onDragUpdate)
@@ -56,6 +62,7 @@ local function create()
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:SetText("Completao!!")
         GameTooltip:AddLine(L["Left-click: open"], 1, 1, 1)
+        GameTooltip:AddLine(L["Right-click: preferences"], 1, 1, 1)
         GameTooltip:AddLine(L["Drag: move"], 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)

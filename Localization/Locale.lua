@@ -150,6 +150,7 @@ local es = {
     ["Settings are shared by all your characters."] = "Los ajustes son comunes a todos tus personajes.",
     ["Opacity while moving: %d%%"] = "Opacidad al moverte: %d%%",
     ["Left-click: open"] = "Clic izquierdo: abrir",
+    ["Right-click: preferences"] = "Clic derecho: preferencias",
     ["Drag: move"] = "Arrastrar: mover",
     ["Minimap button hidden."] = "Botón del minimapa oculto.",
     ["Minimap button shown."] = "Botón del minimapa visible.",

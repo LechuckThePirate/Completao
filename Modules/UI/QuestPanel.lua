@@ -449,7 +449,8 @@ local function layout()
         detail:SetPoint("BOTTOMLEFT", parentFrame, "BOTTOMLEFT", leftOff, 30)
         detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, 30)
         detail:SetHeight(DETAIL_H)
-        treeScroll:Show()
+        -- the tree only with a tree open: under a table (search, log, tracked) it stays hidden
+        treeScroll:SetShown(not (ns.UI_IsSearchMode and ns.UI_IsSearchMode()))
         treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -32, shown and (30 + DETAIL_H + 8) or 30)
     end
     -- the table (search, log, tracked) shares the space too: it ends above the panel

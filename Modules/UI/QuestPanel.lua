@@ -293,6 +293,7 @@ end
 -- ways are tried in order and the first that works is used.
 local function openQuest(questID)
     ns.quietSelect = true -- opening it in the log from here must not open it back in the tree
+    ns.MuteQuestSelect()
     if C_QuestLog.SetSelectedQuest then pcall(C_QuestLog.SetSelectedQuest, questID) end
     local attempts = {
         function()

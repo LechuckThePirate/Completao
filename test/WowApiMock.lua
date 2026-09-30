@@ -258,6 +258,7 @@ IsControlKeyDown = function() return WowMock.ctrl or false end
 GetRealmName = function() return "Realm" end
 BreakUpLargeNumbers = function(n) return tostring(n) end
 GetCoinTextureString = function(c) return c .. "c" end
+GetTime = function() return WowMock.time or 0 end
 HandleModifiedItemClick = function(link) WowMock.linked = link end
 GetQuestGreenRange = function() return 8 end
 

@@ -1178,6 +1178,7 @@ end
 -- chain) in the tree, when the addon knows it. Only while this window is open.
 local function onQuestSelected(questID)
     if not (ns.char and ns.char.openWithQuestLog and frame and frame:IsShown()) then return end
+    if ns.QuestSelectMuted() then return end
     local def = questID and ns.FindQuestDef(questID)
     if def and ns.entries[def.entryId] then ns.UI_OpenQuest(def.entryId, def.id) end
 end

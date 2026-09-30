@@ -441,6 +441,18 @@ describe("MainWindow", function()
             assert.are.equal("tree", ns.char.view)
         end)
 
+        it("ignores the game's log echoing our own selection changes, for a while", function()
+            ns.UI:Show()
+            ns.UI_SetSearchMode(true, "log")
+            WowMock.time = 100
+            ns.MuteQuestSelect() -- e.g. reading a quest's text from the log
+            ns.UI_QuestSelected(ns.entries.vc.quests[1].id)
+            assert.are.equal("log", ns.char.view)
+            WowMock.time = 102
+            ns.UI_QuestSelected(ns.entries.vc.quests[1].id)
+            assert.are.equal("tree", ns.char.view)
+        end)
+
         it("selecting a quest does nothing when the option is off", function()
             ns.UI:Show()
             ns.UI_SetSearchMode(true, "log")

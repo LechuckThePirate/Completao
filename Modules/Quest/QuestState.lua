@@ -191,6 +191,20 @@ end
 -- The log's text is the selected quest's: it is selected, read, and the selection put back. It is kept
 -- in memory only, once per quest and session, so the selection isn't touched on every window refresh.
 local fromLog = {}
+
+-- The game's log redraws itself a moment after its selection changes and selects the quest again on its own
+-- (the window would follow that echo and jump to another quest): our own selection changes are muted for a
+-- while, not only while they are being made. See onQuestSelected in MainWindow.
+local MUTE_SECONDS = 1
+local mutedUntil = 0
+function ns.MuteQuestSelect()
+    mutedUntil = GetTime() + MUTE_SECONDS
+end
+
+function ns.QuestSelectMuted()
+    return ns.quietSelect or GetTime() < mutedUntil
+end
+
 local function readFromLog(id)
     if fromLog[id] ~= nil then return fromLog[id] end
     fromLog[id] = false
@@ -198,6 +212,7 @@ local function readFromLog(id)
     if not (getSel and setSel and GetQuestLogQuestText) then return false end
     local previous = getSel()
     ns.quietSelect = true -- our own selection changes aren't the player's (see MainWindow)
+    ns.MuteQuestSelect()
     local ok, text = pcall(function()
         setSel(id)
         if getSel() ~= id then return nil end

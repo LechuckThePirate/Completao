@@ -96,13 +96,72 @@ function ns.QuestIsIn(id, category)
     return false
 end
 
+-- Skill lines (the client's profession ids) that the character has learned, as a set; nil when the client can't
+-- tell. The retail-style API gives the ids; the classic one only the names, compared with the skill's name.
+local function knownSkillLines()
+    if GetProfessions and GetProfessionInfo then
+        local set, list = {}, { GetProfessions() }
+        for i = 1, 6 do
+            if list[i] then
+                local skillLine = select(7, GetProfessionInfo(list[i]))
+                if skillLine then set[skillLine] = true end
+            end
+        end
+        return set
+    end
+end
+
+-- true / false: the character has / lacks that profession; nil when it can't be told (then nothing is hidden).
+function ns.HasProfession(skillLine)
+    local set = knownSkillLines()
+    if set then return set[skillLine] or false end
+    if GetNumSkillLines and GetSkillLineInfo and C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
+        local ok, name = pcall(C_TradeSkillUI.GetTradeSkillDisplayName, skillLine)
+        if not (ok and name) then return nil end
+        for i = 1, GetNumSkillLines() do
+            local lineName, isHeader = GetSkillLineInfo(i)
+            if not isHeader and lineName == name then return true end
+        end
+        return false
+    end
+    return nil
+end
+
+-- Professions whose items the crafting writs ask for (Forever's "Crafting" entry has no skill line of its own):
+-- alchemy, blacksmithing, enchanting, engineering, leatherworking, tailoring, cooking.
+local CRAFTING_SKILLS = { 171, 164, 333, 202, 165, 197, 185 }
+
+-- A profession's quests are for those who have it: true / false, nil when it can't be told.
+local function canDoProfession(d)
+    if d.skillLine then return ns.HasProfession(d.skillLine) end
+    local unknown = true
+    for _, skillLine in ipairs(CRAFTING_SKILLS) do
+        local has = ns.HasProfession(skillLine)
+        if has then return true end
+        if has ~= nil then unknown = false end
+    end
+    if unknown then return nil end
+    return false
+end
+
+-- Instances are entered some levels before their own (a quest, or the pre-quest, can come earlier): a quest of a
+-- dungeon, raid or battleground isn't "to do" for someone this many levels under the instance's minimum. It
+-- catches the ones open from level 1 that can only be taken inside (Alterac Valley's "Launch the Attack!").
+local INSTANCE_CATEGORIES = { dungeons = true, raids = true, battlegrounds = true }
+local INSTANCE_SLACK = 10
+
 -- Whether an entry has anything left to do for the character: a quest they can see that is in their log or
--- available now (not done, not locked by level or by quests they lack). Stops at the first one. A holiday
--- quest that shows up in a dungeon too (the Lunar Festival elders stand in instances: level 60, but from
--- level 1) counts only in the events section, or every such dungeon would look like it had work.
+-- available now (not done, not locked by level or by quests they lack). Stops at the first one. Out of it:
+--  * holiday quests outside the events section: the ones also listed there (the Lunar Festival elders stand in
+--    instances: level 60, but from level 1) and the ones marked `holiday` in Data/Overrides.lua;
+--  * the quests of an instance far above the character's level;
+--  * a profession's quests, without that profession.
 function ns.EntryHasWork(d)
+    if d.category == "professions" and canDoProfession(d) == false then return false end
+    if INSTANCE_CATEGORIES[d.category] and UnitLevel("player") < (d.minLevel or 0) - INSTANCE_SLACK then return false end
+    local isEvents = d.category == "events"
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (d.category == "events" or not ns.QuestIsIn(q.id, "events")) then
+        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (isEvents or not (q.holiday or ns.QuestIsIn(q.id, "events"))) then
             return true
         end
     end

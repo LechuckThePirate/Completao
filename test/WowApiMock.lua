@@ -24,6 +24,7 @@ local function resetState()
     WowMock.printed = {}
     WowMock.timers = {}
     WowMock.onTaxi = false
+    WowMock.skills = {}        -- professions the character has: skill line ids, as GetProfessionInfo gives them
     WowMock.frames = {}
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
@@ -253,6 +254,13 @@ UnitClass = function() return unpackArgs(WowMock.class) end
 UnitName = function() return "Tester" end
 GetUnitSpeed = function() return WowMock.speed end
 UnitOnTaxi = function() return WowMock.onTaxi or false end
+-- retail-style professions: GetProfessions() gives indexes (up to 5), GetProfessionInfo(index) the skill line as 7th value
+GetProfessions = function()
+    local list = {}
+    for i = 1, math.min(#WowMock.skills, 5) do list[i] = i end
+    return unpackArgs(list)
+end
+GetProfessionInfo = function(index) return "Skill " .. tostring(WowMock.skills[index]), 0, 1, 75, 0, 0, WowMock.skills[index] end
 UnitAffectingCombat = function() return WowMock.inCombat or false end
 GetCursorPosition = function() return WowMock.cursor[1], WowMock.cursor[2] end
 IsShiftKeyDown = function() return WowMock.shift or false end

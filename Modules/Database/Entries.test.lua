@@ -56,6 +56,80 @@ describe("Entries", function()
         assert.is_true(ns.EntryHasWork(ns.entries.brd))   -- a quest of its own is
     end)
 
+    it("the quests of an instance far above the character's level aren't work", function()
+        ns.RegisterEntry({ id = "av", name = "Alterac Valley", category = "battlegrounds", minLevel = 51, maxLevel = 60 })
+        ns.AddQuests("av", { { id = 6901, name = "Launch the Attack!", level = 60, minLevel = 1 } })
+        ns.RegisterEntry({ id = "sfk", name = "Shadowfang Keep", minLevel = 18, maxLevel = 25 })
+        ns.AddQuests("sfk", { { id = 1098, name = "Deathstalkers in Shadowfang", level = 25, minLevel = 1 } })
+        WowMock.level = 40
+        assert.is_false(ns.EntryHasWork(ns.entries.av))  -- open from level 1, but inside an instance of 51
+        assert.is_true(ns.EntryHasWork(ns.entries.sfk))
+        WowMock.level = 41
+        assert.is_true(ns.EntryHasWork(ns.entries.av))   -- 10 levels before its minimum
+        WowMock.level = 5
+        assert.is_false(ns.EntryHasWork(ns.entries.sfk)) -- 13 levels under
+    end)
+
+    it("a quest marked as a holiday one counts as work only in the events section", function()
+        ns.RegisterEntry({ id = "z", name = "Zone", category = "zones" })
+        ns.RegisterEntry({ id = "e", name = "Some event", category = "events" })
+        ns.AddQuests("z", { { id = 1, name = "Darkmoon Faire", level = 60, minLevel = 1 } })
+        ns.AddQuests("e", { { id = 2, name = "Event quest", level = 60, minLevel = 1 } })
+        assert.is_true(ns.EntryHasWork(ns.entries.z))
+        ns.PatchQuest(1, { holiday = true })
+        assert.is_false(ns.EntryHasWork(ns.entries.z))
+        ns.PatchQuest(2, { holiday = true })
+        assert.is_true(ns.EntryHasWork(ns.entries.e))
+    end)
+
+    describe("professions", function()
+        before_each(function()
+            ns.RegisterEntry({ id = "p_356", name = "Fishing", category = "professions", skillLine = 356 })
+            ns.AddQuests("p_356", { { id = 8193, name = "Master Angler", level = 60, minLevel = 1 } })
+            ns.RegisterEntry({ id = "p_crafting", name = "Crafting", category = "professions" })
+            ns.AddQuests("p_crafting", { { id = 94004, name = "Craftsman's Writ: Elixir", level = 60, minLevel = 1 } })
+        end)
+
+        it("their quests are work only with the profession", function()
+            assert.is_false(ns.EntryHasWork(ns.entries.p_356))
+            WowMock.skills = { 356 }
+            assert.is_true(ns.EntryHasWork(ns.entries.p_356))
+            assert.is_true(ns.HasProfession(356))
+            assert.is_false(ns.HasProfession(171))
+        end)
+
+        it("the crafting writs, with any crafting profession", function()
+            assert.is_false(ns.EntryHasWork(ns.entries.p_crafting))
+            WowMock.skills = { 356 }          -- fishing doesn't craft
+            assert.is_false(ns.EntryHasWork(ns.entries.p_crafting))
+            WowMock.skills = { 356, 171 }     -- alchemy does
+            assert.is_true(ns.EntryHasWork(ns.entries.p_crafting))
+        end)
+
+        it("when the client can't tell what professions you have, nothing is hidden", function()
+            local savedList, savedInfo = _G.GetProfessions, _G.GetProfessionInfo
+            _G.GetProfessions, _G.GetProfessionInfo = nil, nil
+            assert.is_nil(ns.HasProfession(356))
+            assert.is_true(ns.EntryHasWork(ns.entries.p_356))
+            assert.is_true(ns.EntryHasWork(ns.entries.p_crafting))
+            _G.GetProfessions, _G.GetProfessionInfo = savedList, savedInfo
+        end)
+
+        it("with the classic skill list, by the skill's name", function()
+            local savedList, savedInfo = _G.GetProfessions, _G.GetProfessionInfo
+            _G.GetProfessions, _G.GetProfessionInfo = nil, nil
+            _G.C_TradeSkillUI = { GetTradeSkillDisplayName = function(id) return id == 356 and "Fishing" or "Other" end }
+            local lines = { { "Weapon Skills", true }, { "Fishing", false } }
+            _G.GetNumSkillLines = function() return #lines end
+            _G.GetSkillLineInfo = function(i) return lines[i][1], lines[i][2] end
+            assert.is_true(ns.HasProfession(356))
+            lines[2] = { "Cooking", false }
+            assert.is_false(ns.HasProfession(356))
+            _G.GetNumSkillLines, _G.GetSkillLineInfo, _G.C_TradeSkillUI = nil, nil, nil
+            _G.GetProfessions, _G.GetProfessionInfo = savedList, savedInfo
+        end)
+    end)
+
     it("an entry with no quests has no work", function()
         ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
         assert.is_false(ns.EntryHasWork(ns.entries.dm))

@@ -13,10 +13,17 @@
   off by default): the side panel leaves out the zones, dungeons and other
   entries where everything is done or nothing is available to you now (not
   done, your level, requirements met), and the categories left with none. The
-  counts next to each category follow. Holiday quests that are also listed in a
-  dungeon (the Lunar Festival elders: level 60, but open from level 1) count
-  only in the events section. The entry you are looking at stays until you
-  leave it.
+  counts next to each category follow. The entry you are looking at stays
+  until you leave it. What doesn't count as something to do:
+  - holiday quests outside the events section: the ones also listed there (the
+    Lunar Festival elders, level 60 but open from level 1, filed under their
+    dungeons) and other event ones (Darkmoon Faire, the Gurubashi arena, the
+    Ahn'Qiraj war effort, Commendation Signets, some of Forever's new seasonal
+    quests);
+  - the quests of a dungeon, raid or battleground when you are more than 10
+    levels under its minimum (e.g. Alterac Valley's "Launch the Attack!");
+  - a profession's quests (Fishing, Alchemy...) without that profession; the
+    crafting writs need any crafting one.
 
 ## 0.4.0-beta
 

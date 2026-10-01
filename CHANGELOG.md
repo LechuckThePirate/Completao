@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- New: French (`frFR`), German (`deDE`), Italian (`itIT`) and Brazilian
+  Portuguese (`ptBR`) interface. The addon description is translated too.
+- New: the names of dungeons and raids follow the client's language (the game's own
+  names; a few that the game names differently are translated by the addon).
+- New: a quest's objectives in the steps list use the game's text, in the client's language,
+  when the game gives it (in the log, or out of it once the client has loaded the quest).
+- Note: the translations are a first pass and may not be exact. Some names can't be
+  obtained yet (e.g. the new Forever instances, and the quest objective texts and NPC names
+  the game doesn't hand over), so those stay in English. Corrections are welcome on GitHub.
+
 ## 0.5.0-beta
 
 - New: with Autofocus on, a quest you just accepted that is a direct turn-in

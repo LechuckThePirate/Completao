@@ -13,6 +13,8 @@ local function requestLoad(id)
     C_QuestLog.RequestLoadQuestByID(id)
 end
 
+ns.RequestQuestLoad = requestLoad
+
 -- Title in the client's language. Chain steps that share a name are numbered in the data
 -- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it.
 function ns.QuestTitle(id, fallback)

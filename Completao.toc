@@ -4,10 +4,12 @@
 ## Notes-esES: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
 ## Notes-esMX: Árboles de cadenas de quests para WoW Forever: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
 ## Notes-frFR: Arbres de chaînes de quêtes pour WoW Forever : prérequis, où commence chaque quête, marqueurs sur la carte et waypoints TomTom.
+## Notes-deDE: Questreihen-Bäume für WoW Forever: Voraussetzungen, wo jede Quest beginnt, Kartenmarkierungen und TomTom-Wegpunkte.
 ## Category: Quests
 ## Category-esES: Misiones
 ## Category-esMX: Misiones
 ## Category-frFR: Quêtes
+## Category-deDE: Quests
 ## Author: LechuckThePirate
 ## Version: 0.5.0-beta
 ## X-License: GPL-3.0
@@ -19,6 +21,7 @@
 Localization\Locale.lua
 Localization\esES.lua
 Localization\frFR.lua
+Localization\deDE.lua
 Modules\Database\Entries.lua
 Modules\Quest\QuestState.lua
 Modules\Quest\QuestSteps.lua

@@ -3,6 +3,7 @@ dofile("setupTests.lua")
 -- Every translation: its file, the client locales that use it, and the translation of "Professions".
 local TRANSLATIONS = {
     { file = "esES", locales = { "esES", "esMX" }, professions = "Profesiones" },
+    { file = "frFR", locales = { "frFR" }, professions = "Métiers" },
 }
 
 -- The table a locale file registers, read by running it with a stub namespace.

@@ -4,7 +4,8 @@ local _, ns = ...
 -- previous quest not done yet), the start, one step per objective (q.steps: zone and spot from the data)
 -- and the turn-in. With the quest in the log each objective carries its live progress (matched by name to
 -- the game's objectives, else by order); the game's objectives with no step in the data are added without
--- a place. Returns the list and the index of the step that comes next. Step: { kind =
+-- a place. Out of the log the client may still know a quest's objectives (once it has loaded it): their text,
+-- in the client's language, replaces the data's English one, with no progress. Returns the list and the index of the step that comes next. Step: { kind =
 -- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", current }.
 function ns.QuestSteps(q)
     local L = ns.L
@@ -25,29 +26,40 @@ function ns.QuestSteps(q)
     list[#list + 1] = { kind = "start", loc = q.start, done = completed or onQuest,
         label = L["Start: %s"]:format(q.start and q.start.npc or q.giver or "?") }
 
-    local objectives = onQuest and C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(q.id) or {}
+    if not onQuest then ns.RequestQuestLoad(q.id) end
+    local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(q.id) or {}
     local used = {}
+    -- the objective's text without its count ("Boars slain: 3/5" -> "Boars slain")
+    local function liveLabel(o)
+        if o.text and o.text ~= "" then return (o.text:gsub(":%s*%d+%s*/%s*%d+%s*$", "")) end
+    end
     local function progressOf(o)
         if o.numRequired and o.numRequired > 0 then return ("%d/%d"):format(o.numFulfilled or 0, o.numRequired) end
     end
     for i, s in ipairs(q.steps or {}) do
         local step = { kind = "obj", label = s.name, loc = s.x and s or nil, area = s.area }
-        local match
+        local match, byName
         for j, o in ipairs(objectives) do
-            if not used[j] and o.text and o.text:lower():find(s.name:lower(), 1, true) then match = j break end
+            if not used[j] and o.text and o.text:lower():find(s.name:lower(), 1, true) then match, byName = j, true break end
         end
-        if not match and objectives[i] and not used[i] then match = i end
+        -- out of the log, matching by order is only safe when the game lists as many objectives as the data
+        if not match and objectives[i] and not used[i] and (onQuest or #objectives == #q.steps) then match = i end
         if match then
             used[match] = true
-            step.done = objectives[match].finished
-            step.progress = progressOf(objectives[match])
+            -- no name match: the game's text is in another language than the data's
+            if not byName then step.label = liveLabel(objectives[match]) or step.label end
+            if onQuest then
+                step.done = objectives[match].finished
+                step.progress = progressOf(objectives[match])
+            end
         end
         list[#list + 1] = step
     end
     for j, o in ipairs(objectives) do
-        if not used[j] and o.text and o.text ~= "" then
-            list[#list + 1] = { kind = "obj", label = (o.text:gsub(":%s*%d+%s*/%s*%d+%s*$", "")), done = o.finished,
-                progress = progressOf(o) }
+        -- out of the log they only stand in for a quest the data lists no steps for
+        if not used[j] and o.text and o.text ~= "" and (onQuest or #(q.steps or {}) == 0) then
+            list[#list + 1] = { kind = "obj", label = liveLabel(o), done = onQuest and o.finished or nil,
+                progress = onQuest and progressOf(o) or nil }
         end
     end
     if completed then

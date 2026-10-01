@@ -69,6 +69,63 @@ describe("QuestSteps", function()
         assert.is_nil(list[current].loc)
     end)
 
+    describe("objectives in the client's language", function()
+        local spanish = {
+            { text = "Carne de lobo duro: 3/8", finished = false, numFulfilled = 3, numRequired = 8 },
+            { text = "Cabeza de VanCleef: 0/1", finished = false, numFulfilled = 0, numRequired = 1 },
+        }
+
+        it("in the log: when no name matches, the game's text is the label and the order pairs the progress", function()
+            WowMock.onQuest[901] = true
+            WowMock.objectives[901] = spanish
+            local list = ns.QuestSteps(q)
+            assert.are.equal("Carne de lobo duro", list[2].label)
+            assert.are.equal("3/8", list[2].progress)
+            assert.are.equal("Cabeza de VanCleef", list[3].label)
+        end)
+
+        it("in the log: a name that matches keeps the data's label", function()
+            WowMock.onQuest[901] = true
+            WowMock.objectives[901] = { { text = "Tough Wolf Meat slain: 3/8" } }
+            assert.are.equal("Tough Wolf Meat", ns.QuestSteps(q)[2].label)
+        end)
+
+        it("out of the log with as many objectives as steps: the game's labels, no progress", function()
+            WowMock.objectives[901] = spanish
+            local list = ns.QuestSteps(q)
+            assert.are.equal("Carne de lobo duro", list[3].label)
+            assert.are.equal("Cabeza de VanCleef", list[4].label)
+            assert.is_nil(list[3].progress)
+            assert.is_falsy(list[3].done)
+            assert.are.equal(12, list[3].area) -- the place still comes from the data
+        end)
+
+        it("out of the log with another count: the data's steps, untouched", function()
+            WowMock.objectives[901] = { spanish[1] }
+            local list = ns.QuestSteps(q)
+            assert.are.same({ "req", "start", "obj", "obj", "finish" }, kinds(list))
+            assert.are.equal("Tough Wolf Meat", list[3].label)
+            assert.are.equal("Head of VanCleef", list[4].label)
+        end)
+
+        it("out of the log for a quest with no steps in the data: the game's objectives, no progress", function()
+            q.steps = nil
+            WowMock.objectives[901] = spanish
+            local list = ns.QuestSteps(q)
+            assert.are.same({ "req", "start", "obj", "obj", "finish" }, kinds(list))
+            assert.are.equal("Cabeza de VanCleef", list[4].label)
+            assert.is_nil(list[4].progress)
+        end)
+
+        it("asks the client to load a quest out of the log, once", function()
+            local calls = {}
+            C_QuestLog.RequestLoadQuestByID = function(id) calls[id] = (calls[id] or 0) + 1 end
+            ns.QuestSteps(q)
+            ns.QuestSteps(q)
+            assert.are.equal(1, calls[901])
+        end)
+    end)
+
     it("ready to turn in: the turn-in is next", function()
         WowMock.onQuest[901] = true
         WowMock.readyForTurnIn[901] = true

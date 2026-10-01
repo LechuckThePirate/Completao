@@ -6,6 +6,8 @@
   Portuguese (`ptBR`) interface. The addon description is translated too.
 - New: the names of dungeons and raids follow the client's language (the game's own
   names; a few that the game names differently are translated by the addon).
+- New: a quest's objectives in the steps list use the game's text, in the client's language,
+  when the game gives it (in the log, or out of it once the client has loaded the quest).
 
 ## 0.5.0-beta
 

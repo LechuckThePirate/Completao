@@ -387,11 +387,11 @@ local function trackedCandidates()
     return list
 end
 
--- The nearest of the list; `ready` true / false keeps only the ones ready to turn in / with objectives left.
-local function nearest(list, ready)
+-- The nearest of the list; `wantReady` true / false keeps only the ones ready to turn in / with objectives left.
+local function nearest(list, wantReady)
     local best
     for _, e in ipairs(list) do
-        if (ready == nil or e.ready == ready) and (not best or e.dist < best.dist) then best = e end
+        if (wantReady == nil or e.ready == wantReady) and (not best or e.dist < best.dist) then best = e end
     end
     return best
 end

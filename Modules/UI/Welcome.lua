@@ -12,11 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: Hide empty or completed categories (Preferences): the side panel leaves out the zones, dungeons...",
-    "  with nothing left to do for you (done, not available yet, other class or race, a profession you lack).",
-    "- New: right click on the focus window moves the focus to the nearest other tracked quest.",
-    "- New: Autofocus also takes a quest you just accepted that can be handed in at once, if it is nearer.",
-    "- Fix: Preferences texts wrap inside the window.",
+    "- New: French, German, Italian and Brazilian Portuguese interface (besides English and Spanish).",
+    "- New: dungeon and raid names follow the client's language.",
+    "- New: a quest's objectives in the steps list use the game's text in your language, when it has it.",
+    "- Note: the translations are a first pass and may not be exact. Some names can't be obtained yet",
+    "  (new Forever instances, NPC names, quest objective texts) and stay in English.",
 }, "\n")
 
 local welcomeFrame

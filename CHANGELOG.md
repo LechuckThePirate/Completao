@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0-beta
 
 - New: French (`frFR`), German (`deDE`), Italian (`itIT`) and Brazilian
   Portuguese (`ptBR`) interface. The addon description is translated too.

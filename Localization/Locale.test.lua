@@ -24,13 +24,15 @@ local function placeholders(text)
     return table.concat(found, " ")
 end
 
--- The code files (not the data nor the translations), as { file = text }.
+-- The code files (not the data nor the translations), as { file = text }. The instances' names are looked up
+-- by their English text too.
 local cachedCode
 local function codeFiles()
     if not cachedCode then
         cachedCode = {}
         for _, file in ipairs(TocFiles()) do
-            if not file:match("^Data/") and not file:match("^Localization/") then
+            local instances = file == "Data/Dungeons.lua" or file == "Data/Raids.lua"
+            if (instances or not file:match("^Data/")) and not file:match("^Localization/") then
                 local handle = assert(io.open(file))
                 cachedCode[file] = handle:read("*a")
                 handle:close()

@@ -20,13 +20,19 @@ ns.categories = {
     { id = "misc",     name = ns.L["Miscellaneous"], icon = ICONS .. "INV_Misc_QuestionMark" },
 }
 
--- Name shown for an entry: classes, zones, races and professions use the client's name (its language).
+-- Name shown for an entry: classes, zones, races and professions use the client's name (its language), and so do
+-- the dungeons and raids with a `nameArea` (the AreaTable id of the instance); the rest are looked up in the
+-- translations by their English name.
 function ns.EntryName(d)
     if d.classFile and LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[d.classFile] then
         return LOCALIZED_CLASS_NAMES_MALE[d.classFile]
     end
     if (d.category == "zones" or d.category == "battlegrounds") and d.area and C_Map and C_Map.GetAreaInfo then
         return C_Map.GetAreaInfo(d.area) or d.name
+    end
+    if d.nameArea and C_Map and C_Map.GetAreaInfo then
+        local name = C_Map.GetAreaInfo(d.nameArea)
+        if name and name ~= "" then return name end
     end
     if d.skillLine and C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName then
         local ok, name = pcall(C_TradeSkillUI.GetTradeSkillDisplayName, d.skillLine)
@@ -36,7 +42,7 @@ function ns.EntryName(d)
         local info = C_CreatureInfo.GetRaceInfo(d.raceId)
         if info and info.raceName then return info.raceName end
     end
-    return d.name
+    return ns.L[d.name]
 end
 
 -- Shape of an entry (dungeon, raid...):

@@ -215,6 +215,19 @@ describe("Entries", function()
             assert.are.equal("Client Fishing", ns.EntryName({ skillLine = 356, name = "Fishing" }))
             _G.C_TradeSkillUI = nil
         end)
+        it("instances with a nameArea: the client's name, the data's if it gives none", function()
+            assert.are.equal("Area2437", ns.EntryName({ name = "Ragefire Chasm", nameArea = 2437 }))
+            local getAreaInfo = C_Map.GetAreaInfo
+            C_Map.GetAreaInfo = function() return nil end
+            assert.are.equal("Ragefire Chasm", ns.EntryName({ name = "Ragefire Chasm", nameArea = 2437 }))
+            C_Map.GetAreaInfo = getAreaInfo
+        end)
+        it("instances without one: the translation by their English name", function()
+            assert.are.equal("Lower Blackrock Spire", ns.EntryName({ name = "Lower Blackrock Spire" }))
+            ns.L["Lower Blackrock Spire"] = "Cumbre inferior de Roca Negra"
+            assert.are.equal("Cumbre inferior de Roca Negra", ns.EntryName({ name = "Lower Blackrock Spire" }))
+            ns.L["Lower Blackrock Spire"] = nil
+        end)
     end)
 
     it("EntryProgress counts done over the ones the character sees", function()

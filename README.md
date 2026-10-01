@@ -124,7 +124,8 @@ Inspired by BtWQuests.
 - Two chat lines, like Embolsao: `Completao!! vX -- initializing...` when the
   addon loads and `... initialization complete (N quests)` once you are in the
   world with everything indexed.
-- English and Spanish UI (`esES`/`esMX` clients get Spanish).
+- UI in English, Spanish (`esES`/`esMX`), French (`frFR`), German (`deDE`), Italian (`itIT`) and
+  Brazilian Portuguese (`ptBR`); other clients get English.
 
 Commands: `/completao` (or `/cpl`) toggles the window, `/completao minimap`
 shows or hides the minimap button, `/completao dump` lists the quest ids in
@@ -170,8 +171,9 @@ tools/         data generators (tools/local/ is git-ignored)
   functions to it; the TOC loads them in order: localization, the logic
   modules, the data (which registers entries through `Modules/Database`), the
   UI and last `Completao.lua`, which starts everything on `ADDON_LOADED`.
-- `Localization/Locale.lua` -- `ns.L`, keyed by the English string;
-  `esES`/`esMX` replace the keys they translate, everything else falls back to
+- `Localization/Locale.lua` -- `ns.L`, keyed by the English string, and `ns.AddLocale`.
+  One file per language (`esES.lua`, `frFR.lua`...) registers its translations for
+  the client locales it covers; what a language doesn't translate falls back to
   English.
 - `Data/Dungeons.lua`, `Data/Raids.lua` -- the list of instances and where their
   doors are. `Data/Generated/` -- quests, entrances and rewards written by the

@@ -227,7 +227,8 @@ Copyright (C) 2026 LechuckThePirate.
 
 ## Localization
 
-English and Spanish interface (`esES` / `esMX` clients get Spanish). Missing a
+Interface in English, Spanish (`esES` / `esMX`), French (`frFR`), German (`deDE`), Italian (`itIT`) and
+Brazilian Portuguese (`ptBR`); other clients get English. Missing a
 translation for your locale? Open an issue or a PR on GitHub.
 
 ## Feedback & Issues

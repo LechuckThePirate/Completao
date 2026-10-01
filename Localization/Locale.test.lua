@@ -6,6 +6,7 @@ local TRANSLATIONS = {
     { file = "frFR", locales = { "frFR" }, professions = "Métiers" },
     { file = "deDE", locales = { "deDE" }, professions = "Berufe" },
     { file = "itIT", locales = { "itIT" }, professions = "Professioni" },
+    { file = "ptBR", locales = { "ptBR" }, professions = "Profissões" },
 }
 
 -- The table a locale file registers, read by running it with a stub namespace.

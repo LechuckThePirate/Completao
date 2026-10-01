@@ -1,6 +1,6 @@
 -- Loading the addon in tests: the files in TOC order (like the game), each with ("Completao", ns).
--- LoadAddon() loads everything; LoadAddon({ files = {...} }) only those files (with Localization/Locale.lua
--- in front if missing). StartAddon(ns) simulates entering the game.
+-- LoadAddon() loads everything; LoadAddon({ files = {...} }) only those files (with the Localization/
+-- files in front if missing). StartAddon(ns) simulates entering the game.
 
 function TocFiles()
     local files = {}
@@ -19,7 +19,10 @@ function LoadAddon(opts)
     local files = opts.files
     if files then
         if files[1] ~= "Localization/Locale.lua" then
-            local withLocale = { "Localization/Locale.lua" }
+            local withLocale = {}
+            for _, f in ipairs(TocFiles()) do
+                if f:match("^Localization/") then withLocale[#withLocale + 1] = f end
+            end
             for _, f in ipairs(files) do withLocale[#withLocale + 1] = f end
             files = withLocale
         end

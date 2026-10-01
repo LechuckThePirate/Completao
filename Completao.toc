@@ -15,6 +15,7 @@
 ## X-Curse-Project-ID: 1716061
 
 Localization\Locale.lua
+Localization\esES.lua
 Modules\Database\Entries.lua
 Modules\Quest\QuestState.lua
 Modules\Quest\QuestSteps.lua

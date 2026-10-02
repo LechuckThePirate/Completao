@@ -10,8 +10,8 @@ local L = ns.L
 -- window stays, saying no quest is focused and how to choose another; its X closes it. It can be dragged
 -- ("Focused Quest" title bar; the place is saved; a padlock there locks it in place). Clicking an objective sets the waypoint on it; clicking the
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
--- right click anywhere on it moves the focus to the nearest other tracked quest. In combat the window stops
--- taking the mouse, so clicks reach the world.
+-- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
+-- distance). In combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -84,7 +84,10 @@ local function applyMouse(combat)
         f:EnableMouse(mouseOn)
         if combat and GameTooltip:IsOwned(f) then GameTooltip:Hide() end
     end
-    if combat then frame:StopMovingOrSizing() end
+    if combat then
+        frame:StopMovingOrSizing()
+        ns.PopupMenu_Hide()
+    end
 end
 
 local function savePosition()
@@ -146,15 +149,16 @@ local function create()
     end)
     frame:SetScript("OnMouseUp", function(_, which)
         if which == "LeftButton" and not dragged then
+            ns.PopupMenu_Hide()
             ns.UI_OpenTracked()
         elseif which == "RightButton" then
-            ns.Focus_SwitchNearest()
+            ns.Focus_ChooseQuest(frame)
         end
     end)
     frame:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
         GameTooltip:AddLine(L["Click to open the tracked quests."], 0.5, 0.8, 1)
-        GameTooltip:AddLine(L["Right-click to focus the nearest tracked quest."], 0.5, 0.8, 1)
+        GameTooltip:AddLine(L["Right-click to choose the quest to focus."], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
     frame:SetScript("OnLeave", GameTooltip_Hide)
@@ -220,7 +224,8 @@ local function getLine(i)
     button:EnableMouse(mouseOn)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     button:SetScript("OnClick", function(self, which)
-        if which == "RightButton" then ns.Focus_SwitchNearest() return end
+        if which == "RightButton" then ns.Focus_ChooseQuest(frame) return end
+        ns.PopupMenu_Hide()
         local step = self.step
         if step and step.opens then ns.UI_OpenTracked() return end -- the "no quest focused" hint
         if not (step and step.loc) then return end
@@ -370,19 +375,31 @@ local sticky, suspended, picking = {}, false, false
 local FRESH_SECONDS = 10 -- how long an accepted quest counts as new (its tracking and state can lag a moment)
 local fresh = {}         -- [questId] = GetTime() until which it counts as just accepted
 
-local function trackedCandidates()
+-- Every tracked quest in the log, in log order: { id, def, dist, ready }; `dist` (how far its next step is) is
+-- nil when it can't be told.
+local function trackedQuests()
     local list = {}
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         local id = info and not info.isHeader and info.questID
         if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
             and not C_QuestLog.IsQuestFlaggedCompleted(id) then
-            local steps = ns.QuestSteps(questDef(id))
+            local q = questDef(id)
+            local steps = ns.QuestSteps(q)
             local isReady = ns.IsReadyToTurnIn(id)
             local index = ns.Focus_PickStep(steps, isReady)
             local d = index and ns.DistanceTo(steps[index].loc)
-            if d then list[#list + 1] = { id = id, dist = d, ready = isReady } end
+            list[#list + 1] = { id = id, def = q, dist = d, ready = isReady }
         end
+    end
+    return list
+end
+
+-- The tracked quests whose distance can be told.
+local function trackedCandidates()
+    local list = {}
+    for _, e in ipairs(trackedQuests()) do
+        if e.dist then list[#list + 1] = e end
     end
     return list
 end
@@ -416,6 +433,11 @@ local function freshTurnIn(cur)
     return best
 end
 
+-- What autofocus picks with nothing focused: the quest with the nearest objective, else the nearest turn-in.
+local function nearestToDo(list)
+    return nearest(list, false) or nearest(list, true)
+end
+
 -- The quest autofocus would put the focus on now, or nil to leave it as it is.
 function ns.Focus_AutoPick()
     local cur = ns.Focus_Quest()
@@ -426,25 +448,49 @@ function ns.Focus_AutoPick()
         local best = nearest(trackedCandidates())
         return best and best.id ~= cur and best.id or nil
     end
-    local list = trackedCandidates()
-    local best = nearest(list, false) or nearest(list, true)
+    local best = nearestToDo(trackedCandidates())
     return best and best.id
 end
 
--- Right click on the window: the focus goes to the tracked quest nearest to the character other than the one
--- focused (by what each needs next, as autofocus sees it). Done by hand, so autofocus leaves it be.
-function ns.Focus_SwitchNearest()
-    local cur = ns.Focus_Quest()
-    local others = {}
-    for _, e in ipairs(trackedCandidates()) do
-        if e.id ~= cur then others[#others + 1] = e end
-    end
-    local best = nearest(others)
+-- "Auto" in the menu: turns Autofocus on and lets it choose now, whatever is focused: the tracked quest with
+-- the nearest objective (else the nearest turn-in).
+function ns.Focus_Auto()
+    ns.Focus_SetAuto(true)
+    local best = nearestToDo(trackedCandidates())
     if not best then
-        ns.Print(L["No other tracked quest to go to."])
+        ns.Print(L["No tracked quest to go to."])
         return false
     end
-    return ns.Focus_Set(best.id)
+    if best.id == ns.Focus_Quest() then return true end
+    return ns.Focus_Set(best.id, true)
+end
+
+-- Right click on the window: a menu with Auto and, under it, the tracked quests by distance (nearest first;
+-- the ones whose distance can't be told last), as in the tracker: "[level]" in the difficulty color, with D
+-- (dungeon) or + (elite). The focused one is ticked. Picking one focuses it by hand, so autofocus leaves it be.
+local MENU_WIDTH = 280
+local CHECK = " |TInterface\\Buttons\\UI-CheckBox-Check:14|t"
+function ns.Focus_ChooseQuest(anchor)
+    local list = trackedQuests()
+    for i, e in ipairs(list) do e.order = i end
+    table.sort(list, function(a, b)
+        if (a.dist ~= nil) ~= (b.dist ~= nil) then return a.dist ~= nil end
+        if a.dist and a.dist ~= b.dist then return a.dist < b.dist end
+        return a.order < b.order
+    end)
+    local cur = ns.Focus_Quest()
+    local options = { { name = L["Auto"], color = { 1, 0.82, 0 }, auto = true } }
+    for _, e in ipairs(list) do
+        local q = e.def
+        local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
+        options[#options + 1] = {
+            name = ns.QuestPrefix(q) .. ns.QuestTitle(e.id, q.name) .. (e.id == cur and CHECK or ""),
+            color = { r, g, b }, id = e.id,
+        }
+    end
+    ns.PopupMenu(anchor, options, function(opt)
+        if opt.auto then ns.Focus_Auto() else ns.Focus_Set(opt.id) end
+    end, MENU_WIDTH)
 end
 
 local function autoFocus()

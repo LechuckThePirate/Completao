@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Changed: a right click on the focus window (or on one of its objectives) now opens a
+  menu instead of jumping to the nearest quest: **Auto** (turns Autofocus on and lets it
+  pick) and, under it, your tracked quests by distance, nearest first, with their level
+  in the difficulty color and the D (dungeon) or + (elite) mark. The focused one is
+  ticked; picking one focuses it, and Autofocus leaves a quest chosen that way alone.
+
 ## 0.6.0-beta
 
 - New: French (`frFR`), German (`deDE`), Italian (`itIT`) and Brazilian

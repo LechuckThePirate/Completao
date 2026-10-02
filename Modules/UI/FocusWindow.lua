@@ -433,11 +433,6 @@ local function freshTurnIn(cur)
     return best
 end
 
--- What autofocus picks with nothing focused: the quest with the nearest objective, else the nearest turn-in.
-local function nearestToDo(list)
-    return nearest(list, false) or nearest(list, true)
-end
-
 -- The quest autofocus would put the focus on now, or nil to leave it as it is.
 function ns.Focus_AutoPick()
     local cur = ns.Focus_Quest()
@@ -448,21 +443,20 @@ function ns.Focus_AutoPick()
         local best = nearest(trackedCandidates())
         return best and best.id ~= cur and best.id or nil
     end
-    local best = nearestToDo(trackedCandidates())
+    local list = trackedCandidates()
+    local best = nearest(list, false) or nearest(list, true)
     return best and best.id
 end
 
--- "Auto" in the menu: turns Autofocus on and lets it choose now, whatever is focused: the tracked quest with
--- the nearest objective (else the nearest turn-in).
+-- "Auto" in the menu: the focus goes, once, to the tracked quest nearest to the character (by what each needs
+-- next, as autofocus sees it). Done by hand, so autofocus leaves it be; the Autofocus setting isn't touched.
 function ns.Focus_Auto()
-    ns.Focus_SetAuto(true)
-    local best = nearestToDo(trackedCandidates())
+    local best = nearest(trackedCandidates())
     if not best then
         ns.Print(L["No tracked quest to go to."])
         return false
     end
-    if best.id == ns.Focus_Quest() then return true end
-    return ns.Focus_Set(best.id, true)
+    return ns.Focus_Set(best.id)
 end
 
 -- Right click on the window: a menu with Auto and, under it, the tracked quests by distance (nearest first;

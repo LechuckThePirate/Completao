@@ -803,24 +803,34 @@ describe("FocusWindow", function()
         end)
 
         describe("Auto", function()
-            it("turns Autofocus on and focuses the quest with the nearest objective", function()
-                ns.char.focusAuto = nil
-                ns.Focus_Set(999004)
-                rightClick()
-                pick("Auto")
-                assert.is_true(ns.char.focusAuto)
-                assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+            it("focuses the nearest tracked quest, and leaves the Autofocus setting as it was", function()
+                for _, setting in ipairs({ true, false }) do
+                    ns.char.focusAuto = setting or nil
+                    ns.Focus_Set(999004)
+                    rightClick()
+                    pick("Auto")
+                    assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+                    assert.are.equal(setting or nil, ns.char.focusAuto)
+                end
             end)
 
-            it("is chosen by autofocus, not by hand: it can move on from a ready quest", function()
+            it("counts a turn-in by the distance to whoever takes it in", function()
                 ready(999004)
-                ns.Focus_Set(999004)
+                distance[81] = 5
                 rightClick()
                 pick("Auto")
-                assert.are.equal(999001, ns.Focus_Quest()) -- an objective to do before a far turn-in
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("is by hand: a quest ready to turn in stays under autofocus", function()
+                ns.char.focusAuto = true
+                distance[31], distance[30] = 1, 1000 -- the foxes' turn-in is very near
                 ready(999003)
-                distance[wolves.x], distance[boars.x], distance[31] = 5000, 5000, 0.1
-                ready(999001)
+                rightClick()
+                pick("Auto")
+                assert.are.equal(999003, ns.Focus_Quest())
+                distance[81], distance[31] = 0.1, 500
+                ready(999004)
                 FireEvent("QUEST_LOG_UPDATE")
                 assert.are.equal(999003, ns.Focus_Quest())
             end)

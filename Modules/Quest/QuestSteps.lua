@@ -1,5 +1,27 @@
 local _, ns = ...
 
+-- Where the game itself says a quest in the log is worked on (the spot of its quest POI): one point per quest,
+-- the same one the minimap shows. It stands in for the places the data doesn't have (the new Forever quests have
+-- no objective coordinates). Tries the player's map, then the maps of the quest's own start and turn-in.
+-- Returns { map, x, y } (coordinates 0-100) or nil.
+local function liveSpot(q)
+    if not (C_QuestLog.GetQuestsOnMap and C_Map.GetBestMapForUnit) then return nil end
+    local maps, seen = {}, {}
+    local function add(map)
+        if map and not seen[map] then seen[map] = true maps[#maps + 1] = map end
+    end
+    add(C_Map.GetBestMapForUnit("player"))
+    if ns.ResolveZone then
+        add(ns.ResolveZone(q.start))
+        add(ns.ResolveZone(q.finish))
+    end
+    for _, map in ipairs(maps) do
+        for _, p in ipairs(C_QuestLog.GetQuestsOnMap(map) or {}) do
+            if p.questID == q.id and p.x and p.y then return { map = map, x = p.x * 100, y = p.y * 100 } end
+        end
+    end
+end
+
 -- Steps of a quest, for the waypoints and the panel's list: the missing requirement (the start of the
 -- previous quest not done yet), the start, one step per objective (q.steps: zone and spot from the data)
 -- and the turn-in. With the quest in the log each objective carries its live progress (matched by name to
@@ -31,7 +53,10 @@ function ns.QuestSteps(q)
     local used = {}
     -- the objective's text without its count ("Boars slain: 3/5" -> "Boars slain")
     local function liveLabel(o)
-        if o.text and o.text ~= "" then return (o.text:gsub(":%s*%d+%s*/%s*%d+%s*$", "")) end
+        if o.text and o.text ~= "" then
+            -- "Boars slain: 3/5" and "3/5 Boars slain" (items) both come
+            return (o.text:gsub(":%s*%d+%s*/%s*%d+%s*$", ""):gsub("^%d+%s*/%s*%d+%s+", ""))
+        end
     end
     local function progressOf(o)
         if o.numRequired and o.numRequired > 0 then return ("%d/%d"):format(o.numFulfilled or 0, o.numRequired) end
@@ -60,6 +85,18 @@ function ns.QuestSteps(q)
         if not used[j] and o.text and o.text ~= "" and (onQuest or #(q.steps or {}) == 0) then
             list[#list + 1] = { kind = "obj", label = liveLabel(o), done = onQuest and o.finished or nil,
                 progress = onQuest and progressOf(o) or nil }
+        end
+    end
+    -- the unfinished objectives with no place of their own take the one the game gives for the quest
+    if onQuest then
+        local spot
+        for _, s in ipairs(list) do
+            if s.kind == "obj" and not s.done and not s.loc then
+                if spot == nil then spot = liveSpot(q) or false end
+                if spot and (not s.area or (ns.ResolveZone and ns.ResolveZone({ area = s.area }) == spot.map)) then
+                    s.loc = spot
+                end
+            end
         end
     end
     if completed then

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New: the objectives of a quest in your log that the data has no place for (such as the new Forever quests)
+  take the spot the game itself gives for the quest, the one the minimap shows: waypoint, distance and map pin
+  work for them. It is one point per quest, and only while you carry it.
+- Fix: the objective texts the game writes as "1/1 Raider's Bow" no longer show the count in front.
+
 ## 0.7.0-beta
 
 - New: a right click on the minimap button opens the Preferences (its tooltip lists the clicks).

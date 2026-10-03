@@ -1,6 +1,7 @@
 local ADDON, ns = ...
 
--- A location is { npc = "Name", area = <AreaTable id>, x = 44.4, y = 42.8 } (coordinates 0-100).
+-- A location is { npc = "Name", area = <AreaTable id>, x = 44.4, y = 42.8 } (coordinates 0-100), or, when the game
+-- itself gave the spot, { map = <uiMapID>, x, y }.
 -- The area id is turned into the client's map by zone name, the first time it is needed.
 local mapByName
 
@@ -16,8 +17,9 @@ end
 
 -- Map of the location's zone (no coordinates needed: enough to open the map on the zone).
 function ns.ResolveZone(loc)
-    if not (loc and loc.area) then return nil end
+    if not loc then return nil end
     if loc.map then return loc.map end
+    if not loc.area then return nil end
     local name = C_Map.GetAreaInfo(loc.area)
     if not name then return nil end
     if not mapByName then buildMapIndex() end

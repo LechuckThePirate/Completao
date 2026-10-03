@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0-beta
 
 - New: a right click on the minimap button opens the Preferences (its tooltip lists the clicks).
 - Data: updated to the Forever beta update of October 1 (level cap 30). New quests, such as

@@ -12,11 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: French, German, Italian and Brazilian Portuguese interface (besides English and Spanish).",
-    "- New: dungeon and raid names follow the client's language.",
-    "- New: a quest's objectives in the steps list use the game's text in your language, when it has it.",
-    "- Note: the translations are a first pass and may not be exact. Some names can't be obtained yet",
-    "  (new Forever instances, NPC names, quest objective texts) and stay in English.",
+    "- Data: updated to the Forever beta update of October 1 (level cap 30): new quests, changed levels,",
+    "  rewards and restrictions, and the placeholder quests Forever never shipped are gone.",
+    "- Changed: a right click on the focus window opens a menu: Auto (the nearest quest) or one of",
+    "  your tracked quests, nearest first.",
+    "- New: a right click on the minimap button opens the Preferences.",
 }, "\n")
 
 local welcomeFrame

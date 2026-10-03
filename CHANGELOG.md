@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0-beta
 
 - New: the objectives of a quest in your log that the data has no place for (such as the new Forever quests)
   take the spot the game itself gives for the quest, the one the minimap shows: waypoint, distance and map pin

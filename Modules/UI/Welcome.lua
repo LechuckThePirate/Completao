@@ -12,11 +12,10 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Data: updated to the Forever beta update of October 1 (level cap 30): new quests, changed levels,",
-    "  rewards and restrictions, and the placeholder quests Forever never shipped are gone.",
-    "- Changed: a right click on the focus window opens a menu: Auto (the nearest quest) or one of",
-    "  your tracked quests, nearest first.",
-    "- New: a right click on the minimap button opens the Preferences.",
+    "- New: the objectives of a quest in your log that have no place in the data (such as the new Forever",
+    "  quests) take the spot the game gives for the quest, the one the minimap shows: waypoint, distance",
+    "  and map pin work for them.",
+    "- Fix: objective texts like \"1/1 Raider's Bow\" no longer show the count in front.",
 }, "\n")
 
 local welcomeFrame

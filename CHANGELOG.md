@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Data: updated to the Forever beta update of October 1 (level cap 30). New quests, such as
+  "Kyle's Gone Missing!" in Mulgore and the first quests of Excavation Site: Wetlands, the
+  Dalaran dungeon and the new Wetlands, Hillsbrad, Duskwood and Thousand Needles zone quests.
+- Data: changed quests follow Forever: levels and rewards (e.g. "Snowbound", "Chakuyak"),
+  class and faction restrictions, and the turn-in NPCs of the Undercity quest chain.
+- Fix: placeholder quests that Forever never shipped no longer show up in the lists.
+- Excavation Site: Wetlands is now listed as levels 26-31.
+
 ## 0.6.0-beta
 
 - New: French (`frFR`), German (`deDE`), Italian (`itIT`) and Brazilian

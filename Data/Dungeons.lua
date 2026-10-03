@@ -9,7 +9,7 @@ local _, ns = ...
 local dungeons = {
     { id = "hot",  name = "The Hall of Thanes",       minLevel = 13, maxLevel = 18, new = true },
     { id = "rol",  name = "Ruins of Lordaeron",       minLevel = 15, maxLevel = 20, new = true },
-    { id = "exw",  name = "Excavation Site: Wetlands", minLevel = 24, maxLevel = 29, new = true },
+    { id = "exw",  name = "Excavation Site: Wetlands", minLevel = 26, maxLevel = 31, new = true },
     { id = "dal",  name = "City of Dalaran",          minLevel = 28, maxLevel = 33, new = true },
     { id = "dc",   name = "The Drowned City",         minLevel = 35, maxLevel = 40, new = true },
     { id = "kds",  name = "Krol'dok Stronghold",      minLevel = 40, maxLevel = 45, new = true },

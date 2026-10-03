@@ -681,10 +681,27 @@ describe("FocusWindow", function()
         end)
     end)
 
-    describe("right click: the nearest tracked quest", function()
+    describe("right click: the menu to choose the quest", function()
         local tracked, distance
         local function ready(id) WowMock.readyForTurnIn[id] = true end
         local function rightClick() frame._scripts.OnMouseUp(frame, "RightButton") end
+        -- the options of the menu that is showing, in order
+        local function menu()
+            return WowMock.FindAll(function(f)
+                return f.text and f._scripts.OnClick and f._parent and f._parent.buttons and f:IsVisible()
+            end)
+        end
+        local function names()
+            local out = {}
+            for i, b in ipairs(menu()) do out[i] = b.text._text end
+            return out
+        end
+        local function pick(text)
+            for _, b in ipairs(menu()) do
+                if b.text._text:find(text, 1, true) then b:Click() return end
+            end
+            error("no option " .. text)
+        end
         before_each(function()
             -- Pest Control's wolves 10 yd (boars 200); Fox Hunt's foxes 40; Owl Watch's owls 900
             distance = { [boars.x] = 200, [wolves.x] = 10, [30] = 40, [80] = 900, [81] = 950, [31] = 60 }
@@ -701,43 +718,75 @@ describe("FocusWindow", function()
         end)
         after_each(function() C_QuestLog.GetQuestWatchType = nil end)
 
-        it("moves the focus to the nearest tracked quest other than this one, with its waypoint", function()
-            rightClick() -- the wolves (10 yd) are this quest's own; the foxes (40) are the nearest other
-            assert.are.equal(999003, ns.Focus_Quest())
-            assert.matches("Fox Hunt", frame.title._text)
-            assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+        it("opens Auto and the tracked quests by distance, with level and the focused one ticked", function()
+            rightClick()
+            local list = names()
+            assert.are.equal(4, #list)
+            assert.are.equal("Auto", list[1])
+            assert.matches("^%[20%] Pest Control", list[2])
+            assert.matches("UI%-CheckBox%-Check", list[2]) -- the focused one
+            assert.are.equal("[20] Fox Hunt", list[3])
+            assert.are.equal("[20] Owl Watch", list[4])
         end)
 
-        it("again, to the nearest one other than the new one (back to the first)", function()
+        it("colors each quest by its difficulty", function()
             rightClick()
-            rightClick()
-            assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+            assert.are.same({ ns.QuestLevelColorRGB(20) }, { menu()[3].text:GetTextColor() })
         end)
 
-        it("also from an objective line", function()
-            lineWith("Boars"):Click("RightButton")
-            assert.are.equal(999003, ns.Focus_Quest())
+        it("marks dungeon and elite quests with D and +", function()
+            ns.FindQuestDef(999003).dungeon = true
+            C_QuestLog.GetQuestTagInfo = function(id) return id == 999004 and 1 or 0 end
+            rightClick()
+            C_QuestLog.GetQuestTagInfo = nil
+            local list = names()
+            assert.are.equal("[20D] Fox Hunt", list[3])
+            assert.are.equal("[20+] Owl Watch", list[4])
+        end)
+
+        it("puts the quests whose distance can't be told last", function()
+            distance[30] = nil -- the foxes
+            rightClick()
+            local list = names()
+            assert.matches("Pest Control", list[2])
+            assert.matches("Owl Watch", list[3])
+            assert.matches("Fox Hunt", list[4])
         end)
 
         it("a turn-in counts by the distance to whoever takes it in", function()
             ready(999004)
             distance[81] = 5
             rightClick()
+            assert.matches("Owl Watch", names()[2])
+        end)
+
+        it("only the tracked quests are in it", function()
+            tracked[999003] = nil
+            rightClick()
+            assert.are.equal(3, #names())
+        end)
+
+        it("picking a quest focuses it, with its waypoint", function()
+            rightClick()
+            pick("Fox Hunt")
+            assert.are.equal(999003, ns.Focus_Quest())
+            assert.matches("Fox Hunt", frame.title._text)
+            assert.near(0.3, WowMock.userWaypoint.x, 1e-9)
+        end)
+
+        it("also from an objective line", function()
+            lineWith("Boars"):Click("RightButton")
+            assert.are.equal(4, #names())
+            pick("Owl Watch")
             assert.are.equal(999004, ns.Focus_Quest())
         end)
 
-        it("only among the tracked quests that have a known distance", function()
-            tracked[999003] = nil
-            distance[80] = nil
-            rightClick()
-            assert.are.equal(999001, ns.Focus_Quest()) -- nothing else to go to: it stays, and says so
-            assert.is_true(WowMock.chatted)
-        end)
-
-        it("with nothing focused it picks the nearest of all", function()
+        it("with nothing focused it still lists the quests", function()
             ns.Focus_Clear()
             rightClick()
-            assert.are.equal(999001, ns.Focus_Quest())
+            assert.are.equal(4, #names())
+            pick("Fox Hunt")
+            assert.are.equal(999003, ns.Focus_Quest())
         end)
 
         it("is by hand: a quest ready to turn in stays under autofocus", function()
@@ -745,6 +794,7 @@ describe("FocusWindow", function()
             distance[31], distance[30] = 1, 1000 -- the foxes' turn-in is very near
             ready(999003)
             rightClick()
+            pick("Fox Hunt")
             assert.are.equal(999003, ns.Focus_Quest())
             distance[81], distance[31] = 0.1, 500
             ready(999004)
@@ -752,9 +802,65 @@ describe("FocusWindow", function()
             assert.are.equal(999003, ns.Focus_Quest())
         end)
 
+        describe("Auto", function()
+            it("focuses the nearest tracked quest, and leaves the Autofocus setting as it was", function()
+                for _, setting in ipairs({ true, false }) do
+                    ns.char.focusAuto = setting or nil
+                    ns.Focus_Set(999004)
+                    rightClick()
+                    pick("Auto")
+                    assert.are.equal(999001, ns.Focus_Quest()) -- the wolves, 10 yd
+                    assert.are.equal(setting or nil, ns.char.focusAuto)
+                end
+            end)
+
+            it("counts a turn-in by the distance to whoever takes it in", function()
+                ready(999004)
+                distance[81] = 5
+                rightClick()
+                pick("Auto")
+                assert.are.equal(999004, ns.Focus_Quest())
+            end)
+
+            it("is by hand: a quest ready to turn in stays under autofocus", function()
+                ns.char.focusAuto = true
+                distance[31], distance[30] = 1, 1000 -- the foxes' turn-in is very near
+                ready(999003)
+                rightClick()
+                pick("Auto")
+                assert.are.equal(999003, ns.Focus_Quest())
+                distance[81], distance[31] = 0.1, 500
+                ready(999004)
+                FireEvent("QUEST_LOG_UPDATE")
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("with no quest it can go to, says so", function()
+                for id in pairs(tracked) do tracked[id] = nil end
+                rightClick()
+                pick("Auto")
+                assert.is_true(WowMock.chatted)
+            end)
+        end)
+
+        it("the same click again closes the menu", function()
+            rightClick()
+            rightClick()
+            assert.are.equal(0, #menu())
+        end)
+
+        it("a left click on the window closes it", function()
+            rightClick()
+            frame._scripts.OnMouseDown(frame, "LeftButton")
+            frame._scripts.OnMouseUp(frame, "LeftButton")
+            assert.are.equal(0, #menu())
+        end)
+
         it("does nothing in combat, where the window takes no clicks", function()
+            rightClick()
             FireEvent("PLAYER_REGEN_DISABLED")
             assert.is_false(frame:IsMouseEnabled())
+            assert.are.equal(0, #menu())
         end)
     end)
 

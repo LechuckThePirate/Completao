@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: a right click on the minimap button opens the Preferences (its tooltip lists the clicks).
 - Data: updated to the Forever beta update of October 1 (level cap 30). New quests, such as
   "Kyle's Gone Missing!" in Mulgore and the first quests of Excavation Site: Wetlands, the
   Dalaran dungeon and the new Wetlands, Hillsbrad, Duskwood and Thousand Needles zone quests.

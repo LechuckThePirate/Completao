@@ -166,6 +166,7 @@ ns.AddLocale({ "ptBR" }, {
     ["Settings are shared by all your characters."] = "As configurações são compartilhadas por todos os seus personagens.",
     ["Opacity while moving: %d%%"] = "Opacidade ao se mover: %d%%",
     ["Left-click: open"] = "Clique esquerdo: abrir",
+    ["Right-click: preferences"] = "Clique direito: preferências",
     ["Drag: move"] = "Arrastar: mover",
     ["Minimap button hidden."] = "Botão do minimapa oculto.",
     ["Minimap button shown."] = "Botão do minimapa visível.",

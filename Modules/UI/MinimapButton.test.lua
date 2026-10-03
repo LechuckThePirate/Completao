@@ -23,6 +23,21 @@ describe("MinimapButton", function()
         assert.is_false(ns.UI:IsShown())
     end)
 
+    it("a right click opens and closes the preferences, not the window", function()
+        button:Click("RightButton")
+        assert.is_true(_G.CompletaoPreferencesFrame:IsShown())
+        assert.is_true(ns.UI == nil or not ns.UI:IsShown())
+        button:Click("RightButton")
+        assert.is_false(_G.CompletaoPreferencesFrame:IsShown())
+    end)
+
+    it("registers both buttons, and its tooltip explains the clicks and the drag", function()
+        local lines = {}
+        GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
+        button._scripts.OnEnter(button)
+        assert.are.same({ "Left-click: open", "Right-click: preferences", "Drag: move" }, lines)
+    end)
+
     it("dragging it changes its angle around the minimap", function()
         WowMock.cursor = { 200, 100 } -- right of the center (100, 100)
         button._scripts.OnDragStart(button)

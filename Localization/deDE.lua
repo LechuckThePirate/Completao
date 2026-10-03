@@ -166,6 +166,7 @@ ns.AddLocale({ "deDE" }, {
     ["Settings are shared by all your characters."] = "Die Einstellungen gelten für alle deine Charaktere.",
     ["Opacity while moving: %d%%"] = "Deckkraft bei Bewegung: %d%%",
     ["Left-click: open"] = "Linksklick: öffnen",
+    ["Right-click: preferences"] = "Rechtsklick: Einstellungen",
     ["Drag: move"] = "Ziehen: verschieben",
     ["Minimap button hidden."] = "Minikartenknopf ausgeblendet.",
     ["Minimap button shown."] = "Minikartenknopf angezeigt.",

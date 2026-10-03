@@ -60,6 +60,46 @@ describe("QuestSteps", function()
         assert.is_true(list[3].done)
     end)
 
+    describe("the spot the game gives for a quest in the log", function()
+        before_each(function()
+            WowMock.onQuest[901] = true
+            WowMock.playerMap = 1411
+            WowMock.questsOnMap[1411] = {
+                { questID = 5, x = 0.1, y = 0.2 },
+                { questID = 901, x = 0.565, y = 0.53 },
+            }
+            q.steps = nil
+            WowMock.objectives[901] = {
+                { text = "1/1 Raider's Bow", finished = true, numFulfilled = 1, numRequired = 1 },
+                { text = "0/1 Raider's Shield", finished = false, numFulfilled = 0, numRequired = 1 },
+            }
+        end)
+
+        it("is the place of the objectives the data has no place for", function()
+            local list, current = ns.QuestSteps(q)
+            assert.are.equal("Raider's Shield", list[current].label)
+            local loc = list[current].loc
+            assert.are.equal(1411, loc.map)
+            assert.is_true(math.abs(loc.x - 56.5) < 1e-6 and math.abs(loc.y - 53) < 1e-6)
+            assert.is_nil(list[2].loc) -- the done one needs none
+        end)
+
+        it("is not used out of the log, or when the quest isn't on the player's map", function()
+            WowMock.questsOnMap[1411] = { { questID = 5, x = 0.1, y = 0.2 } }
+            local list, current = ns.QuestSteps(q)
+            assert.is_nil(list[current].loc)
+            WowMock.questsOnMap[1411] = { { questID = 901, x = 0.565, y = 0.53 } }
+            WowMock.onQuest[901] = nil
+            list = ns.QuestSteps(q)
+            for _, s in ipairs(list) do if s.kind == "obj" then assert.is_nil(s.loc) end end
+        end)
+
+        it("never replaces a place the data has", function()
+            q.steps = { { name = "Raider's Shield", area = 12, x = 30, y = 31 } }
+            local list, current = ns.QuestSteps(q)
+            assert.are.equal(30, list[current].loc.x)
+        end)
+    end)
     it("the game's objectives with no step in the data are added without a location", function()
         WowMock.onQuest[901] = true
         q.steps = nil

@@ -16,6 +16,8 @@ local function resetState()
     WowMock.onQuest = {}       -- [questID] = true: in the log
     WowMock.titles = {}        -- [questID] = the client's title
     WowMock.objectives = {}    -- [questID] = { { text, finished, numFulfilled, numRequired } }
+    WowMock.playerMap = nil    -- the player's map id
+    WowMock.questsOnMap = {}   -- [mapID] = { { questID, x, y } } (0-1), as C_QuestLog.GetQuestsOnMap
     WowMock.readyForTurnIn = {}
     WowMock.log = {}           -- quest log entries: { isHeader, title, questID, level }
     WowMock.items = {}         -- [itemID] = { name, link, quality, icon, classID, subclassID, typeName, subName }
@@ -296,6 +298,7 @@ C_QuestLog = {
     GetTitleForQuestID = function(id) return WowMock.titles[id] end,
     RequestLoadQuestByID = function() end,
     GetQuestObjectives = function(id) return WowMock.objectives[id] or {} end,
+    GetQuestsOnMap = function(map) return WowMock.questsOnMap[map] end,
     ReadyForTurnIn = function(id) return WowMock.readyForTurnIn[id] == true end,
     GetNumQuestLogEntries = function() return #WowMock.log end,
     GetInfo = function(i) return WowMock.log[i] end,
@@ -313,7 +316,7 @@ C_QuestLog = {
 C_Map = {
     GetAreaInfo = function(id) return "Area" .. id end,
     GetMapInfo = function(id) return WowMock.maps[id] end,
-    GetBestMapForUnit = function() return nil end,
+    GetBestMapForUnit = function() return WowMock.playerMap end,
     CanSetUserWaypointOnMap = function() return true end,
     SetUserWaypoint = function(p) WowMock.userWaypoint = p end,
 }

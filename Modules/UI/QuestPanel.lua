@@ -44,7 +44,10 @@ end
 
 local function stepZone(step)
     local area = (step.loc and step.loc.area) or step.area
-    return area and C_Map.GetAreaInfo(area) or nil
+    if area then return C_Map.GetAreaInfo(area) end
+    local map = step.loc and step.loc.map -- a spot the game gave
+    local info = map and C_Map.GetMapInfo(map)
+    return info and info.name or nil
 end
 
 -- List of steps (goes after the objective): done ones with a green tick, the next one in yellow with an

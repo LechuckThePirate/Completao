@@ -12,10 +12,12 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: Follow Blizzard's quest tracker: when you focus a quest in Blizzard's tracker or quest log,",
-    "  the focus window takes it too (Preferences, on by default).",
-    "- New: Focusing here also sets Blizzard's quest tracker: a quest you focus in Completao, or that",
-    "  Autofocus picks, becomes Blizzard's focused quest too (Preferences, on by default).",
+    "- New: right click on a quest, in a tree or in a table, opens a menu with what is usually done with it:",
+    "  Focus (or Stop focus), Open quest, Set waypoint, Show on map (or Show entrance), View chain (from a",
+    "  table) and Abandon quest. Right click no longer focuses the quest straight away.",
+    "- Fix: three quests showed page code at the end of their description.",
+    "- Fix: the scroll bar of the main view is hidden when the tree fits, and the tree and the quest details",
+    "  take the room it leaves. The same goes for the details text, the tables and this window.",
 }, "\n")
 
 local welcomeFrame

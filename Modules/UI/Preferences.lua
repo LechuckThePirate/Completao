@@ -3,7 +3,7 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 628
+local WIDTH, HEIGHT = 340, 656
 local LABEL_W = WIDTH - 48 - 16 -- a checkbox's text: from after the box (x = 48) to the window's right margin
 local prefs
 
@@ -160,20 +160,24 @@ local function create()
             if value then ns.Focus_FollowBlizzard() end
         end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -412, L["Hide empty or completed categories"],
+    widgets[#widgets + 1] = makeCheck(prefs, -412, L["Autofocus also sets Blizzard's quest tracker"],
+        function() return ns.char.autofocusSetsBlizzard ~= false end,
+        function(value) ns.char.autofocusSetsBlizzard = value end)
+
+    widgets[#widgets + 1] = makeCheck(prefs, -440, L["Hide empty or completed categories"],
         function() return ns.char.hideDone end,
         function(value)
             ns.char.hideDone = value or nil
             ns.UI_Refresh()
         end)
 
-    makeButton(prefs, -460, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -490, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -520, L["Reset filters"], function()
+    makeButton(prefs, -488, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, -518, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, -548, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, -554, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, -582, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

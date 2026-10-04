@@ -534,10 +534,21 @@ function ns.Focus_Refresh(force)
         buildLines(q, steps, isReady))
 end
 
+-- "Autofocus sets Blizzard's tracker" (Preferences, on unless switched off): a quest autofocus picks becomes
+-- the game's super tracked quest too. Called with the focus already changed here, so the game's change event
+-- finds the same quest focused (Focus_FollowBlizzard) and goes no further.
+local function tellBlizzard(id)
+    if ns.char.autofocusSetsBlizzard == false then return end
+    if not (C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID) then return end
+    if C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID() == id then return end
+    C_SuperTrack.SetSuperTrackedQuestID(id)
+end
+
 -- `auto`: chosen by autofocus rather than by the player.
 function ns.Focus_Set(id, auto)
     if not (id and C_QuestLog.IsOnQuest(id)) then return false end
     ns.char.focusQuest = id
+    if auto then tellBlizzard(id) end
     lastSignature = nil
     idle = false
     sticky = {}

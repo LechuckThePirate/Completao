@@ -34,6 +34,7 @@ read_globals = {
     "REWARD_ITEMS_ONLY", "ScrollFrame_OnScrollRangeChanged", "ShowUIPanel", "ToggleQuestLog", "TomTom", "UIParent", "UiMapPoint", "UnitClass",
     "UnitFactionGroup", "UnitLevel", "UnitName", "UnitRace", "WorldMapFrame",
     "hooksecurefunc", "issecretvalue", "strtrim", "tinsert", "wipe",
+    "QuestMapQuestOptions_AbandonQuest", "SetAbandonQuest", "StaticPopup_Show",
 }
 
 -- tests (busted): they define and change the simulated game's globals on purpose

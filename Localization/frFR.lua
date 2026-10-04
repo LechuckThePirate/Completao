@@ -121,6 +121,8 @@ ns.AddLocale({ "frFR" }, {
     ["Focus"] = "Focaliser",
     ["Focused Quest"] = "Quête focalisée",
     ["Autofocus tracked quests"] = "Focaliser automatiquement les quêtes suivies",
+    ["Follow Blizzard's quest tracker"] = "Suivre le suivi de quêtes de Blizzard",
+    ["Focusing here also sets Blizzard's quest tracker"] = "Focaliser ici change aussi le suivi de quêtes de Blizzard",
     ["Click to open the tracked quests."] = "Cliquez pour ouvrir les quêtes suivies.",
     ["Right-click to choose the quest to focus."] = "Clic droit pour choisir la quête à focaliser.",
     ["No tracked quest to go to."] = "Aucune quête suivie où aller.",

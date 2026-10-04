@@ -385,6 +385,65 @@ describe("MainWindow", function()
         assert.are.equal(0.35, ns.char.zoom)
     end)
 
+    describe("the tree's scroll bar", function()
+        local scroll, canvas
+        -- where the tree ends on the right: -8 without the bar, -32 with it
+        local function right()
+            local x
+            for _, p in ipairs(scroll._points) do if p[1] == "BOTTOMRIGHT" then x = p[#p - 1] end end
+            return x
+        end
+        local function rangeChanged() for _, h in ipairs(scroll._hooks.OnScrollRangeChanged) do h(scroll) end end
+
+        before_each(function()
+            scroll = ns.UI.treeScroll
+            canvas = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)
+            scroll:SetHeight(300)
+        end)
+
+        it("is not there when the tree fits, and the tree takes its room", function()
+            canvas:SetHeight(200)
+            rangeChanged()
+            assert.are.equal(-8, right())
+        end)
+
+        it("shows when the tree is taller than the view, and the tree leaves room for it", function()
+            canvas:SetHeight(900)
+            rangeChanged()
+            assert.are.equal(-32, right())
+            canvas:SetHeight(200)
+            rangeChanged()
+            assert.are.equal(-8, right())
+        end)
+
+        it("counts the zoom: the client's own range ignores the canvas scale", function()
+            canvas:SetHeight(900)
+            ns.UI_SetZoom(0.35) -- 900 * 0.35 = 315: still taller than the 300 view
+            assert.are.equal(-32, right())
+            canvas:SetHeight(500)
+            ns.UI_SetZoom(0.35) -- 175: fits
+            assert.are.equal(-8, right())
+            ns.UI_SetZoom(1.6) -- 800: does not
+            assert.are.equal(-32, right())
+        end)
+
+        it("the quest details panel under it ends where the tree does", function()
+            local detail = WowMock.Find(function(f) return f.layoutButtons end)
+            local function detailRight()
+                local x
+                for _, p in ipairs(detail._points) do if p[1] == "BOTTOMRIGHT" then x = p[#p - 1] end end
+                return x
+            end
+            canvas:SetHeight(200)
+            ns.UI_OpenQuest("vc", ns.entries.vc.quests[1].id)
+            rangeChanged()
+            assert.are.equal(-8, detailRight())
+            canvas:SetHeight(900)
+            rangeChanged()
+            assert.are.equal(-32, detailRight())
+        end)
+    end)
+
     describe("transparency while moving", function()
         local function tick() for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end end
 

@@ -4,6 +4,9 @@
 
 - Fix: three quests (A Friend of the Family 7/8, For Further Study and Key to the City) showed page code
   at the end of their description. The text is clean now, and a test keeps generated quest text free of it.
+- Fix: the scroll bar of the main view (the quest tree) is hidden when the tree fits, counting the zoom,
+  and the tree and the quest details take the room it leaves instead of keeping a gap at the right.
+  The same goes for the quest details text, the tables and the what's new window.
 
 ## 0.9.0-beta
 

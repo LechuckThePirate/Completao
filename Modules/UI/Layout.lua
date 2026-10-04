@@ -37,16 +37,32 @@ function ns.CheckWidth(_, label)
     return function() return 24 + math.ceil(label:GetStringWidth()) + 4 end
 end
 
--- A scroll frame (UIPanelScrollFrameTemplate) whose bar is only there when there is something to scroll:
--- the template keeps the bar, its arrows and thumb showing (greyed out) even when the content fits, which
--- is noise next to a short list. `scrollBarHideable` is the template's own switch for that; it acts when the
--- scroll range changes, so it is also run once now and whenever the frame is shown.
-function ns.HideableScroll(scroll)
-    scroll.scrollBarHideable = true
-    local function sync()
-        if ScrollFrame_OnScrollRangeChanged then ScrollFrame_OnScrollRangeChanged(scroll) end
+-- Scroll bars only when the content doesn't fit: without one, the space it took goes back to the scroll
+-- frame. place(hasBar) re-anchors whatever depends on it, and is called only when that changes (and once
+-- at the start, without a bar). needed() says whether the content overflows; by default, the frame's own
+-- scroll range. Returns the function that checks it again, for when the content changes without the client
+-- noticing.
+function ns.AutoScrollBar(scroll, place, needed)
+    local name = scroll.GetName and scroll:GetName()
+    local bar = scroll.ScrollBar or (name and _G[name .. "ScrollBar"])
+    local shown
+    local function update()
+        local need
+        if needed then
+            need = needed()
+        else
+            need = (scroll:GetVerticalScrollRange() or 0) > 0.5
+        end
+        need = need and true or false
+        if bar then bar:SetShown(need) end
+        if need ~= shown then
+            shown = need
+            place(need)
+        end
     end
-    scroll:HookScript("OnShow", sync)
-    sync()
-    return scroll
+    scroll:HookScript("OnScrollRangeChanged", update)
+    scroll:HookScript("OnSizeChanged", update)
+    scroll:HookScript("OnShow", update)
+    update()
+    return update
 end

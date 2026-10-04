@@ -84,9 +84,9 @@ local function create()
     welcomeFrame.changelogLabel = welcomeFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     welcomeFrame.changelogLabel:SetPoint("TOPLEFT", welcomeFrame.urlBox, "BOTTOMLEFT", -6, -18)
 
-    welcomeFrame.changelogScroll = ns.HideableScroll(CreateFrame("ScrollFrame", nil, welcomeFrame, "UIPanelScrollFrameTemplate"))
+    welcomeFrame.changelogScroll = CreateFrame("ScrollFrame", nil, welcomeFrame, "UIPanelScrollFrameTemplate")
     welcomeFrame.changelogScroll:SetPoint("TOPLEFT", welcomeFrame.changelogLabel, "BOTTOMLEFT", 0, -8)
-    welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", -48, 56)
+    welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", -24, 56) -- -48 while its scroll bar shows
 
     welcomeFrame.changelogContent = CreateFrame("Frame", nil, welcomeFrame.changelogScroll)
     welcomeFrame.changelogContent:SetPoint("TOPLEFT")
@@ -97,6 +97,17 @@ local function create()
     welcomeFrame.changelogText:SetPoint("TOPLEFT")
     welcomeFrame.changelogText:SetJustifyH("LEFT")
     welcomeFrame.changelogText:SetText(LATEST_CHANGELOG_TEXT)
+
+    local function layoutChangelog()
+        local width = welcomeFrame.changelogScroll:GetWidth()
+        welcomeFrame.changelogText:SetWidth(width)
+        welcomeFrame.changelogContent:SetSize(width, welcomeFrame.changelogText:GetStringHeight())
+    end
+    welcomeFrame.changelogScroll:SetScript("OnSizeChanged", layoutChangelog)
+    -- the scroll bar only when the text doesn't fit
+    ns.AutoScrollBar(welcomeFrame.changelogScroll, function(has)
+        welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", has and -48 or -24, 56)
+    end)
 
     welcomeFrame.dontShowAgainCheck = CreateFrame("CheckButton", nil, welcomeFrame, "UICheckButtonTemplate")
     welcomeFrame.dontShowAgainCheck:SetSize(22, 22)
@@ -121,11 +132,7 @@ local function create()
     welcomeFrame:SetScript("OnShow", function()
         local version = ns.Version()
         welcomeFrame.changelogLabel:SetText(L["What's new in v%s:"]:format(version))
-        welcomeFrame.changelogText:SetWidth(welcomeFrame.changelogScroll:GetWidth())
-        welcomeFrame.changelogContent:SetSize(
-            welcomeFrame.changelogScroll:GetWidth(),
-            welcomeFrame.changelogText:GetStringHeight()
-        )
+        layoutChangelog()
         welcomeFrame.dontShowAgainCheck:SetChecked(CompletaoDB.welcomeDismissedVersion == version)
     end)
     welcomeFrame:Hide() -- frames are born shown: hidden until the first show (which would close it otherwise)

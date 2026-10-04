@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fix: three quests (A Friend of the Family 7/8, For Further Study and Key to the City) showed page code
+  at the end of their description. The text is clean now, and a test keeps generated quest text free of it.
+
 ## 0.9.0-beta
 
 - New: **Follow Blizzard's quest tracker** (Preferences, on by default): when you focus a quest in

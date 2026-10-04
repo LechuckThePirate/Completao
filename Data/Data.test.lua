@@ -131,4 +131,26 @@ describe("Data", function()
             assert.is_not_nil(ns.FindQuestDef(tonumber(id)), "Overrides: quest " .. id)
         end
     end)
+
+    it("generated quest text carries no page script, markup or source name", function()
+        local function bad(text)
+            local t = text:lower()
+            return t:find("wow" .. "head", 1, true) or t:find("%f[%w]wh%.") or t:find("$(", 1, true)
+                or t:find("<script", 1, true) or t:find("</", 1, true) or t:find("&nbsp;", 1, true)
+                or t:find("isquestflagged", 1, true) or t:find("already completed this by typing", 1, true)
+                or t:find("%f[%w_]const%s+[%w_]+%s*=") or t:find("%f[%w_]function%s*%(")
+        end
+        for _, d in ipairs(ns.entryList) do
+            for _, q in ipairs(d.quests) do
+                local fields = { name = q.name, giver = q.giver, objective = q.objective, desc = q.desc }
+                for i, s in ipairs(q.steps or {}) do fields["step " .. i] = s.name end
+                for _, k in ipairs({ "start", "finish" }) do
+                    if q[k] then fields[k] = q[k].npc end
+                end
+                for k, text in pairs(fields) do
+                    assert.is_falsy(bad(text), d.id .. "/" .. q.id .. ": " .. k .. " has page residue")
+                end
+            end
+        end
+    end)
 end)

@@ -98,7 +98,12 @@ local function getNodeButton(i)
     b.ready:Hide()
     b:SetScript("OnEnter", showNodeTooltip)
     b:SetScript("OnLeave", GameTooltip_Hide)
-    b:SetScript("OnClick", function(self)
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    b:SetScript("OnClick", function(self, button)
+        if button == "RightButton" then
+            ns.QuestMenu(self, self.quest)
+            return
+        end
         ns.Detail_Toggle(self.quest)
         ns.UI_Refresh()
     end)

@@ -56,6 +56,8 @@ ns.AddLocale({ "deDE" }, {
     ["Open quest"] = "Quest öffnen",
     ["Show on map"] = "Auf der Karte zeigen",
     ["Show entrance"] = "Eingang zeigen",
+    ["Set waypoint"] = "Wegpunkt setzen",
+    ["Abandon quest"] = "Quest abbrechen",
     ["Entrance"] = "Eingang",
     ["Instance entrance: %s"] = "Instanzeingang: %s",
     ["Unknown location (it may start inside the instance, or it is not in the database yet)."] =
@@ -132,8 +134,7 @@ ns.AddLocale({ "deDE" }, {
     ["No quest focused"] = "Keine Quest fokussiert",
     ["Click to choose another."] = "Klicken, um eine andere zu wählen.",
     ["Stop focus"] = "Fokus beenden",
-    ["Right-click to focus on it."] = "Rechtsklick, um sie zu fokussieren.",
-    ["Right-click to stop focusing on it."] = "Rechtsklick, um den Fokus zu beenden.",
+    ["Right-click for options."] = "Rechtsklick für Optionen.",
     ["Turn in %s (%s)"] = "%s abgeben (%s)",
     ["Turn in %s"] = "%s abgeben",
     ["Your quest log is empty."] = "Dein Questlog ist leer.",

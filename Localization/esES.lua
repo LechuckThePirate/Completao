@@ -56,6 +56,8 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Open quest"] = "Abrir misión",
     ["Show on map"] = "Ver en el mapa",
     ["Show entrance"] = "Ver entrada",
+    ["Set waypoint"] = "Poner waypoint",
+    ["Abandon quest"] = "Abandonar misión",
     ["Entrance"] = "Entrada",
     ["Instance entrance: %s"] = "Entrada de la instancia: %s",
     ["Unknown location (it may start inside the instance, or it is not in the database yet)."] =
@@ -132,8 +134,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["No quest focused"] = "Ninguna quest enfocada",
     ["Click to choose another."] = "Clic para elegir otra.",
     ["Stop focus"] = "Dejar de enfocar",
-    ["Right-click to focus on it."] = "Clic derecho para enfocarla.",
-    ["Right-click to stop focusing on it."] = "Clic derecho para dejar de enfocarla.",
+    ["Right-click for options."] = "Clic derecho para ver las opciones.",
     ["Turn in %s (%s)"] = "Entregar %s (%s)",
     ["Turn in %s"] = "Entregar %s",
     ["Your quest log is empty."] = "Tu registro de misiones está vacío.",

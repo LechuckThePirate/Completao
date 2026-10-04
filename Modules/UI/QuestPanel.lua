@@ -38,14 +38,7 @@ local function selectedStep()
     return steps[detail.currentStep or 1]
 end
 
--- Where a step takes you: its place; without coordinates (done inside an instance), the entrance.
--- Returns the place and whether it is the entrance.
-local function stepTarget(q, step)
-    if step.loc and step.loc.x and step.loc.x > 0 then return step.loc, false end
-    local e = ns.entries[q.dungeon or q.entryId]
-    if (step.loc or step.area or step.kind ~= "obj") and e and e.entrance then return e.entrance, true end
-    return nil
-end
+local stepTarget = ns.StepTarget
 
 local function stepZone(step)
     local area = (step.loc and step.loc.area) or step.area
@@ -618,15 +611,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     detail.btnMap:SetText(L["Show on map"])
     detail.btnMap:SetScript("OnClick", function()
         local step = current and selectedStep()
-        if not step then return end
-        local loc, isEntrance = stepTarget(current, step)
-        if not loc then return end
-        local title = step.label
-        if isEntrance then
-            local e = ns.entries[current.dungeon or current.entryId]
-            title = (e and ns.EntryName(e) or "") .. " - " .. L["Entrance"]
-        end
-        ns.ShowOnMap(loc, title)
+        if step then ns.ShowStepOnMap(current, step) end
     end)
 
     -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them

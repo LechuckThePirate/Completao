@@ -51,6 +51,7 @@ Modules\Graph\Graph.lua
 Modules\Map\Waypoints.lua
 Modules\UI\Menu.lua
 Modules\UI\QuestPanel.lua
+Modules\UI\QuestMenu.lua
 Modules\UI\Search.lua
 Modules\UI\FocusWindow.lua
 Modules\UI\MainWindow.lua

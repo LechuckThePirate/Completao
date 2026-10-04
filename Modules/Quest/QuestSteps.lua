@@ -130,3 +130,24 @@ function ns.QuestSteps(q)
     list[current].current = true
     return list, current
 end
+
+-- Where a step takes you: its place; without coordinates (done inside an instance), the entrance.
+-- Returns the place and whether it is the entrance.
+function ns.StepTarget(q, step)
+    if step.loc and step.loc.x and step.loc.x > 0 then return step.loc, false end
+    local e = ns.entries[q.dungeon or q.entryId]
+    if (step.loc or step.area or step.kind ~= "obj") and e and e.entrance then return e.entrance, true end
+    return nil
+end
+
+-- Opens the world map on a step's place (the entrance, when it is done inside an instance).
+function ns.ShowStepOnMap(q, step)
+    local loc, isEntrance = ns.StepTarget(q, step)
+    if not loc then return false end
+    local title = step.label
+    if isEntrance then
+        local e = ns.entries[q.dungeon or q.entryId]
+        title = (e and ns.EntryName(e) or "") .. " - " .. ns.L["Entrance"]
+    end
+    return ns.ShowOnMap(loc, title)
+end

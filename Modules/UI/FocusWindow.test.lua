@@ -1019,12 +1019,20 @@ describe("FocusWindow", function()
         end)
         after_each(function() C_QuestLog.GetQuestWatchType = nil end)
 
-        it("right click on a quest focuses it, and again stops", function()
+        it("right click on a quest opens its menu, where Focus focuses it and then stops", function()
+            local function choose(label)
+                local option = WowMock.Find(function(f)
+                    return f.text and f.text._text == label and f._scripts.OnClick and f._shown and f._parent and f._parent.buttons
+                end)
+                option:Click()
+            end
             local row = ShownRows()[1]
             row:Click("RightButton")
+            choose("Focus")
             assert.are.equal(999001, ns.Focus_Quest())
             assert.is_true(CompletaoFocusFrame:IsShown())
             row:Click("RightButton")
+            choose("Stop focus")
             assert.is_nil(ns.Focus_Quest())
         end)
 

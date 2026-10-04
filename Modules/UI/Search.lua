@@ -284,12 +284,9 @@ local function getRow(i)
     end
     row:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     row:SetScript("OnClick", function(self, button)
-        -- tracked view, right click: the quest gets (or loses) the focus window
+        -- right click: the menu with what is usually done with a quest (focus, map, abandon...)
         if button == "RightButton" then
-            if mode == "tracked" then
-                ns.Focus_Toggle(self.quest.id)
-                ns.Search_Refresh()
-            end
+            ns.QuestMenu(self, self.quest)
             return
         end
         -- the quest's details open below the table; "View chain" there goes to its tree
@@ -301,10 +298,7 @@ local function getRow(i)
         GameTooltip:AddLine(self.whereText, 0.8, 0.8, 0.8)
         if not self.entry then GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6) end
         GameTooltip:AddLine(L["Click to see its details."], 0.5, 0.8, 1)
-        if mode == "tracked" then
-            GameTooltip:AddLine(ns.Focus_Quest() == self.quest.id and L["Right-click to stop focusing on it."]
-                or L["Right-click to focus on it."], 0.5, 0.8, 1)
-        end
+        GameTooltip:AddLine(L["Right-click for options."], 0.5, 0.8, 1)
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)

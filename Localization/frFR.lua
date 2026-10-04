@@ -56,6 +56,8 @@ ns.AddLocale({ "frFR" }, {
     ["Open quest"] = "Ouvrir la quête",
     ["Show on map"] = "Afficher sur la carte",
     ["Show entrance"] = "Afficher l'entrée",
+    ["Set waypoint"] = "Définir le waypoint",
+    ["Abandon quest"] = "Abandonner la quête",
     ["Entrance"] = "Entrée",
     ["Instance entrance: %s"] = "Entrée de l'instance : %s",
     ["Unknown location (it may start inside the instance, or it is not in the database yet)."] =
@@ -133,8 +135,7 @@ ns.AddLocale({ "frFR" }, {
     ["No quest focused"] = "Aucune quête focalisée",
     ["Click to choose another."] = "Cliquez pour en choisir une autre.",
     ["Stop focus"] = "Arrêter la focalisation",
-    ["Right-click to focus on it."] = "Clic droit pour la focaliser.",
-    ["Right-click to stop focusing on it."] = "Clic droit pour arrêter de la focaliser.",
+    ["Right-click for options."] = "Clic droit pour les options.",
     ["Turn in %s (%s)"] = "Rendre %s (%s)",
     ["Turn in %s"] = "Rendre %s",
     ["Not in Completao!!'s data."] = "Absente des données de Completao!!.",

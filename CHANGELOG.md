@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- New: right click on a quest, in a tree or in a table, opens a menu with what is usually done with it: Focus (or
+  Stop focus), Open quest, Set waypoint, Show on map (or Show entrance), View chain (from a table) and Abandon quest.
+  Right click no longer focuses the quest straight away.
 - Fix: three quests (A Friend of the Family 7/8, For Further Study and Key to the City) showed page code
   at the end of their description. The text is clean now, and a test keeps generated quest text free of it.
 - Fix: the scroll bar of the main view (the quest tree) is hidden when the tree fits, counting the zoom,

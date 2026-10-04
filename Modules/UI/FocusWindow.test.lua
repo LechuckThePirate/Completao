@@ -681,6 +681,66 @@ describe("FocusWindow", function()
         end)
     end)
 
+    describe("following Blizzard's quest tracker", function()
+        -- the player focuses `id` in Blizzard's tracker (or its quest log)
+        local function blizzardFocuses(id)
+            WowMock.superTrackedQuest = id
+            FireEvent("SUPER_TRACKING_CHANGED")
+        end
+
+        before_each(function()
+            WowMock.onQuest[999003] = true
+        end)
+
+        it("focuses here the quest the player focuses there, on by default", function()
+            blizzardFocuses(999003)
+            assert.are.equal(999003, ns.Focus_Quest())
+            blizzardFocuses(999001)
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("is by hand: autofocus leaves the quest be", function()
+            ns.char.focusAuto = true
+            blizzardFocuses(999003)
+            ns.DistanceTo = function(loc) return loc.x == wolves.x and 1 or 200 end
+            FireEvent("QUEST_LOG_UPDATE")
+            assert.are.equal(999003, ns.Focus_Quest())
+        end)
+
+        it("ignores what isn't a quest in the log, and the game clearing its choice", function()
+            blizzardFocuses(999001)
+            blizzardFocuses(999004) -- not in the log
+            assert.are.equal(999001, ns.Focus_Quest())
+            blizzardFocuses(0)
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("does nothing when switched off", function()
+            ns.char.followBlizzardFocus = false
+            blizzardFocuses(999003)
+            assert.is_nil(ns.Focus_Quest())
+        end)
+
+        it("never changes Blizzard's tracker", function()
+            WowMock.superTrackedQuest = 999003
+            assert.is_true(ns.Focus_Set(999001))
+            assert.are.equal(999003, WowMock.superTrackedQuest)
+        end)
+
+        it("switching it on in the Preferences takes the quest Blizzard has focused now", function()
+            ns.char.followBlizzardFocus = false
+            WowMock.superTrackedQuest = 999003
+            ns.Prefs_Toggle()
+            local checks = WowMock.FindAll(function(f)
+                return f._kind == "CheckButton" and f._parent == CompletaoPreferencesFrame
+            end)
+            local check = checks[9] -- (see Preferences.test.lua for the order)
+            assert.is_false(check:GetChecked())
+            check:SetChecked(true); check:Click()
+            assert.are.equal(999003, ns.Focus_Quest())
+        end)
+    end)
+
     describe("right click: the menu to choose the quest", function()
         local tracked, distance
         local function ready(id) WowMock.readyForTurnIn[id] = true end

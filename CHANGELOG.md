@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New: **Follow Blizzard's quest tracker** (Preferences, on by default): when you focus a quest in
+  Blizzard's quest tracker or quest log, the focus window takes it too, and Autofocus leaves it
+  be. It works one way only: what you focus in Completao never changes Blizzard's tracker.
+
 ## 0.8.0-beta
 
 - New: the objectives of a quest in your log that the data has no place for (such as the new Forever quests)

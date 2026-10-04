@@ -120,6 +120,7 @@ ns.AddLocale({ "ptBR" }, {
     ["Focus"] = "Focar",
     ["Focused Quest"] = "Missão em foco",
     ["Autofocus tracked quests"] = "Focar automaticamente as missões rastreadas",
+    ["Follow Blizzard's quest tracker"] = "Seguir o rastreador de missões da Blizzard",
     ["Click to open the tracked quests."] = "Clique para abrir as missões rastreadas.",
     ["Right-click to choose the quest to focus."] = "Clique com o botão direito para escolher a missão a focar.",
     ["No tracked quest to go to."] = "Nenhuma missão rastreada para ir.",

@@ -568,6 +568,18 @@ function ns.Focus_Toggle(id)
     end
 end
 
+-- "Follow Blizzard's tracker" (Preferences, on unless switched off): focusing a quest in Blizzard's tracker or
+-- quest log (the game's super tracked quest) focuses it here too, by hand, so autofocus leaves it be. One way
+-- only: what is focused here never changes Blizzard's tracker. Nothing happens before the quest log is loaded
+-- (the game restores its own choice while logging in) nor when the game clears its choice.
+function ns.Focus_FollowBlizzard()
+    if not ready or (ns.char and ns.char.followBlizzardFocus == false) then return end
+    if not (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) then return end
+    local id = C_SuperTrack.GetSuperTrackedQuestID()
+    if not id or id == 0 or id == ns.Focus_Quest() then return end
+    ns.Focus_Set(id)
+end
+
 -- Events: entering the game (the quest being focused on comes back once the log is loaded), combat, and the
 -- autofocus's clock.
 local events = CreateFrame("Frame")
@@ -575,11 +587,14 @@ events:RegisterEvent("PLAYER_ENTERING_WORLD")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_DISABLED")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_ENABLED")
 pcall(events.RegisterEvent, events, "QUEST_ACCEPTED")
+pcall(events.RegisterEvent, events, "SUPER_TRACKING_CHANGED")
 events:SetScript("OnEvent", function(_, event, arg1, arg2)
     if event == "PLAYER_REGEN_DISABLED" then
         applyMouse(true)
     elseif event == "PLAYER_REGEN_ENABLED" then
         applyMouse(false)
+    elseif event == "SUPER_TRACKING_CHANGED" then
+        ns.Focus_FollowBlizzard()
     elseif event == "QUEST_ACCEPTED" then
         -- (log index, quest id) in this client's payload; just the id in others. The main refresh (Completao.lua)
         -- comes a moment after the event, and finds it marked

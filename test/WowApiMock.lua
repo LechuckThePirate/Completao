@@ -30,6 +30,7 @@ local function resetState()
     WowMock.frames = {}
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
+    WowMock.superTrackedQuest = 0 -- the quest Blizzard's tracker has focused (C_SuperTrack), 0 for none
     WowMock.maps = {}          -- [uiMapID] = { name, mapType }: the client's maps
     WowMock.tagInfo = {}       -- [questID] = { tagID, tagName }: elite/group/PvP/dungeon tag from the client
 end
@@ -321,7 +322,10 @@ C_Map = {
     SetUserWaypoint = function(p) WowMock.userWaypoint = p end,
 }
 UiMapPoint = { CreateFromCoordinates = function(m, x, y) return { mapID = m, x = x, y = y } end }
-C_SuperTrack = { SetSuperTrackedUserWaypoint = function() end }
+C_SuperTrack = {
+    SetSuperTrackedUserWaypoint = function() end,
+    GetSuperTrackedQuestID = function() return WowMock.superTrackedQuest or 0 end,
+}
 Enum = { UIMapType = { Zone = 3, Continent = 2, World = 1 } }
 C_Item = {
     GetItemInfo = function(id)

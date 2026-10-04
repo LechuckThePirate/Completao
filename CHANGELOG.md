@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.0-beta
 
 - New: **Follow Blizzard's quest tracker** (Preferences, on by default): when you focus a quest in
   Blizzard's quest tracker or quest log, the focus window takes it too, and Autofocus leaves it

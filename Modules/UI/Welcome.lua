@@ -12,10 +12,10 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: the objectives of a quest in your log that have no place in the data (such as the new Forever",
-    "  quests) take the spot the game gives for the quest, the one the minimap shows: waypoint, distance",
-    "  and map pin work for them.",
-    "- Fix: objective texts like \"1/1 Raider's Bow\" no longer show the count in front.",
+    "- New: Follow Blizzard's quest tracker: when you focus a quest in Blizzard's tracker or quest log,",
+    "  the focus window takes it too (Preferences, on by default).",
+    "- New: Focusing here also sets Blizzard's quest tracker: a quest you focus in Completao, or that",
+    "  Autofocus picks, becomes Blizzard's focused quest too (Preferences, on by default).",
 }, "\n")
 
 local welcomeFrame

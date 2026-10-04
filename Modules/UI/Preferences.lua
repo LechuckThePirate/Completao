@@ -160,9 +160,9 @@ local function create()
             if value then ns.Focus_FollowBlizzard() end
         end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -412, L["Autofocus also sets Blizzard's quest tracker"],
-        function() return ns.char.autofocusSetsBlizzard ~= false end,
-        function(value) ns.char.autofocusSetsBlizzard = value end)
+    widgets[#widgets + 1] = makeCheck(prefs, -412, L["Focusing here also sets Blizzard's quest tracker"],
+        function() return ns.char.setBlizzardFocus ~= false end,
+        function(value) ns.char.setBlizzardFocus = value end)
 
     widgets[#widgets + 1] = makeCheck(prefs, -440, L["Hide empty or completed categories"],
         function() return ns.char.hideDone end,

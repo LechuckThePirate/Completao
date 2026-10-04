@@ -20,7 +20,7 @@ describe("Preferences", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, follow Blizzard's tracker,
-        -- autofocus also sets Blizzard's tracker, hide categories with nothing to do
+        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do
         assert.are.equal(11, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
@@ -46,9 +46,9 @@ describe("Preferences", function()
         assert.is_true(ns.char.followBlizzardFocus)
         assert.is_true(checks[10]:GetChecked()) -- on by default
         checks[10]:SetChecked(false); checks[10]:Click()
-        assert.is_false(ns.char.autofocusSetsBlizzard)
+        assert.is_false(ns.char.setBlizzardFocus)
         checks[10]:SetChecked(true); checks[10]:Click()
-        assert.is_true(ns.char.autofocusSetsBlizzard)
+        assert.is_true(ns.char.setBlizzardFocus)
         checks[11]:SetChecked(true); checks[11]:Click()
         assert.is_true(ns.char.hideDone)
         checks[11]:SetChecked(false); checks[11]:Click()

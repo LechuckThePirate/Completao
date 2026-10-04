@@ -404,7 +404,7 @@ describe("FocusWindow", function()
                 assert.are.equal(1, WowMock.superTrackCalls)
                 ns.Focus_Clear()
                 WowMock.superTrackedQuest, WowMock.superTrackCalls = 0, 0
-                ns.char.autofocusSetsBlizzard = false
+                ns.char.setBlizzardFocus = false
                 ns.Focus_SetAuto(true)
                 assert.are.equal(999001, ns.Focus_Quest())
                 assert.are.equal(0, WowMock.superTrackCalls)
@@ -734,33 +734,39 @@ describe("FocusWindow", function()
             assert.is_nil(ns.Focus_Quest())
         end)
 
-        it("never changes Blizzard's tracker", function()
-            WowMock.superTrackedQuest = 999003
-            assert.is_true(ns.Focus_Set(999001))
-            assert.are.equal(999003, WowMock.superTrackedQuest)
-        end)
-
-        describe("and the other way: autofocus sets Blizzard's tracker", function()
-            it("a quest chosen by autofocus becomes Blizzard's focused quest, once", function()
-                assert.is_true(ns.Focus_Set(999003, true))
+        describe("and the other way: focusing here sets Blizzard's tracker", function()
+            it("a quest focused by hand becomes Blizzard's focused quest, once", function()
+                WowMock.superTrackedQuest = 999001
+                assert.is_true(ns.Focus_Set(999003))
                 assert.are.equal(999003, WowMock.superTrackedQuest)
                 assert.are.equal(999003, ns.Focus_Quest()) -- the game's change event doesn't bounce back
                 assert.are.equal(1, WowMock.superTrackCalls)
-                assert.is_true(ns.Focus_Set(999003, true))
+                assert.is_true(ns.Focus_Set(999003))
                 assert.are.equal(1, WowMock.superTrackCalls) -- already there
             end)
 
-            it("a quest focused by hand doesn't change it", function()
-                assert.is_true(ns.Focus_Set(999003))
-                assert.are.equal(0, WowMock.superTrackedQuest)
+            it("so does one chosen by autofocus", function()
+                assert.is_true(ns.Focus_Set(999003, true))
+                assert.are.equal(999003, WowMock.superTrackedQuest)
+                assert.are.equal(1, WowMock.superTrackCalls)
+            end)
+
+            it("toggling the focus on does it", function()
+                ns.Focus_Toggle(999003)
+                assert.are.equal(999003, WowMock.superTrackedQuest)
+            end)
+
+            it("a quest Blizzard focused is not told back to Blizzard", function()
+                blizzardFocuses(999003)
                 assert.are.equal(0, WowMock.superTrackCalls)
             end)
 
             it("does nothing when switched off", function()
-                ns.char.autofocusSetsBlizzard = false
-                assert.is_true(ns.Focus_Set(999003, true))
+                ns.char.setBlizzardFocus = false
+                assert.is_true(ns.Focus_Set(999003))
+                assert.is_true(ns.Focus_Set(999001, true))
                 assert.are.equal(0, WowMock.superTrackCalls)
-                assert.are.equal(999003, ns.Focus_Quest())
+                assert.are.equal(999001, ns.Focus_Quest())
             end)
         end)
 

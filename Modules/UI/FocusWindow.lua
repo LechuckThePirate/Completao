@@ -534,11 +534,11 @@ function ns.Focus_Refresh(force)
         buildLines(q, steps, isReady))
 end
 
--- "Autofocus sets Blizzard's tracker" (Preferences, on unless switched off): a quest autofocus picks becomes
--- the game's super tracked quest too. Called with the focus already changed here, so the game's change event
--- finds the same quest focused (Focus_FollowBlizzard) and goes no further.
+-- "Focusing here sets Blizzard's tracker" (Preferences, on unless switched off): a quest focused here, by the
+-- player or by autofocus, becomes the game's super tracked quest too. Called with the focus already changed
+-- here, so the game's change event finds the same quest focused (Focus_FollowBlizzard) and goes no further.
 local function tellBlizzard(id)
-    if ns.char.autofocusSetsBlizzard == false then return end
+    if ns.char.setBlizzardFocus == false then return end
     if not (C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID) then return end
     if C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID() == id then return end
     C_SuperTrack.SetSuperTrackedQuestID(id)
@@ -548,7 +548,7 @@ end
 function ns.Focus_Set(id, auto)
     if not (id and C_QuestLog.IsOnQuest(id)) then return false end
     ns.char.focusQuest = id
-    if auto then tellBlizzard(id) end
+    tellBlizzard(id)
     lastSignature = nil
     idle = false
     sticky = {}
@@ -580,9 +580,9 @@ function ns.Focus_Toggle(id)
 end
 
 -- "Follow Blizzard's tracker" (Preferences, on unless switched off): focusing a quest in Blizzard's tracker or
--- quest log (the game's super tracked quest) focuses it here too, by hand, so autofocus leaves it be. One way
--- only: what is focused here never changes Blizzard's tracker. Nothing happens before the quest log is loaded
--- (the game restores its own choice while logging in) nor when the game clears its choice.
+-- quest log (the game's super tracked quest) focuses it here too, by hand, so autofocus leaves it be. The
+-- other way is tellBlizzard. Nothing happens before the quest log is loaded (the game restores its own choice
+-- while logging in) nor when the game clears its choice.
 function ns.Focus_FollowBlizzard()
     if not ready or (ns.char and ns.char.followBlizzardFocus == false) then return end
     if not (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) then return end

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: inside a dungeon or raid, Autofocus only picks quests that are done in it, and the focus menu
+  (right click) lists only those too.
+
 ## 1.0.3
 
 - Fixed: with a lot of zoom, dragging the tree (or the scroll wheel) did not reach the right or bottom edge. The

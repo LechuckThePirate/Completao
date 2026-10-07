@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Data: updated to the latest Forever quest data. About 430 new quests, among them the class quest chains
+  (Call of Earth/Fire/Water, Taming the Beast, Divine Grace, A Lesson in Divinity...), the Camping 101
+  profession quests, the Great Cat Spirit druid quests and many new zone quests. Also "A Sealed Crate"
+  and "An Unfortunate End".
+- Data: changed quests follow Forever: levels, XP and rewards (reward items that became a choice, new reward
+  items, the Craftsman's Writ turn-in item), class and faction restrictions, objective locations, and chain
+  steps (e.g. the Desperate Prayer chain is renumbered).
+
 ## 0.10.0-beta
 
 - New: right click on a quest, in a tree or in a table, opens a menu with what is usually done with it: Focus (or

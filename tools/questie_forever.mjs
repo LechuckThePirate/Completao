@@ -65,8 +65,23 @@ const group = (x, i) => (Array.isArray(x) ? x[i - 1] : x?.[i]) ?? [];
 
 // ----------------------------------------------------------------------------------------------------
 // data
+// Questie's race mask carries two faction flags above the race bits (2^32 Alliance, 2^33 Horde; both = no
+// restriction): fold them back into the plain masks used here (ALLIANCE 77, HORDE 178, none).
+const FLAG_ALLIANCE = 2 ** 32, FLAG_HORDE = 2 ** 33;
+function plainRaces(m) {
+    if (!m) return m;
+    const races = m % 256, alliance = Math.floor(m / FLAG_ALLIANCE) % 2 === 1, horde = Math.floor(m / FLAG_HORDE) % 2 === 1;
+    if (races) return races;
+    if (alliance && !horde) return ALLIANCE;
+    if (horde && !alliance) return HORDE;
+    return undefined;
+}
 const quests = new Map();
-for (const id of allIds("Quest")) quests.set(id, quest(id));
+for (const id of allIds("Quest")) {
+    const q = quest(id);
+    q[6] = plainRaces(q[6]);
+    quests.set(id, q);
+}
 const pre = (q) => [...(q[12] ?? []), ...(q[13] ?? [])];
 
 // instance areas (main id + alternates) and entrances

@@ -2,8 +2,8 @@ local _, ns = ...
 local L = ns.L
 
 -- Right click on a quest (a node of a tree, a row of a table): a menu with what is usually done with a quest.
--- Entries that don't apply to it are left out (focus, log, abandon only for a quest being done; waypoint and
--- map only when the quest has a place to go to).
+-- Every option is always listed, as the buttons of the quest details are: the ones that don't apply are
+-- greyed out (focus, log, abandon need the quest in the log; waypoint and map a place to go to; chain a chain).
 local WIDTH = 190
 
 -- The game's own "Abandon quest" confirmation, as the quest log asks it.
@@ -34,27 +34,21 @@ function ns.QuestMenu(anchor, q)
         options[#options + 1] = { name = name, action = action, color = opts.color, disabled = opts.disabled }
     end
 
-    if onQuest then
-        local focused = ns.Focus_Quest() == q.id
-        add(focused and L["Stop focus"] or L["Focus"], function()
-            ns.Focus_Toggle(q.id)
-            refresh()
-        end)
-        add(L["Open quest"], function() ns.OpenQuestInLog(q.id) end)
-    end
-    if loc then
-        add(L["Set waypoint"], function() ns.SetWaypoint(loc, step.label) end, { disabled = not ns.CanWaypoint(loc) })
-        add(isEntrance and L["Show entrance"] or L["Show on map"], function() ns.ShowStepOnMap(q, step) end,
-            { disabled = not ns.CanShowMap(loc) })
-    end
-    -- from a table: the quest's tree
-    if q.entryId and ns.UI_IsSearchMode() and ns.IsInChain(q) then
-        add(L["View chain"], function() ns.UI_OpenQuest(q.entryId, q.id) end)
-    end
-    if onQuest then
-        add(L["Abandon quest"], function() ns.AbandonQuest(q.id) end, { color = { 1, 0.35, 0.35 } })
-    end
-    if #options == 0 then return end
+    -- the same options, in the same order, as the buttons of the quest details (QuestPanel.lua)
+    local focused = ns.Focus_Quest() == q.id
+    add(focused and L["Stop focus"] or L["Focus"], function()
+        ns.Focus_Toggle(q.id)
+        refresh()
+    end, { disabled = not onQuest })
+    add(L["Open quest"], function() ns.OpenQuestInLog(q.id) end, { disabled = not onQuest })
+    add(L["Set waypoint"], function() ns.SetWaypoint(loc, step.label) end,
+        { disabled = not (loc and ns.CanWaypoint(loc)) })
+    add(isEntrance and L["Show entrance"] or L["Show on map"], function() ns.ShowStepOnMap(q, step) end,
+        { disabled = not (loc and ns.CanShowMap(loc)) })
+    add(L["View chain"], function() ns.UI_OpenQuest(q.entryId, q.id) end,
+        { disabled = not (q.entryId and ns.IsInChain(q)) })
+    add(L["Abandon quest"], function() ns.AbandonQuest(q.id) end,
+        { color = { 1, 0.35, 0.35 }, disabled = not onQuest })
 
     ns.PopupMenu(anchor, options, function(opt) opt.action() end, WIDTH)
 end

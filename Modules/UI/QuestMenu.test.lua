@@ -45,12 +45,30 @@ describe("QuestMenu", function()
         assert.are.equal(166, ns.Detail_Current().id)
     end)
 
-    it("a quest not in the log offers no focus, log or abandon", function()
+    local function enabled(label)
+        for _, b in ipairs(menuOptions()) do
+            if b.text._text == label then return b:IsEnabled() end
+        end
+        error("no option " .. label .. " in: " .. table.concat(labels(), ", "))
+    end
+
+    it("a quest not in the log lists focus, log and abandon, greyed out", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), ns.FindQuestDef(166))
-        for _, name in ipairs(labels()) do
-            assert.is_not.equal("Focus", name)
-            assert.is_not.equal("Open quest", name)
-            assert.is_not.equal("Abandon quest", name)
+        for _, name in ipairs({ "Focus", "Open quest", "Abandon quest" }) do
+            assert.is_false(enabled(name), name)
+        end
+    end)
+
+    it("lists the same options as the buttons of the quest details", function()
+        local q = ns.FindQuestDef(166) -- inside an instance: its entrance instead of the map
+        WowMock.onQuest[166] = true
+        ns.QuestMenu(WowMock.NewFrame("Button"), q)
+        local names = labels()
+        table.sort(names)
+        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "View chain" }, names)
+        ns.Detail_Show(q)
+        for _, text in ipairs({ "Focus", "Open quest", "Show entrance", "View chain", "Abandon quest", "Waypoint" }) do
+            assert.is_not_nil(WowMock.FindButton(text), text)
         end
     end)
 
@@ -101,9 +119,10 @@ describe("QuestMenu", function()
         assert.are.same(q.start, shown)
     end)
 
-    it("a quest with no place and not in the log has no menu", function()
+    it("a quest with no place and not in the log has every option greyed out", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
-        assert.are.equal(0, #menuOptions())
+        assert.are.equal(6, #menuOptions())
+        for _, b in ipairs(menuOptions()) do assert.is_false(b:IsEnabled(), b.text._text) end
     end)
 
     it("right click on a table row opens the menu", function()

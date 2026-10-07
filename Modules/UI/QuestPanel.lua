@@ -347,6 +347,7 @@ local function render()
     -- every button is always there: the ones that don't apply to this quest are disabled, not hidden
     detail.btnOpen:SetEnabled(onQuest)
     detail.btnFocus:SetEnabled(onQuest)
+    detail.btnAbandon:SetEnabled(onQuest)
     detail.btnFocus:SetText(ns.Focus_Quest() == q.id and L["Stop focus"] or L["Focus"])
     -- "View chain" goes to the quest's tree, when it is part of a chain
     detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
@@ -615,11 +616,20 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         if step then ns.ShowStepOnMap(current, step) end
     end)
 
-    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them
+    -- the game's own confirmation (QuestMenu.lua)
+    detail.btnAbandon = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
+    detail.btnAbandon:SetSize(130, 22)
+    detail.btnAbandon:SetText(L["Abandon quest"])
+    detail.btnAbandon:SetScript("OnClick", function()
+        if current then ns.AbandonQuest(current.id) end
+    end)
+
+    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them. The same
+    -- options, in the same order, as the menu of a right click (QuestMenu.lua).
     local buttons = {
-        { frame = detail.wayGroup, w = WAY_W + 26 },
-        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnFocus, w = 130 },
-        { frame = detail.btnChain, w = 130 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnFocus, w = 130 }, { frame = detail.btnOpen, w = 130 },
+        { frame = detail.wayGroup, w = WAY_W + 26 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnChain, w = 130 }, { frame = detail.btnAbandon, w = 130 },
     }
     function detail.layoutButtons()
         local width = detail:GetWidth() - 16

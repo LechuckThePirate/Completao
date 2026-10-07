@@ -424,6 +424,19 @@ local function setStatusIcon(tex, kind)
 end
 ns.SetQuestStatusIcon = setStatusIcon -- the focus window's too
 
+-- The same icon as inline text (for menus, whose rows are plain text): "|A:atlas|a" when the client has the atlas,
+-- else the file's "|T...|t". Ends in a space, so it can go straight in front of a name.
+function ns.QuestStatusIconText(kind, size)
+    local spec = kind and STATUS_ICONS[kind]
+    if not spec then return "" end
+    if C_Texture and C_Texture.GetAtlasInfo then
+        for _, name in ipairs(spec.atlas) do
+            if C_Texture.GetAtlasInfo(name) then return ("|A:%s:%d:%d|a "):format(name, size, size) end
+        end
+    end
+    return ("|T%s:%d|t "):format(spec.file, size)
+end
+
 -- Lays the quest's steps out from y down; returns the height used. A quest ready to turn in shows only the
 -- turn-in; one still in progress shows its objectives and not the turn-in.
 local function layoutSteps(quest, y)

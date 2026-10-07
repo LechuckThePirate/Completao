@@ -2,7 +2,7 @@ local ADDON, ns = ...
 local L = ns.L
 
 -- Welcome / "what's new" window, as in Embolsao: shown once per version (PLAYER_ENTERING_WORLD, see
--- Completao.lua), with the addon's icon, a beta warning pointing at the GitHub issue tracker, and the
+-- Completao.lua), with the addon's icon, a bug-report note pointing at the GitHub issue tracker, and the
 -- latest changelog entry. Reopens from the Preferences window or `/completao changelog`.
 local WIDTH, HEIGHT = 380, 480
 
@@ -57,13 +57,12 @@ local function create()
     welcomeFrame.title:SetPoint("TOP", 0, -70)
     welcomeFrame.title:SetText(L["Welcome to Completao!!"])
 
-    -- The beta warning: always shown (the addon is beta for as long as it says so in its version), with
-    -- the GitHub issue tracker just below it.
+    -- The bug-report note: always shown, with the GitHub issue tracker just below it.
     welcomeFrame.body = welcomeFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     welcomeFrame.body:SetPoint("TOP", 0, -96)
     welcomeFrame.body:SetWidth(340)
     welcomeFrame.body:SetJustifyH("CENTER")
-    welcomeFrame.body:SetText(L["This is a beta version: you may run into bugs. Please report them on GitHub (click to select, then Ctrl+C):"])
+    welcomeFrame.body:SetText(L["Found a bug or something missing? Report it on GitHub (click to select, then Ctrl+C):"])
 
     -- Read-only, auto-selects its full text on click/focus so the player can Ctrl+C it -- WoW addons have
     -- no API to write to the system clipboard directly. No template/backdrop on purpose: styled to read as

@@ -160,8 +160,8 @@ ns.AddLocale({ "itIT" }, {
     ["Reset filters"] = "Reimposta i filtri",
     ["What's new"] = "Novità",
     ["Welcome to Completao!!"] = "Benvenuto in Completao!!",
-    ["This is a beta version: you may run into bugs. Please report them on GitHub (click to select, then Ctrl+C):"] =
-        "Questa è una versione beta: potresti incontrare dei bug. Segnalali su GitHub (clicca per selezionare, poi Ctrl+C):",
+    ["Found a bug or something missing? Report it on GitHub (click to select, then Ctrl+C):"] =
+        "Hai trovato un bug o qualcosa che manca? Segnalalo su GitHub (clicca per selezionare, poi Ctrl+C):",
     ["What's new in v%s:"] = "Novità della v%s:",
     ["Don't show this message again"] = "Non mostrare più questo messaggio",
     ["Character specific preferences"] = "Preferenze specifiche del personaggio",

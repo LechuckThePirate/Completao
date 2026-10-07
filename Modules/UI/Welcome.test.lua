@@ -37,9 +37,9 @@ describe("Welcome", function()
         assert.are.equal("https://github.com/LechuckThePirate/Completao/issues", welcome.urlBox:GetText())
     end)
 
-    it("mentions this is a beta, above the changelog", function()
-        assert.matches("beta", welcome.body:GetText())
-        -- the changelog label hangs off the URL box, which hangs off the beta warning: in that order
+    it("asks to report bugs on GitHub, above the changelog", function()
+        assert.matches("GitHub", welcome.body:GetText())
+        -- the changelog label hangs off the URL box, which hangs off the bug-report note: in that order
         local _, relTo = welcome.changelogLabel:GetPoint()
         assert.are.equal(welcome.urlBox, relTo)
         local _, relTo2 = welcome.urlBox:GetPoint()

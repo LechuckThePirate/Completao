@@ -160,8 +160,8 @@ ns.AddLocale({ "deDE" }, {
     ["Reset filters"] = "Filter zurücksetzen",
     ["What's new"] = "Neuigkeiten",
     ["Welcome to Completao!!"] = "Willkommen bei Completao!!",
-    ["This is a beta version: you may run into bugs. Please report them on GitHub (click to select, then Ctrl+C):"] =
-        "Dies ist eine Beta-Version: Es können Fehler auftreten. Bitte melde sie auf GitHub (klicken zum Auswählen, dann Strg+C):",
+    ["Found a bug or something missing? Report it on GitHub (click to select, then Ctrl+C):"] =
+        "Fehler oder etwas Fehlendes gefunden? Melde es auf GitHub (klicken zum Auswählen, dann Strg+C):",
     ["What's new in v%s:"] = "Neuigkeiten in v%s:",
     ["Don't show this message again"] = "Diese Nachricht nicht mehr anzeigen",
     ["Character specific preferences"] = "Charakterspezifische Einstellungen",

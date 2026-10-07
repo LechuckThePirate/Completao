@@ -490,6 +490,13 @@ describe("MainWindow", function()
         assert.is_true(_G.CompletaoPreferencesFrame:IsShown())
     end)
 
+    it("a solid backing sits over the template's see-through background", function()
+        local backing = WowMock.Find(function(f)
+            return f._kind == "Texture" and f._parent == ns.UI and f._set.SetColorTexture and f._set.SetColorTexture[4] == 1
+        end)
+        assert.is_not_nil(backing)
+    end)
+
     describe("opacity at rest", function()
         local function settle()
             for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end

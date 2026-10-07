@@ -891,6 +891,17 @@ local function createFrame()
     local title = (frame.TitleContainer and frame.TitleContainer.TitleText) or frame.TitleText
     if title then title:SetText(("Completao!! v%s"):format(version)) end
 
+    -- Blizzard's template background is slightly see-through, so even at 100 % the trees showed the game world behind
+    -- them: a solid backing over it makes 100 % really opaque (the window's alpha still fades it all together).
+    local backing = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
+    backing:SetColorTexture(0.06, 0.06, 0.08, 1)
+    if frame.Bg then
+        backing:SetAllPoints(frame.Bg)
+    else
+        backing:SetPoint("TOPLEFT", 4, -top + 6)
+        backing:SetPoint("BOTTOMRIGHT", -4, 4)
+    end
+
     -- Gear next to the X: opens the preferences. Our own icon (Icons/Gear.png) tinted gold.
     local gear = CreateFrame("Button", nil, frame)
     gear:SetSize(20, 20)

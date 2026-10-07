@@ -109,6 +109,7 @@ ns.AddLocale({ "deDE" }, {
     ["Where"] = "Wo",
     ["Distance"] = "Entfernung",
     ["Money"] = "Geld",
+    ["XP"] = "EP",
     ["Quest Log"] = "Questlog",
     ["Tracked Quests"] = "Verfolgte Quests",
     ["View chain"] = "Questreihe anzeigen",

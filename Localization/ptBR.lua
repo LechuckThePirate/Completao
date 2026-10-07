@@ -109,6 +109,7 @@ ns.AddLocale({ "ptBR" }, {
     ["Where"] = "Onde",
     ["Distance"] = "Distância",
     ["Money"] = "Dinheiro",
+    ["XP"] = "XP",
     ["Quest Log"] = "Diário de missões",
     ["Tracked Quests"] = "Missões rastreadas",
     ["View chain"] = "Ver cadeia",

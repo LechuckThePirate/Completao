@@ -6,6 +6,8 @@
   and the new Abandon quest). The ones that don't apply to the quest are greyed out instead of disappearing,
   such as View chain for a quest that is not in a chain. The right click menu lists the same options in
   the same order, also greyed out when they don't apply.
+- New: the tables (search, quest log, tracked) have an XP column, sortable like Money. The quest details always
+  list the experience, as 0 for a quest that gives none.
 
 ## 1.0.0
 

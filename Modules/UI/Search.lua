@@ -7,7 +7,7 @@ local L = ns.L
 -- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
 -- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
-local LEVEL_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 84, 60, 6, 150
+local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 150
 local MAX_ROWS = 300
 
 -- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
@@ -18,7 +18,7 @@ local function computeColumns(width, status)
     if cols.width == width and cols.status == status then return false end
     local gap = 6
     local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
-    local function nameW() return width - 6 - status - LEVEL_W - DIST_W - MONEY_W - where - icons * (ICON + 2) - 5 * gap end
+    local function nameW() return width - 6 - status - LEVEL_W - DIST_W - XP_W - MONEY_W - where - icons * (ICON + 2) - 6 * gap end
     if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
     if nameW() < MIN_NAME_W then icons = 3 end
     if nameW() < MIN_NAME_W then where = 0 end
@@ -29,7 +29,8 @@ local function computeColumns(width, status)
     cols.levelX = cols.nameX + cols.name + gap
     cols.whereX = cols.levelX + LEVEL_W + gap
     cols.distX = cols.whereX + (where > 0 and (where + gap) or 0)
-    cols.moneyX = cols.distX + DIST_W + gap
+    cols.xpX = cols.distX + DIST_W + gap
+    cols.moneyX = cols.xpX + XP_W + gap
     cols.iconsX = cols.moneyX + MONEY_W + gap
     return true
 end
@@ -40,13 +41,17 @@ local panel
 local barInset = 0
 local state = {
     text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
-    sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "money", by the header
+    sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "xp" | "money", by the header
 }
 local rows = {}
 
 local function coinString(copper)
     local f = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
     return f and f(copper) or (copper .. "c")
+end
+
+local function xpString(xp)
+    return BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or tostring(xp)
 end
 
 -- An item's class and subclass, with their names in the client's language. This is "instant" client
@@ -202,12 +207,13 @@ local function sortFound(found)
         f.title = (C_QuestLog.GetTitleForQuestID(q.id) or q.name):lower()
         f.level = q.level or q.minLevel or 0
         f.money = r and r.money or 0
+        f.xp = ns.QuestXP(q.id)
         f.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
         if state.sort == "distance" then
             key[f] = distanceOf(f) or false
         else
             key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money
-                or state.sort == "where" and f.whereText:lower() or f.level
+                or state.sort == "xp" and f.xp or state.sort == "where" and f.whereText:lower() or f.level
         end
     end
     table.sort(found, function(a, b)
@@ -260,6 +266,9 @@ local function getRow(i)
     row.dist = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.dist:SetWidth(DIST_W)
     row.dist:SetJustifyH("RIGHT")
+    row.xp = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.xp:SetJustifyH("RIGHT")
+    row.xp:SetWordWrap(false)
     row.money = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     row.money:SetJustifyH("RIGHT")
     row.money:SetWordWrap(false)
@@ -323,6 +332,9 @@ local function placeRow(row)
     row.where:SetShown(cols.where > 0)
     row.dist:ClearAllPoints()
     row.dist:SetPoint("LEFT", row, "LEFT", cols.distX, 0)
+    row.xp:ClearAllPoints()
+    row.xp:SetPoint("LEFT", row, "LEFT", cols.xpX, 0)
+    row.xp:SetWidth(XP_W)
     row.money:ClearAllPoints()
     row.money:SetPoint("LEFT", row, "LEFT", cols.moneyX, 0)
     row.money:SetWidth(MONEY_W)
@@ -485,6 +497,7 @@ local function refresh()
         row.where:SetText(row.whereText)
         row.dist:SetText(ns.FormatDistance(distanceOf(f)))
         local r = ns.REWARDS and ns.REWARDS[q.id]
+        row.xp:SetText(xpString(f.xp))
         row.money:SetText(r and r.money and coinString(r.money) or "")
         local ids = r and rewardIds(r) or {}
         for k, icon in ipairs(row.icons) do
@@ -701,7 +714,7 @@ function ns.Search_Create(parent)
                 if state.sort == sortKey then
                     state.desc = not state.desc
                 else
-                    state.sort, state.desc = sortKey, sortKey == "money" -- money, most first
+                    state.sort, state.desc = sortKey, sortKey == "money" or sortKey == "xp" -- money and XP, most first
                 end
                 ns.char.tableSort = { key = state.sort, desc = state.desc }
                 updateSortLabels()
@@ -725,6 +738,7 @@ function ns.Search_Create(parent)
     head.where = column(L["Where"], "LEFT", "where")
     head.dist = column(L["Distance"], "RIGHT", "distance")
     head.dist:SetWidth(DIST_W)
+    head.xp = column(L["XP"], "RIGHT", "xp")
     head.money = column(L["Money"], "RIGHT", "money")
     head.rewards = column(L["Rewards"])
     panel.head = head

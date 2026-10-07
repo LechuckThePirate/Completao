@@ -67,6 +67,18 @@ describe("QuestPanel", function()
             assert.matches("Reputation: %+100 Stormwind", all)
             assert.matches("Reputation: %-25 Faction 999", all)
         end)
+
+        it("experience is always listed, 0 when the quest gives none or has no row", function()
+            local function allText()
+                local texts = {}
+                for _, f in ipairs(WowMock.frames) do
+                    if f._shown ~= false and type(f._text) == "string" then texts[#texts + 1] = f._text end
+                end
+                return table.concat(texts, "\n")
+            end
+            ns.Detail_Show({ id = 171, name = "No row at all" })
+            assert.matches("Experience: 0", allText())
+        end)
     end)
 
     describe("steps and waypoint", function()

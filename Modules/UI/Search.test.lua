@@ -88,6 +88,21 @@ describe("Search", function()
         for i = 2, #rows do assert.is_true(money(rows[i - 1]) <= money(rows[i])) end
     end)
 
+    it("has an XP column, sorts by it (most first, and reversed) and shows 0 for a quest with none", function()
+        ns.REWARDS[166].xp = 12345
+        ns.REWARDS[167].xp = 20
+        panel.head.xp:Click()
+        local rows = ShownRows()
+        local function xp(r) return ns.QuestXP(r.quest.id) end
+        for i = 2, #rows do assert.is_true(xp(rows[i - 1]) >= xp(rows[i])) end
+        assert.are.equal(166, rows[1].quest.id)
+        assert.are.equal("12345", rows[1].xp:GetText())
+        assert.are.equal("0", rows[#rows].xp:GetText())
+        panel.head.xp:Click()
+        rows = ShownRows()
+        for i = 2, #rows do assert.is_true(xp(rows[i - 1]) <= xp(rows[i])) end
+    end)
+
     it("sorts by zone (where), reversed on a second click", function()
         panel.head.where:Click()
         local rows = ShownRows()

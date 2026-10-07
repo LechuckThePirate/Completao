@@ -153,8 +153,7 @@ end
 
 -- Rows of the block: { text = "..." } or { items = { id | { id, count } } }. nil when there are no rewards.
 local function buildRewards(q)
-    local r = ns.REWARDS and ns.REWARDS[q.id]
-    if not r then return nil end
+    local r = ns.REWARDS and ns.REWARDS[q.id] or {}
     local rows = { { text = "|cffffd100" .. (REWARDS or L["Rewards"]) .. "|r" } }
     if r.choice then
         rows[#rows + 1] = { text = REWARD_CHOICES or L["You will be able to choose one of these rewards:"] }
@@ -167,14 +166,13 @@ local function buildRewards(q)
     end
     local lines = {}
     if r.money then lines[#lines + 1] = L["Money: %s"]:format(coinString(r.money)) end
-    if r.xp then
-        lines[#lines + 1] = L["Experience: %s"]:format(BreakUpLargeNumbers and BreakUpLargeNumbers(r.xp) or r.xp)
-    end
+    -- experience is always there, even when the quest gives none
+    local xp = ns.QuestXP(q.id)
+    lines[#lines + 1] = L["Experience: %s"]:format(BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp)
     for _, rep in ipairs(r.rep or {}) do
         lines[#lines + 1] = L["Reputation: %s"]:format(("%+d %s"):format(rep[2], factionName(rep[1])))
     end
-    if #lines > 0 then rows[#rows + 1] = { text = table.concat(lines, "\n") } end
-    if #rows == 1 then return nil end
+    rows[#rows + 1] = { text = table.concat(lines, "\n") }
     return rows
 end
 

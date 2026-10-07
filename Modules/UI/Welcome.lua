@@ -12,12 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- First stable release: Completao!! is no longer labelled a beta.",
-    "- Data: updated to the latest Forever quest data. About 430 new quests, among them the class quest",
-    "  chains (Call of Earth/Fire/Water, Taming the Beast, Divine Grace...), the Camping 101 profession",
-    "  quests, the Great Cat Spirit druid quests and many new zone quests.",
-    "- Data: changed quests follow Forever: levels, XP and rewards, class and faction restrictions,",
-    "  objective locations and chain steps.",
+    "- Fix: the quest details always show the same buttons (Focus, Open quest, Waypoint, Show on map, View",
+    "  chain and the new Abandon quest). The ones that don't apply are greyed out instead of disappearing.",
+    "  The right click menu has the same options in the same order, leaving out the ones that don't apply.",
+    "- New: the tables (search, quest log, tracked) have an XP column, sortable like Money. The quest",
+    "  details always list the experience, as 0 for a quest that gives none.",
 }, "\n")
 
 local welcomeFrame

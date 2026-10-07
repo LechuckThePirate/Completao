@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1
 
 - Fix: the quest details always show the same buttons (Focus, Open quest, Waypoint, Show on map, View chain
   and the new Abandon quest). The ones that don't apply to the quest are greyed out instead of disappearing,

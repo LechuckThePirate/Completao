@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.0
 
+- First stable release: Completao!! is no longer labelled a beta.
 - Data: updated to the latest Forever quest data. About 430 new quests, among them the class quest chains
   (Call of Earth/Fire/Water, Taming the Beast, Divine Grace, A Lesson in Divinity...), the Camping 101
   profession quests, the Great Cat Spirit druid quests and many new zone quests. Also "A Sealed Crate"

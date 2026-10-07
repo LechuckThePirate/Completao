@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New: an Opacity slider in the preferences sets the window's opacity at rest, for those who find the trees hard
+  to see. The fade while moving and in combat starts from it, never going above it.
+- Fixed: the window's background was slightly see-through even at full opacity, so the game world showed behind the
+  trees. It now has a solid background; the Opacity slider is what makes it see-through.
+
 ## 1.0.1
 
 - Fix: the quest details always show the same buttons (Focus, Open quest, Waypoint, Show on map, View chain

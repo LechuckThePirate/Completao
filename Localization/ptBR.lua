@@ -115,6 +115,7 @@ ns.AddLocale({ "ptBR" }, {
     ["View chain"] = "Ver cadeia",
     ["Click to see its details."] = "Clique para ver os detalhes.",
     ["Opacity in combat: %d%%"] = "Opacidade em combate: %d%%",
+    ["Opacity: %d%%"] = "Opacidade: %d%%",
     ["Click-through in combat"] = "Cliques atravessam em combate",
     ["Click-through while moving"] = "Cliques atravessam ao se mover",
     ["Click to set the waypoint."] = "Clique para definir o waypoint.",

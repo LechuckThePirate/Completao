@@ -12,11 +12,12 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fix: the quest details always show the same buttons (Focus, Open quest, Waypoint, Show on map, View",
-    "  chain and the new Abandon quest). The ones that don't apply are greyed out instead of disappearing.",
-    "  The right click menu has the same options in the same order, leaving out the ones that don't apply.",
-    "- New: the tables (search, quest log, tracked) have an XP column, sortable like Money. The quest",
-    "  details always list the experience, as 0 for a quest that gives none.",
+    "- New: an Opacity slider in the preferences sets the window's opacity at rest, for those who find the",
+    "  trees hard to see. The fade while moving and in combat starts from it, never going above it.",
+    "- Fixed: the window's background was slightly see-through even at full opacity. It now has a solid",
+    "  background; the Opacity slider is what makes it see-through.",
+    "- New: in the focus window's right click menu, each quest shows its status icon: the \"?\" when it is",
+    "  done and ready to hand in, the \"...\" while it is still in progress.",
 }, "\n")
 
 local welcomeFrame

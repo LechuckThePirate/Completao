@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2
 
 - New: in the focus window's right click menu, each quest shows its status icon: the "?" when it is ready to turn
   in, the "..." while it is still in progress.

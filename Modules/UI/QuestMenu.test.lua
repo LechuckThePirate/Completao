@@ -45,23 +45,21 @@ describe("QuestMenu", function()
         assert.are.equal(166, ns.Detail_Current().id)
     end)
 
-    local function enabled(label)
-        for _, b in ipairs(menuOptions()) do
-            if b.text._text == label then return b:IsEnabled() end
-        end
-        error("no option " .. label .. " in: " .. table.concat(labels(), ", "))
-    end
-
-    it("a quest not in the log lists focus, log and abandon, greyed out", function()
+    it("a quest not in the log leaves out focus, log and abandon", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), ns.FindQuestDef(166))
-        for _, name in ipairs({ "Focus", "Open quest", "Abandon quest" }) do
-            assert.is_false(enabled(name), name)
+        assert.is_true(#menuOptions() > 0)
+        for _, name in ipairs(labels()) do
+            assert.is_not.equal("Focus", name)
+            assert.is_not.equal("Open quest", name)
+            assert.is_not.equal("Abandon quest", name)
         end
     end)
 
-    it("lists the same options as the buttons of the quest details", function()
+    it("lists the options of the quest details that apply to the quest", function()
         local q = ns.FindQuestDef(166) -- inside an instance: its entrance instead of the map
         WowMock.onQuest[166] = true
+        ns.CanWaypoint = function(loc) return loc ~= nil end
+        ns.CanShowMap = ns.CanWaypoint
         ns.QuestMenu(WowMock.NewFrame("Button"), q)
         local names = labels()
         table.sort(names)
@@ -119,10 +117,9 @@ describe("QuestMenu", function()
         assert.are.same(q.start, shown)
     end)
 
-    it("a quest with no place and not in the log has every option greyed out", function()
+    it("a quest with no place, no chain and not in the log has no menu", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
-        assert.are.equal(6, #menuOptions())
-        for _, b in ipairs(menuOptions()) do assert.is_false(b:IsEnabled(), b.text._text) end
+        assert.are.equal(0, #menuOptions())
     end)
 
     it("right click on a table row opens the menu", function()

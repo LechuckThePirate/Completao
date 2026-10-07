@@ -2,8 +2,9 @@ local _, ns = ...
 local L = ns.L
 
 -- Right click on a quest (a node of a tree, a row of a table): a menu with what is usually done with a quest.
--- Every option is always listed, as the buttons of the quest details are: the ones that don't apply are
--- greyed out (focus, log, abandon need the quest in the log; waypoint and map a place to go to; chain a chain).
+-- The same options, in the same order, as the buttons of the quest details (QuestPanel.lua), but the ones that
+-- don't apply are left out here, not greyed out (focus, log and abandon need the quest in the log; waypoint
+-- and map a place to go to; chain a chain).
 local WIDTH = 190
 
 -- The game's own "Abandon quest" confirmation, as the quest log asks it.
@@ -31,10 +32,10 @@ function ns.QuestMenu(anchor, q)
     local options = {}
     local function add(name, action, opts)
         opts = opts or {}
-        options[#options + 1] = { name = name, action = action, color = opts.color, disabled = opts.disabled }
+        if opts.disabled then return end
+        options[#options + 1] = { name = name, action = action, color = opts.color }
     end
 
-    -- the same options, in the same order, as the buttons of the quest details (QuestPanel.lua)
     local focused = ns.Focus_Quest() == q.id
     add(focused and L["Stop focus"] or L["Focus"], function()
         ns.Focus_Toggle(q.id)
@@ -49,6 +50,8 @@ function ns.QuestMenu(anchor, q)
         { disabled = not (q.entryId and ns.IsInChain(q)) })
     add(L["Abandon quest"], function() ns.AbandonQuest(q.id) end,
         { color = { 1, 0.35, 0.35 }, disabled = not onQuest })
+
+    if #options == 0 then return end
 
     ns.PopupMenu(anchor, options, function(opt) opt.action() end, WIDTH)
 end

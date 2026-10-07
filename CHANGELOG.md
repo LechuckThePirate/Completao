@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fix: the quest details always show the same buttons (Open quest, Focus, View chain, Waypoint and Show on map).
+  The ones that don't apply to the quest are greyed out instead of disappearing, such as View chain in the
+  search table for a quest that is not in a chain.
+
 ## 1.0.0
 
 - First stable release: Completao!! is no longer labelled a beta.

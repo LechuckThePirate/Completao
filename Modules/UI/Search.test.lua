@@ -182,7 +182,7 @@ describe("Search", function()
         assert.are.equal("search", ns.Search_Mode())
     end)
 
-    it("'View chain' takes a quest that is part of a chain to its tree, and only those", function()
+    it("'View chain' is always there; it takes a quest that is part of a chain to its tree, and only those", function()
         local chained, alone
         for _, d in ipairs(ns.entryList) do
             for _, q in ipairs(d.quests) do
@@ -191,12 +191,14 @@ describe("Search", function()
         end
         ns.Detail_Show(chained)
         assert.is_not_nil(chainButton())
+        assert.is_true(chainButton():IsEnabled())
         chainButton():Click()
         assert.is_false(panel:IsShown())
         assert.are.equal(chained.id, ns.Detail_Current().id)
         ns.UI_SetSearchMode(true, "search")
         ns.Detail_Show(alone)
-        assert.is_nil(chainButton())
+        assert.is_not_nil(chainButton())
+        assert.is_false(chainButton():IsEnabled())
     end)
 
     describe("quest log view", function()
@@ -219,7 +221,7 @@ describe("Search", function()
             assert.are.equal("Ashenvale", unknown.whereText)
             unknown:Click()
             assert.are.equal(999999, ns.Detail_Current().id)
-            assert.is_nil(WowMock.Find(function(f) return f._text == "View chain" and f:IsShown() end))
+            assert.is_false(chainButton():IsEnabled())
         end)
     end)
 

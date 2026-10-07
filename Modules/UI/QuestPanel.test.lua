@@ -148,13 +148,29 @@ describe("QuestPanel", function()
         end)
     end)
 
-    it("the Open quest button only with the quest in the log", function()
+    it("the Open quest and Focus buttons are there always, enabled only with the quest in the log", function()
         local q = ns.FindQuestDef(166)
         ns.Detail_Show(q)
-        assert.is_false(WowMock.FindButton("Open quest"):IsShown())
+        for _, text in ipairs({ "Open quest", "Focus" }) do
+            assert.is_true(WowMock.FindButton(text):IsShown())
+            assert.is_false(WowMock.FindButton(text):IsEnabled())
+        end
         WowMock.onQuest[166] = true
         ns.Detail_Refresh()
-        assert.is_true(WowMock.FindButton("Open quest"):IsShown())
+        for _, text in ipairs({ "Open quest", "Focus" }) do
+            assert.is_true(WowMock.FindButton(text):IsShown())
+            assert.is_true(WowMock.FindButton(text):IsEnabled())
+        end
+    end)
+
+    it("all the buttons are shown for any quest, the ones that don't apply disabled", function()
+        ns.Detail_Show({ id = 999999, name = "Unknown quest" })
+        for _, text in ipairs({ "Open quest", "Focus", "View chain", "Waypoint", "Show on map" }) do
+            local button = WowMock.FindButton(text)
+            assert.is_not_nil(button, text)
+            assert.is_true(button:IsShown(), text)
+        end
+        assert.is_false(WowMock.FindButton("View chain"):IsEnabled())
     end)
 
     it("requirements show the required and the recommended level", function()

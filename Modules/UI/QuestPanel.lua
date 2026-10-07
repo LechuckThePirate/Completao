@@ -344,11 +344,12 @@ local function render()
     rewardRows = buildRewards(q)
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
-    detail.btnOpen:SetShown(onQuest)
-    detail.btnFocus:SetShown(onQuest)
+    -- every button is always there: the ones that don't apply to this quest are disabled, not hidden
+    detail.btnOpen:SetEnabled(onQuest)
+    detail.btnFocus:SetEnabled(onQuest)
     detail.btnFocus:SetText(ns.Focus_Quest() == q.id and L["Stop focus"] or L["Focus"])
-    -- from a table: "View chain" goes to the quest's tree, when it is part of a chain
-    detail.btnChain:SetShown(ns.UI_IsSearchMode() and ns.IsInChain(q))
+    -- "View chain" goes to the quest's tree, when it is part of a chain
+    detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
     -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false

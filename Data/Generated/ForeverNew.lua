@@ -190,6 +190,15 @@ ns.AddQuests("p_crafting", {
     { id = 94360, name = "Craftsman's Writ: Soul Pouch", level = 60, minLevel = 1, objective = "Acquire the items requested by the customer and deliver them to the location marked on your map. This writ must be in your possession to complete the transaction.", desc = "<Penned in faded ink, the note is requesting $2oa Soul Pouch, along with information about delivery location and payment.  At the bottom appears text denoting this writ is transferable.>" },
 })
 
+ns.AddQuests("reputation", {
+    { id = 91901, name = "A Sealed Crate", level = 60, minLevel = 1, faction = "Alliance" },
+    { id = 93862, name = "Crate Return", level = 60, minLevel = 1 },
+})
+
+ns.AddQuests("seasonal", {
+    { id = 99145, name = "A Winter Veil Gift", level = 1, minLevel = 1 },
+})
+
 ns.AddQuests("z1", {
     { id = 97277, name = "Grund and Gozwin", level = 6, minLevel = 4, faction = "Alliance", giver = "Grund Drokda", start = { npc = "Grund Drokda", area = 1, x = 28.6, y = 67.4 }, finish = { npc = "Grund Drokda", area = 1, x = 28.6, y = 67.4 }, steps = { { name = "Snow Leopard Prowler", area = 1, x = 27.4, y = 63 } }, objective = "Find Grund and Gozwin's camp in the hills to the northwest. Recover Gozwin's Mechanic's Log and kill the Snow Leopard Prowler.", desc = "Oi, had me back turned gettin' the boar roast ready when I heard me pal Gozwin screamin' fer his life!\n\nWicked fangs and a blur are all I saw when I turned. Such huge paws! A snow leopard was draggin' its gnomish catch away. I grabbed me shotgun and fired above the beast. It dropped him and sprinted off.\n\nLuckily, it hadn't done more than give ol' Goz some deep scratches.\n\nHead back to camp in the northwestern hills and retrieve Gozwin's Mechanic's Log. Kill that snow leopard too if you see it!" },
 })

@@ -45,12 +45,28 @@ describe("QuestMenu", function()
         assert.are.equal(166, ns.Detail_Current().id)
     end)
 
-    it("a quest not in the log offers no focus, log or abandon", function()
+    it("a quest not in the log leaves out focus, log and abandon", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), ns.FindQuestDef(166))
+        assert.is_true(#menuOptions() > 0)
         for _, name in ipairs(labels()) do
             assert.is_not.equal("Focus", name)
             assert.is_not.equal("Open quest", name)
             assert.is_not.equal("Abandon quest", name)
+        end
+    end)
+
+    it("lists the options of the quest details that apply to the quest", function()
+        local q = ns.FindQuestDef(166) -- inside an instance: its entrance instead of the map
+        WowMock.onQuest[166] = true
+        ns.CanWaypoint = function(loc) return loc ~= nil end
+        ns.CanShowMap = ns.CanWaypoint
+        ns.QuestMenu(WowMock.NewFrame("Button"), q)
+        local names = labels()
+        table.sort(names)
+        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "View chain" }, names)
+        ns.Detail_Show(q)
+        for _, text in ipairs({ "Focus", "Open quest", "Show entrance", "View chain", "Abandon quest", "Waypoint" }) do
+            assert.is_not_nil(WowMock.FindButton(text), text)
         end
     end)
 
@@ -101,7 +117,7 @@ describe("QuestMenu", function()
         assert.are.same(q.start, shown)
     end)
 
-    it("a quest with no place and not in the log has no menu", function()
+    it("a quest with no place, no chain and not in the log has no menu", function()
         ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
         assert.are.equal(0, #menuOptions())
     end)

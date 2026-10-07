@@ -67,6 +67,18 @@ describe("QuestPanel", function()
             assert.matches("Reputation: %+100 Stormwind", all)
             assert.matches("Reputation: %-25 Faction 999", all)
         end)
+
+        it("experience is always listed, 0 when the quest gives none or has no row", function()
+            local function allText()
+                local texts = {}
+                for _, f in ipairs(WowMock.frames) do
+                    if f._shown ~= false and type(f._text) == "string" then texts[#texts + 1] = f._text end
+                end
+                return table.concat(texts, "\n")
+            end
+            ns.Detail_Show({ id = 171, name = "No row at all" })
+            assert.matches("Experience: 0", allText())
+        end)
     end)
 
     describe("steps and waypoint", function()
@@ -148,13 +160,41 @@ describe("QuestPanel", function()
         end)
     end)
 
-    it("the Open quest button only with the quest in the log", function()
+    it("the Open quest and Focus buttons are there always, enabled only with the quest in the log", function()
         local q = ns.FindQuestDef(166)
         ns.Detail_Show(q)
-        assert.is_false(WowMock.FindButton("Open quest"):IsShown())
+        for _, text in ipairs({ "Open quest", "Focus" }) do
+            assert.is_true(WowMock.FindButton(text):IsShown())
+            assert.is_false(WowMock.FindButton(text):IsEnabled())
+        end
         WowMock.onQuest[166] = true
         ns.Detail_Refresh()
-        assert.is_true(WowMock.FindButton("Open quest"):IsShown())
+        for _, text in ipairs({ "Open quest", "Focus" }) do
+            assert.is_true(WowMock.FindButton(text):IsShown())
+            assert.is_true(WowMock.FindButton(text):IsEnabled())
+        end
+    end)
+
+    it("all the buttons are shown for any quest, the ones that don't apply disabled", function()
+        ns.Detail_Show({ id = 999999, name = "Unknown quest" })
+        for _, text in ipairs({ "Open quest", "Focus", "View chain", "Waypoint", "Show on map", "Abandon quest" }) do
+            local button = WowMock.FindButton(text)
+            assert.is_not_nil(button, text)
+            assert.is_true(button:IsShown(), text)
+        end
+        assert.is_false(WowMock.FindButton("View chain"):IsEnabled())
+        assert.is_false(WowMock.FindButton("Abandon quest"):IsEnabled())
+    end)
+
+    it("Abandon quest asks the game's confirmation for a quest in the log", function()
+        local asked
+        _G.QuestMapQuestOptions_AbandonQuest = function(id) asked = id end
+        WowMock.onQuest[166] = true
+        ns.Detail_Show(ns.FindQuestDef(166))
+        assert.is_true(WowMock.FindButton("Abandon quest"):IsEnabled())
+        WowMock.FindButton("Abandon quest"):Click()
+        _G.QuestMapQuestOptions_AbandonQuest = nil
+        assert.are.equal(166, asked)
     end)
 
     it("requirements show the required and the recommended level", function()

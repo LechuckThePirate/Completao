@@ -175,4 +175,15 @@ describe("QuestState", function()
             assert.are.equal(5, WowMock.selectedQuest)
         end)
     end)
+
+    describe("QuestXP", function()
+        it("is the data's experience, and 0 when the quest has none or no row", function()
+            local saved = ns.REWARDS
+            ns.REWARDS = { [40] = { xp = 1200, money = 5 }, [41] = { money = 5 } }
+            assert.are.equal(1200, ns.QuestXP(40))
+            assert.are.equal(0, ns.QuestXP(41))
+            assert.are.equal(0, ns.QuestXP(42))
+            ns.REWARDS = saved
+        end)
+    end)
 end)

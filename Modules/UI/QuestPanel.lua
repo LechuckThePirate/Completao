@@ -153,8 +153,7 @@ end
 
 -- Rows of the block: { text = "..." } or { items = { id | { id, count } } }. nil when there are no rewards.
 local function buildRewards(q)
-    local r = ns.REWARDS and ns.REWARDS[q.id]
-    if not r then return nil end
+    local r = ns.REWARDS and ns.REWARDS[q.id] or {}
     local rows = { { text = "|cffffd100" .. (REWARDS or L["Rewards"]) .. "|r" } }
     if r.choice then
         rows[#rows + 1] = { text = REWARD_CHOICES or L["You will be able to choose one of these rewards:"] }
@@ -167,14 +166,13 @@ local function buildRewards(q)
     end
     local lines = {}
     if r.money then lines[#lines + 1] = L["Money: %s"]:format(coinString(r.money)) end
-    if r.xp then
-        lines[#lines + 1] = L["Experience: %s"]:format(BreakUpLargeNumbers and BreakUpLargeNumbers(r.xp) or r.xp)
-    end
+    -- experience is always there, even when the quest gives none
+    local xp = ns.QuestXP(q.id)
+    lines[#lines + 1] = L["Experience: %s"]:format(BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp)
     for _, rep in ipairs(r.rep or {}) do
         lines[#lines + 1] = L["Reputation: %s"]:format(("%+d %s"):format(rep[2], factionName(rep[1])))
     end
-    if #lines > 0 then rows[#rows + 1] = { text = table.concat(lines, "\n") } end
-    if #rows == 1 then return nil end
+    rows[#rows + 1] = { text = table.concat(lines, "\n") }
     return rows
 end
 
@@ -344,11 +342,13 @@ local function render()
     rewardRows = buildRewards(q)
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
-    detail.btnOpen:SetShown(onQuest)
-    detail.btnFocus:SetShown(onQuest)
+    -- every button is always there: the ones that don't apply to this quest are disabled, not hidden
+    detail.btnOpen:SetEnabled(onQuest)
+    detail.btnFocus:SetEnabled(onQuest)
+    detail.btnAbandon:SetEnabled(onQuest)
     detail.btnFocus:SetText(ns.Focus_Quest() == q.id and L["Stop focus"] or L["Focus"])
-    -- from a table: "View chain" goes to the quest's tree, when it is part of a chain
-    detail.btnChain:SetShown(ns.UI_IsSearchMode() and ns.IsInChain(q))
+    -- "View chain" goes to the quest's tree, when it is part of a chain
+    detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
     -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false
@@ -614,11 +614,20 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         if step then ns.ShowStepOnMap(current, step) end
     end)
 
-    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them
+    -- the game's own confirmation (QuestMenu.lua)
+    detail.btnAbandon = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
+    detail.btnAbandon:SetSize(130, 22)
+    detail.btnAbandon:SetText(L["Abandon quest"])
+    detail.btnAbandon:SetScript("OnClick", function()
+        if current then ns.AbandonQuest(current.id) end
+    end)
+
+    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them. The same
+    -- options, in the same order, as the menu of a right click (QuestMenu.lua).
     local buttons = {
-        { frame = detail.wayGroup, w = WAY_W + 26 },
-        { frame = detail.btnOpen, w = 130 }, { frame = detail.btnFocus, w = 130 },
-        { frame = detail.btnChain, w = 130 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnFocus, w = 130 }, { frame = detail.btnOpen, w = 130 },
+        { frame = detail.wayGroup, w = WAY_W + 26 }, { frame = detail.btnMap, w = 130 },
+        { frame = detail.btnChain, w = 130 }, { frame = detail.btnAbandon, w = 130 },
     }
     function detail.layoutButtons()
         local width = detail:GetWidth() - 16

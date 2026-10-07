@@ -109,6 +109,7 @@ ns.AddLocale({ "itIT" }, {
     ["Where"] = "Dove",
     ["Distance"] = "Distanza",
     ["Money"] = "Denaro",
+    ["XP"] = "XP",
     ["Quest Log"] = "Diario delle missioni",
     ["Tracked Quests"] = "Missioni seguite",
     ["View chain"] = "Vedi la catena",

@@ -253,3 +253,10 @@ function ns.QuestDescription(q)
     local name = (UnitName("player") or ""):gsub("%%", "%%%%")
     return (text:gsub("%$[Nn]", name))
 end
+
+-- The experience a quest gives. Data/Generated/Rewards.lua only lists it when it isn't zero, so a quest with none (or
+-- with no row at all) gives 0.
+function ns.QuestXP(id)
+    local r = ns.REWARDS and ns.REWARDS[id]
+    return r and r.xp or 0
+end

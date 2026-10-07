@@ -256,7 +256,7 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao/
 
 ## Status
 
-Early (`0.1.0-beta`); see `CHANGELOG.md`.
+See `CHANGELOG.md`.
 
 - Every Classic dungeon, zone, class and profession has generated quests.
   Forever's new quests are in too (`Data/Generated/ForeverNew.lua`, ~700): in

@@ -8,7 +8,6 @@ let the addon walk you to the person who hands it out.
 
 Dungeons, raids, battlegrounds, zones, class and profession quests, races and
 world events are in, with more on the way.
-Currently in **beta**.
 
 ![Your quest log, in the Completao!! window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
 
@@ -204,7 +203,7 @@ compiled from public quest databases. That has a consequence you should know abo
 - Some quests start inside an instance and have no known starting point yet --
   for those the addon shows the entrance instead.
 
-This is a beta: expect gaps, and please report them.
+Expect gaps, and please report them.
 
 ---
 

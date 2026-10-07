@@ -490,6 +490,41 @@ describe("MainWindow", function()
         assert.is_true(_G.CompletaoPreferencesFrame:IsShown())
     end)
 
+    describe("opacity at rest", function()
+        local function settle()
+            for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end
+        end
+        after_each(function()
+            ns.char.windowAlpha, ns.char.fadeAlpha, WowMock.speed = nil, nil, 0
+            settle()
+        end)
+
+        it("the window rests at its own opacity", function()
+            ns.char.windowAlpha = 0.6
+            settle()
+            assert.near(0.6, ns.UI:GetAlpha(), 0.02)
+        end)
+
+        it("moving fades from it, never above it", function()
+            ns.char.windowAlpha = 0.4
+            WowMock.speed = 7
+            settle()
+            assert.near(0.4, ns.UI:GetAlpha(), 0.02) -- 50 % while moving would be above the resting 40 %
+            ns.char.windowAlpha, ns.char.fadeAlpha = 0.9, 0.3
+            settle()
+            assert.near(0.3, ns.UI:GetAlpha(), 0.02)
+        end)
+
+        it("with the cursor over it, it goes back to its resting opacity", function()
+            ns.char.windowAlpha, ns.char.fadeAlpha = 0.8, 0.3
+            WowMock.speed = 7
+            ns.UI._mouseOver = true
+            settle()
+            assert.near(0.8, ns.UI:GetAlpha(), 0.02)
+            ns.UI._mouseOver = false
+        end)
+    end)
+
     describe("opacity in combat", function()
         local function settle()
             for _ = 1, 60 do ns.UI._scripts.OnUpdate(ns.UI, 0.1) end

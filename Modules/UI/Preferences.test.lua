@@ -69,9 +69,17 @@ describe("Preferences", function()
     end)
 
     it("the opacity while moving comes from the slider", function()
-        local slider = WowMock.Find(function(f) return f._kind == "Slider" end)
-        slider._scripts.OnValueChanged(slider, 0.3)
+        local sliders = WowMock.FindAll(function(f) return f._kind == "Slider" end)
+        sliders[2]._scripts.OnValueChanged(sliders[2], 0.3)
         assert.are.equal(0.3, ns.char.fadeAlpha)
+    end)
+
+    it("the window's opacity comes from the first slider, and is opaque by default", function()
+        local slider = WowMock.Find(function(f) return f._kind == "Slider" end)
+        assert.is_not_nil(WowMock.FindByText("Opacity: 100%"))
+        slider._scripts.OnValueChanged(slider, 0.7)
+        assert.are.equal(0.7, ns.char.windowAlpha)
+        ns.char.windowAlpha = nil
     end)
 
     it("switching to shared settings changes the text at the bottom", function()

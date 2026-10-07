@@ -115,6 +115,7 @@ ns.AddLocale({ "deDE" }, {
     ["View chain"] = "Questreihe anzeigen",
     ["Click to see its details."] = "Klicken, um die Details zu sehen.",
     ["Opacity in combat: %d%%"] = "Deckkraft im Kampf: %d%%",
+    ["Opacity: %d%%"] = "Deckkraft: %d%%",
     ["Click-through in combat"] = "Im Kampf durchklickbar",
     ["Click-through while moving"] = "Bei Bewegung durchklickbar",
     ["Click to set the waypoint."] = "Klicken, um den Wegpunkt zu setzen.",

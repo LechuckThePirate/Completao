@@ -789,8 +789,13 @@ local function inCombat()
     return InCombatLockdown and InCombatLockdown() and true or false
 end
 
+-- The window's resting opacity (Preferences: Opacity); moving and combat fade it from there, never above it.
+local function baseAlpha()
+    return ns.char.windowAlpha or 1
+end
+
 local function fadeOnUpdate(self, elapsed)
-    local target = 1
+    local target = baseAlpha()
     -- the client hides some values in combat ("secret" values): comparing them errors, so in that case the
     -- window stays opaque
     local speed = GetUnitSpeed("player")
@@ -859,7 +864,7 @@ local function createFrame()
     tinsert(UISpecialFrames, "CompletaoFrame")
     frame:SetScript("OnUpdate", fadeOnUpdate)
     frame:HookScript("OnHide", function(self)
-        self:SetAlpha(1) -- opens opaque next time
+        self:SetAlpha(baseAlpha()) -- opens at its resting opacity next time
         if clickThrough then setClickThrough(false) end
         openedWithLog = false
     end)

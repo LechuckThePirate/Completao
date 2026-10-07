@@ -478,7 +478,8 @@ function ns.Focus_ChooseQuest(anchor)
         local q = e.def
         local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
         options[#options + 1] = {
-            name = ns.QuestPrefix(q) .. ns.QuestTitle(e.id, q.name) .. (e.id == cur and CHECK or ""),
+            name = ns.QuestStatusIconText(ns.IsReadyToTurnIn(e.id) and "ready" or "progress", 14)
+                .. ns.QuestPrefix(q) .. ns.QuestTitle(e.id, q.name) .. (e.id == cur and CHECK or ""),
             color = { r, g, b }, id = e.id,
         }
     end

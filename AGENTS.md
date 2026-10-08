@@ -57,6 +57,11 @@ pwsh tools\local\deploy.ps1                          # copy the addon into D:\Ga
 ## Infra and release
 
 - **CI:** `.github/workflows/ci.yml` (luacheck + busted on every push).
+- **Daily data refresh** (two jobs, both end as a pull request that the maintainer merges, never automatically):
+  `.github/workflows/update-quests.yml` (cron) regenerates `Data/Generated` from the latest QuestieDB Forever release and opens
+  `auto/quest-data`; the rewards and new quests (`Rewards.lua`, `ForeverNew.lua`) come from a cron job outside GitHub that
+  force-pushes `auto/web-data`, which `open-data-pr.yml` turns into a PR. Both need the repo setting "Allow GitHub Actions to
+  create and approve pull requests".
 - **Release** (only when asked; used for every `0.x.0-beta`): on `master`, one commit `chore: release X.Y.Z-beta` that bumps
   `## Version` in `Completao.toc`, renames `## Unreleased` to the version in `CHANGELOG.md`, and updates
   `LATEST_CHANGELOG_TEXT` in `Modules/UI/Welcome.lua` (keep the words "Turn in" out of it: a Search test looks for that text on

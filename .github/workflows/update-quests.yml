@@ -29,10 +29,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
@@ -68,13 +68,13 @@ jobs:
       # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
       - name: Install Lua 5.1
         if: steps.changes.outputs.changed == 'true'
-        uses: leafo/gh-actions-lua@v11
+        uses: leafo/gh-actions-lua@8aace3457a2fcf3f3c4e9007ecc6b869ff6d74d # v11
         with:
           luaVersion: "5.1"
 
       - name: Install LuaRocks
         if: steps.changes.outputs.changed == 'true'
-        uses: leafo/gh-actions-luarocks@v5
+        uses: leafo/gh-actions-luarocks@4c082a5fad45388feaeb0798dbd82dbd7dc65bca # v5
 
       - name: Install busted
         if: steps.changes.outputs.changed == 'true'
@@ -86,7 +86,7 @@ jobs:
 
       - name: Open pull request
         if: steps.changes.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
           branch: auto/quest-data
           base: master

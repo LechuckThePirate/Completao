@@ -1,0 +1,30 @@
+name: Open data pull request
+
+# A scheduled job outside GitHub refreshes the rewards and the new quests daily and force-pushes the result to
+# auto/web-data. This turns that branch into a pull request (ci.yml already runs on the push). Nothing is merged
+# here. Needs the repo setting "Allow GitHub Actions to create and approve pull requests".
+on:
+  push:
+    branches:
+      - auto/web-data
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Open the pull request if there is none
+        run: |
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head auto/web-data --state open --json number --jq length)
+          if [ "$open" = "0" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base master --head auto/web-data \
+              --title "data: refresh rewards and new quests" \
+              --body "Automated daily refresh of the rewards and the new quests (\`Data/Generated/Rewards.lua\`, \`ForeverNew.lua\`). Review the diff and merge; if it is closed without merging, the next run opens a new one."
+          else
+            echo "A pull request for auto/web-data is already open; the force-push updated it."
+          fi

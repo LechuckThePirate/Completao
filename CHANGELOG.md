@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: with a lot of zoom, dragging the tree (or the scroll wheel) did not reach the right or bottom edge. The
+  client limited the scroll to the unzoomed size of the tree; it now follows the zoom.
+
 ## 1.0.2
 
 - New: in the focus window's right click menu, each quest shows its status icon: the "?" when it is ready to turn

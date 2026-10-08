@@ -126,6 +126,7 @@ function frameMethods:GetHorizontalScroll() return self._hs or 0 end
 function frameMethods:GetVerticalScroll() return self._vs or 0 end
 function frameMethods:SetHorizontalScroll(v) self._hs = v end
 function frameMethods:SetVerticalScroll(v) self._vs = v end
+function frameMethods:SetScrollChild(child) self._scrollChild = child end
 function frameMethods:IsMouseOver() return self._mouseOver or false end
 function frameMethods:EnableMouse(v) self._mouse = v and true or false end
 function frameMethods:IsMouseEnabled() return self._mouse or false end

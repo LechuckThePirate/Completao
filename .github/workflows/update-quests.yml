@@ -68,7 +68,7 @@ jobs:
       # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
       - name: Install Lua 5.1
         if: steps.changes.outputs.changed == 'true'
-        uses: leafo/gh-actions-lua@8aace3457a2fcf3f3c4e9007ecc6b869ff6d74d # v11
+        uses: leafo/gh-actions-lua@8aace3457a2fcf3f3c4e9007ecc6b869ff6d74d6 # v11
         with:
           luaVersion: "5.1"
 

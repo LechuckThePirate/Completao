@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
 
       - name: Package and release
-        uses: BigWigsMods/packager@90e603be6bcdeff99fb7061105a36b829fa70970 # v2
+        uses: BigWigsMods/packager@e50a250f8705041e40f2fa1ddcb280a686d65aa0 # v2
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

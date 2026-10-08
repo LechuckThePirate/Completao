@@ -1,0 +1,101 @@
+name: Update quest data
+
+# Once a day: take the latest QuestieDB release (Forever build), regenerate Data/Generated with
+# tools/questie_forever.mjs and, if anything changed, open a pull request with the result. Nothing is merged
+# here: the maintainer reviews the PR and merges it. Needs the repo setting "Allow GitHub Actions to create
+# and approve pull requests" (Settings > Actions > General).
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'QuestieDB release tag to use (empty = latest stable release, e.g. "preview" for the preview build)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-quests
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download QuestieDB (Forever)
+        id: questie
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          tag="$INPUT_TAG"
+          if [ -z "$tag" ]; then
+            tag=$(gh release view --repo Questie/QuestieDB --json tagName --jq .tagName)
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          gh release download "$tag" --repo Questie/QuestieDB --pattern QuestieDB-Forever.zip --dir "$RUNNER_TEMP"
+          unzip -q "$RUNNER_TEMP/QuestieDB-Forever.zip" -d "$RUNNER_TEMP/questie"
+          test -f "$RUNNER_TEMP/questie/QuestieDB/QuestieDB_Forever.toc"
+
+      - name: Regenerate Data/Generated
+        run: node tools/questie_forever.mjs
+        env:
+          QUESTIEDB_TOC: ${{ runner.temp }}/questie/QuestieDB/QuestieDB_Forever.toc
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain Data/Generated)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Data/Generated is already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
+          fi
+
+      # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
+      - name: Install Lua 5.1
+        if: steps.changes.outputs.changed == 'true'
+        uses: leafo/gh-actions-lua@v11
+        with:
+          luaVersion: "5.1"
+
+      - name: Install LuaRocks
+        if: steps.changes.outputs.changed == 'true'
+        uses: leafo/gh-actions-luarocks@v5
+
+      - name: Install busted
+        if: steps.changes.outputs.changed == 'true'
+        run: luarocks install busted
+
+      - name: Run tests
+        if: steps.changes.outputs.changed == 'true'
+        run: busted -p ".test.lua" .
+
+      - name: Open pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: auto/quest-data
+          base: master
+          add-paths: Data/Generated
+          commit-message: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
+          title: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
+          body: |
+            Automated daily refresh: `Data/Generated` regenerated with `tools/questie_forever.mjs` from the
+            QuestieDB (Forever) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
+
+            Review the diff, add a line under `## Unreleased` in `CHANGELOG.md` if it is worth telling players
+            about, and merge. If this PR is closed without merging, the next run opens a new one.

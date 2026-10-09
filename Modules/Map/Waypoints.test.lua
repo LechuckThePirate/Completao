@@ -145,4 +145,28 @@ describe("Waypoints", function()
         assert.are.equal(1429, WowMock.userWaypoint.mapID)
         _G.OpenWorldMap = nil
     end)
+
+    it("the map marker is a pin with the addon's icon in its head, on the map's canvas", function()
+        _G.OpenWorldMap = function() end
+        _G.WorldMapFrame = WowMock.NewFrame("Frame", "WorldMapFrame")
+        local canvas = WowMock.NewFrame("Frame", nil, _G.WorldMapFrame)
+        _G.WorldMapFrame.GetCanvas = function() return canvas end
+        _G.WorldMapFrame.GetMapID = function() return 1429 end
+        ns.ShowOnMap(elwynn, "Marshal")
+        local function textureOf(path)
+            return WowMock.Find(function(f) return f._kind == "Texture" and f._set.SetTexture and f._set.SetTexture[1] == path end)
+        end
+        local base = textureOf("Interface\\AddOns\\Completao\\Icons\\PinBase.png")
+        local icon = textureOf("Interface\\AddOns\\Completao\\Icons\\Completao.png")
+        assert.is_not_nil(base)
+        assert.is_not_nil(icon)
+        assert.are.equal(base._parent, icon._parent) -- the icon sits on the pin
+        local holder = WowMock.Find(function(f) return f._scripts.OnUpdate ~= nil and f._parent == canvas end)
+        holder._scripts.OnUpdate(holder)
+        assert.are.equal(1, holder:GetAlpha())
+        _G.WorldMapFrame.GetMapID = function() return 36 end -- another map is showing
+        holder._scripts.OnUpdate(holder)
+        assert.are.equal(0, holder:GetAlpha())
+        _G.OpenWorldMap = nil
+    end)
 end)

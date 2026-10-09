@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: the marker on the world map is now a navigation-style pin with the Completao icon in its head, like Fabrikao's,
+  instead of the gold "!". The point of the pin is on the spot.
+
 ## 1.0.4
 
 - New: inside a dungeon or raid, Autofocus only picks quests that are done in it, and the focus menu

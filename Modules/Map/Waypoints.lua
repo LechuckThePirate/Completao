@@ -93,9 +93,9 @@ function ns.FormatDistance(yards)
     return d < 1000 and small:format(math.floor(d)) or big:format(d / 1000)
 end
 
--- Our own marker on the world map: a bouncing gold "!" with a pulsing glow. It hangs from the map's
--- canvas (moves and zooms with it) and is counter-scaled to keep its size. Shown only while the visible
--- map is the location's, and cleared when the map closes.
+-- Our own marker on the world map: a bouncing navigation-style pin with the addon's icon in its head. It
+-- hangs from the map's canvas (moves and zooms with it) and is counter-scaled to keep its size. Shown only
+-- while the visible map is the location's, and cleared when the map closes.
 local pinState, pinHolder, pinFrame
 
 local function mapCanvas()
@@ -112,35 +112,24 @@ local function ensurePin()
     pinHolder = CreateFrame("Frame", nil, canvas)
     pinHolder:SetSize(1, 1)
     pinHolder:SetFrameStrata("DIALOG")
+    -- a map pin with the addon's icon in its head: the point of the pin is on the spot
     pinFrame = CreateFrame("Frame", nil, pinHolder)
-    pinFrame:SetSize(28, 28)
-    pinFrame:SetPoint("CENTER", pinHolder, "CENTER", 0, 0)
+    pinFrame:SetSize(44, 44)
+    pinFrame:SetPoint("BOTTOM", pinHolder, "CENTER", 0, 0)
 
-    local glow = pinFrame:CreateTexture(nil, "BACKGROUND")
-    glow:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Glow.png")
-    glow:SetBlendMode("ADD")
-    glow:SetSize(76, 76)
-    glow:SetPoint("CENTER")
-    glow:SetVertexColor(1, 0.85, 0.2)
+    local base = pinFrame:CreateTexture(nil, "ARTWORK")
+    base:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\PinBase.png")
+    base:SetAllPoints()
 
-    local icon = pinFrame:CreateTexture(nil, "ARTWORK")
-    icon:SetTexture("Interface\\GossipFrame\\AvailableQuestIcon")
-    icon:SetSize(30, 30)
-    icon:SetPoint("CENTER")
+    local icon = pinFrame:CreateTexture(nil, "OVERLAY")
+    icon:SetTexture("Interface\\AddOns\\" .. ADDON .. "\\Icons\\" .. ADDON .. ".png")
+    icon:SetSize(22, 22)
+    icon:SetPoint("CENTER", pinFrame, "TOP", 0, -18)
 
-    local pulse = glow:CreateAnimationGroup()
-    pulse:SetLooping("BOUNCE")
-    local alpha = pulse:CreateAnimation("Alpha")
-    alpha:SetFromAlpha(1)
-    alpha:SetToAlpha(0.25)
-    alpha:SetDuration(0.7)
-    alpha:SetSmoothing("IN_OUT")
-    pulse:Play()
-
-    local hop = icon:CreateAnimationGroup()
+    local hop = pinFrame:CreateAnimationGroup()
     hop:SetLooping("BOUNCE")
     local move = hop:CreateAnimation("Translation")
-    move:SetOffset(0, 7)
+    move:SetOffset(0, 8)
     move:SetDuration(0.45)
     move:SetSmoothing("IN_OUT")
     hop:Play()

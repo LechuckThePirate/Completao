@@ -297,8 +297,8 @@ FITNESS FOR A PARTICULAR PURPOSE.
   client already ships (quest icon, frame and button templates, maximize/restore
   widget); none are included in this repository.
 - **Artwork.** The addon icon (`Icons/Completao.png`) is cut from AI-generated
-  artwork (`images/`); the map glow (`Icons/Glow.png`) was generated for this
-  addon.
+  artwork (`images/`); the map pin (`Icons/PinBase.png`) is shared with the sibling
+  addon Fabrikao.
 - **TomTom** is an optional, separate addon that Completao!! only talks to.
 
 World of Warcraft is a trademark of Blizzard Entertainment, Inc. Completao!! is

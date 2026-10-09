@@ -11,7 +11,7 @@ local L = ns.L
 -- ("Focused Quest" title bar; the place is saved; a padlock there locks it in place). Clicking an objective sets the waypoint on it; clicking the
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
 -- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
--- distance). In combat the window stops taking the mouse, so clicks reach the world.
+-- distance; inside a dungeon, only the quests done in it). In combat the window stops taking the mouse, so clicks reach the world.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -368,6 +368,7 @@ end
 --    hand is left alone.
 --  * The focused quest is still in progress: only a quest just accepted that is a direct turn-in (ready the
 --    moment it is taken) and whose turn-in is nearer than what the focused quest needs next takes the focus.
+-- Inside a dungeon or raid only its own quests (the ones done inside it) are candidates.
 -- Looked at when the quest log changes and every few seconds. Closing the window or unfocusing by hand pauses
 -- it until the player focuses a quest or switches the setting.
 local AUTO_EVERY = 2
@@ -376,14 +377,16 @@ local FRESH_SECONDS = 10 -- how long an accepted quest counts as new (its tracki
 local fresh = {}         -- [questId] = GetTime() until which it counts as just accepted
 
 -- Every tracked quest in the log, in log order: { id, def, dist, ready }; `dist` (how far its next step is) is
--- nil when it can't be told.
+-- nil when it can't be told. Inside a known dungeon or raid only the quests done in it are listed, for
+-- autofocus and the menu alike.
 local function trackedQuests()
     local list = {}
+    local inside = ns.CurrentInstanceEntry()
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         local id = info and not info.isHeader and info.questID
         if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
-            and not C_QuestLog.IsQuestFlaggedCompleted(id) then
+            and not C_QuestLog.IsQuestFlaggedCompleted(id) and (not inside or ns.QuestDoneInside(id, inside)) then
             local q = questDef(id)
             local steps = ns.QuestSteps(q)
             local isReady = ns.IsReadyToTurnIn(id)

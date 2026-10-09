@@ -163,6 +163,32 @@ end
 local INSTANCE_CATEGORIES = { dungeons = true, raids = true, battlegrounds = true }
 local INSTANCE_SLACK = 10
 
+-- The dungeon, raid or battleground entry the player is inside right now, or nil (outside, or an instance that
+-- isn't registered). Matched by the instance's id (`instanceId` in the entry) and, for the ones without it, by
+-- the instance's name as the entry shows it.
+function ns.CurrentInstanceEntry()
+    if not GetInstanceInfo then return nil end
+    local name, instanceType, _, _, _, _, _, instanceId = GetInstanceInfo()
+    if not instanceType or instanceType == "none" then return nil end
+    local lower, byName = name and name:lower(), nil
+    for _, d in ipairs(ns.entryList) do
+        if INSTANCE_CATEGORIES[d.category] then
+            if instanceId and d.instanceId == instanceId then return d end
+            if lower and not byName and (ns.EntryName(d):lower() == lower or d.name:lower() == lower) then byName = d end
+        end
+    end
+    return byName
+end
+
+-- Whether a quest is done inside that instance entry: the data marks those `dungeon = <entry id>`, in every
+-- entry where they show.
+function ns.QuestDoneInside(id, entry)
+    for _, q in ipairs(copies[id] or {}) do
+        if q.dungeon == entry.id then return true end
+    end
+    return false
+end
+
 -- Whether an entry has anything left to do for the character: a quest they can see that is in their log or
 -- available now (not done, not locked by level or by quests they lack). Stops at the first one. Out of it:
 --  * holiday quests outside the events section: the ones also listed there (the Lunar Festival elders stand in

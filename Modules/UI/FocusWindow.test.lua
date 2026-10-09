@@ -389,6 +389,44 @@ describe("FocusWindow", function()
 
         local function update() FireEvent("QUEST_LOG_UPDATE") frame = CompletaoFocusFrame end
 
+        describe("inside a dungeon", function()
+            -- only Fox Hunt is done inside it (the nearest objective in the log is still Pest Control's wolves)
+            before_each(function()
+                ns.RegisterEntry({ id = "dng", name = "Test Dungeon", instanceId = 777 })
+                ns.FindQuestDef(999003).dungeon = "dng"
+            end)
+            after_each(function() _G.GetInstanceInfo = nil end)
+            local function enter(instanceType) _G.GetInstanceInfo = function() return "Test Dungeon", instanceType or "party", 1, "", 5, 0, false, 777 end end
+
+            it("only picks a quest that is done in it", function()
+                enter()
+                update()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("with none of them tracked, picks nothing", function()
+                enter()
+                tracked[999003] = nil
+                update()
+                assert.is_nil(ns.Focus_Quest())
+            end)
+
+            it("outside it, or in another instance, all the tracked quests count", function()
+                update()
+                assert.are.equal(999001, ns.Focus_Quest())
+                ns.Focus_Clear()
+                _G.GetInstanceInfo = function() return "Elsewhere", "party", 1, "", 5, 0, false, 1 end
+                ns.Focus_SetAuto(true)
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("Auto in the menu goes by the same quests", function()
+                enter()
+                ns.Focus_Auto()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+        end)
+
         describe("with nothing focused", function()
             it("focuses the quest with the nearest objective", function()
                 update()
@@ -877,6 +915,18 @@ describe("FocusWindow", function()
             tracked[999003] = nil
             rightClick()
             assert.are.equal(3, #names())
+        end)
+
+        it("inside a dungeon, only the quests done in it", function()
+            ns.RegisterEntry({ id = "dng", name = "Test Dungeon", instanceId = 777 })
+            ns.FindQuestDef(999003).dungeon = "dng"
+            _G.GetInstanceInfo = function() return "Test Dungeon", "party", 1, "", 5, 0, false, 777 end
+            rightClick()
+            _G.GetInstanceInfo = nil
+            local list = names()
+            assert.are.equal(2, #list)
+            assert.are.equal("Auto", list[1])
+            assert.matches("Fox Hunt", list[2])
         end)
 
         it("picking a quest focuses it, with its waypoint", function()

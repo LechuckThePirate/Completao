@@ -16,8 +16,12 @@ local raids = {
     { id = "naxx", name = "Naxxramas", nameArea = 3456,        minLevel = 60, maxLevel = 60, size = 40 },
 }
 
+-- The game's instance ids (GetInstanceInfo); the entries without one are matched by name.
+local instanceIds = { ony = 249, zg = 309, aq20 = 509, mc = 409, bwl = 469, aq40 = 531, naxx = 533 }
+
 for _, r in ipairs(raids) do
     r.category = "raids"
+    r.instanceId = instanceIds[r.id]
     ns.RegisterEntry(r)
 end
 

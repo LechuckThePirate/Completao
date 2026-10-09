@@ -39,7 +39,15 @@ local dungeons = {
     { id = "dt",   name = "Deeprun Tram", nameArea = 2257,         minLevel = 1,  maxLevel = 60 },
 }
 
+-- The game's instance ids (GetInstanceInfo), to tell which instance the player is in; the entries without one
+-- are matched by name.
+local instanceIds = {
+    rfc = 389, wc = 43, vc = 36, sfk = 33, bfd = 48, stk = 34, gnom = 90, rfk = 47, sm = 189, rfd = 129, ulda = 70,
+    zf = 209, mara = 349, st = 109, brd = 230, lbrs = 229, dm = 429, scho = 289, strat = 329, dt = 369,
+}
+
 for _, d in ipairs(dungeons) do
+    d.instanceId = instanceIds[d.id]
     ns.RegisterEntry(d)
 end
 

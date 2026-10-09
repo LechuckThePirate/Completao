@@ -12,10 +12,9 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: inside a dungeon or raid, Autofocus only picks quests that are done in it, and the focus menu",
-    "  (right click) lists only those too.",
-    "- Data: about 100 new quests from the latest Forever patch, among them the Syndicate chain and more",
-    "  shaman Call of Air quests.",
+    "- New: the marker on the world map is now a navigation-style pin with the Completao icon in its head,",
+    "  instead of the gold \"!\". The point of the pin is on the spot.",
+    "- New: this window links to the other addons of the same author.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

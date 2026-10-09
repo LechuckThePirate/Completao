@@ -166,6 +166,7 @@ ns.AddLocale({ "ptBR" }, {
         "Encontrou um erro ou algo que falta? Relate no GitHub (clique para selecionar e depois Ctrl+C):",
     ["What's new in v%s:"] = "Novidades da v%s:",
     ["Don't show this message again"] = "Não mostrar esta mensagem novamente",
+    ["More addons by the same author (click a link, then Ctrl+C):"] = "Mais addons do mesmo autor (clique em um link e depois Ctrl+C):",
     ["Character specific preferences"] = "Preferências específicas do personagem",
     ["Settings are saved for this character only."] = "As configurações são salvas somente para este personagem.",
     ["Settings are shared by all your characters."] = "As configurações são compartilhadas por todos os seus personagens.",

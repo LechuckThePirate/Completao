@@ -166,6 +166,7 @@ ns.AddLocale({ "frFR" }, {
         "Un bug ou un oubli ? Signalez-le sur GitHub (cliquez pour sélectionner, puis Ctrl+C) :",
     ["What's new in v%s:"] = "Nouveautés de la v%s :",
     ["Don't show this message again"] = "Ne plus afficher ce message",
+    ["More addons by the same author (click a link, then Ctrl+C):"] = "D'autres addons du même auteur (cliquez sur un lien, puis Ctrl+C) :",
     ["Character specific preferences"] = "Préférences propres au personnage",
     ["Settings are saved for this character only."] = "Les réglages sont enregistrés pour ce personnage uniquement.",
     ["Settings are shared by all your characters."] = "Les réglages sont partagés par tous vos personnages.",

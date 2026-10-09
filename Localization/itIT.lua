@@ -166,6 +166,7 @@ ns.AddLocale({ "itIT" }, {
         "Hai trovato un bug o qualcosa che manca? Segnalalo su GitHub (clicca per selezionare, poi Ctrl+C):",
     ["What's new in v%s:"] = "Novità della v%s:",
     ["Don't show this message again"] = "Non mostrare più questo messaggio",
+    ["More addons by the same author (click a link, then Ctrl+C):"] = "Altri addon dello stesso autore (clicca un link, poi Ctrl+C):",
     ["Character specific preferences"] = "Preferenze specifiche del personaggio",
     ["Settings are saved for this character only."] = "Le impostazioni vengono salvate solo per questo personaggio.",
     ["Settings are shared by all your characters."] = "Le impostazioni sono condivise da tutti i tuoi personaggi.",

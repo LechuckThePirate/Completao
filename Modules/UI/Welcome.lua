@@ -4,7 +4,7 @@ local L = ns.L
 -- Welcome / "what's new" window, as in Embolsao: shown once per version (PLAYER_ENTERING_WORLD, see
 -- Completao.lua), with the addon's icon, a bug-report note pointing at the GitHub issue tracker, and the
 -- latest changelog entry. Reopens from the Preferences window or `/completao changelog`.
-local WIDTH, HEIGHT = 380, 480
+local WIDTH, HEIGHT = 440, 560
 
 local ICON = "Interface\\AddOns\\" .. ADDON .. "\\Icons\\Completao.png"
 local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
@@ -17,6 +17,15 @@ local LATEST_CHANGELOG_TEXT = table.concat({
     "- Data: about 100 new quests from the latest Forever patch, among them the Syndicate chain and more",
     "  shaman Call of Air quests.",
 }, "\n")
+
+-- The other addons of the same author, shown with their links.
+local SIBLINGS = {
+    { name = "Embolsao!!", url = "https://www.curseforge.com/wow/addons/embolsao" },
+    { name = "Aggreao!!", url = "https://www.curseforge.com/wow/addons/aggreao" },
+    { name = "Fabrikao!!", url = "https://www.curseforge.com/projects/1733457" },
+}
+local SIBLINGS_HEIGHT = 22 * #SIBLINGS + 22 -- the label and a row per addon, above the checkbox and the Close button
+local CHANGELOG_BOTTOM = 56 + SIBLINGS_HEIGHT
 
 local welcomeFrame
 
@@ -85,7 +94,7 @@ local function create()
 
     welcomeFrame.changelogScroll = CreateFrame("ScrollFrame", nil, welcomeFrame, "UIPanelScrollFrameTemplate")
     welcomeFrame.changelogScroll:SetPoint("TOPLEFT", welcomeFrame.changelogLabel, "BOTTOMLEFT", 0, -8)
-    welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", -24, 56) -- -48 while its scroll bar shows
+    welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", -24, CHANGELOG_BOTTOM) -- -48 while its scroll bar shows
 
     welcomeFrame.changelogContent = CreateFrame("Frame", nil, welcomeFrame.changelogScroll)
     welcomeFrame.changelogContent:SetPoint("TOPLEFT")
@@ -105,8 +114,37 @@ local function create()
     welcomeFrame.changelogScroll:SetScript("OnSizeChanged", layoutChangelog)
     -- the scroll bar only when the text doesn't fit
     ns.AutoScrollBar(welcomeFrame.changelogScroll, function(has)
-        welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", has and -48 or -24, 56)
+        welcomeFrame.changelogScroll:SetPoint("BOTTOMRIGHT", has and -48 or -24, CHANGELOG_BOTTOM)
     end)
+
+    -- The sibling addons advertise each other: a link per addon, to select and Ctrl+C like the issue tracker's (an addon can't open a web page).
+    welcomeFrame.siblingsLabel = welcomeFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    welcomeFrame.siblingsLabel:SetPoint("BOTTOMLEFT", 16, 46 + 22 * #SIBLINGS + 4)
+    welcomeFrame.siblingsLabel:SetText(L["More addons by the same author (click a link, then Ctrl+C):"])
+    welcomeFrame.siblingBoxes = {}
+    for i, sibling in ipairs(SIBLINGS) do
+        local y = 46 + 22 * (#SIBLINGS - i)
+        local name = welcomeFrame:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+        name:SetPoint("BOTTOMLEFT", 22, y + 4)
+        name:SetWidth(78)
+        name:SetJustifyH("LEFT")
+        name:SetText(sibling.name)
+        local box = CreateFrame("EditBox", nil, welcomeFrame)
+        box:SetSize(WIDTH - 104 - 16, 20)
+        box:SetPoint("BOTTOMLEFT", 104, y)
+        box:SetAutoFocus(false)
+        box:SetFontObject(GameFontHighlightSmall)
+        box:SetTextColor(0.4, 0.7, 1, 1)
+        box:SetText(sibling.url)
+        box:SetCursorPosition(0)
+        box:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+        box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+        box:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+        box:SetScript("OnMouseUp", function(self) self:HighlightText() end)
+        box:SetScript("OnEnter", function(self) self:SetTextColor(0.6, 0.85, 1, 1) end)
+        box:SetScript("OnLeave", function(self) self:SetTextColor(0.4, 0.7, 1, 1) end)
+        welcomeFrame.siblingBoxes[i] = box
+    end
 
     welcomeFrame.dontShowAgainCheck = CreateFrame("CheckButton", nil, welcomeFrame, "UICheckButtonTemplate")
     welcomeFrame.dontShowAgainCheck:SetSize(22, 22)

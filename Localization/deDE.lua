@@ -166,6 +166,7 @@ ns.AddLocale({ "deDE" }, {
         "Fehler oder etwas Fehlendes gefunden? Melde es auf GitHub (klicken zum Auswählen, dann Strg+C):",
     ["What's new in v%s:"] = "Neuigkeiten in v%s:",
     ["Don't show this message again"] = "Diese Nachricht nicht mehr anzeigen",
+    ["More addons by the same author (click a link, then Ctrl+C):"] = "Weitere Addons desselben Autors (Link anklicken, dann Strg+C):",
     ["Character specific preferences"] = "Charakterspezifische Einstellungen",
     ["Settings are saved for this character only."] = "Die Einstellungen werden nur für diesen Charakter gespeichert.",
     ["Settings are shared by all your characters."] = "Die Einstellungen gelten für alle deine Charaktere.",

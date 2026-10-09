@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: the welcome window links to the other addons of the same author, to copy and paste in a browser.
 - New: the marker on the world map is now a navigation-style pin with the Completao icon in its head, like Fabrikao's,
   instead of the gold "!". The point of the pin is on the spot.
 

@@ -80,4 +80,40 @@ describe("Welcome", function()
         WowMock.FindButton("What's new"):Click()
         assert.is_true(welcome:IsShown())
     end)
+
+    describe("the other addons", function()
+        local siblings = { "Embolsao", "Completao", "Aggreao", "Fabrikao" }
+
+        it("have a link each, to copy, and not one to itself", function()
+            local urls = {}
+            for _, box in ipairs(welcome.siblingBoxes) do urls[#urls + 1] = box:GetText() end
+            assert.are.equal(3, #urls)
+            local all = table.concat(urls, " ")
+            for _, name in ipairs(siblings) do
+                if name == "Completao" then
+                    assert.is_nil(all:find(name:lower(), 1, true))
+                else
+                    assert.is_truthy(all:find(name:lower(), 1, true) or all:find("1733457", 1, true), name)
+                end
+            end
+        end)
+
+        it("are CurseForge pages", function()
+            for _, box in ipairs(welcome.siblingBoxes) do
+                assert.matches("^https://www%.curseforge%.com/", box:GetText())
+            end
+        end)
+
+        it("have a label above them, and the changelog stops above that", function()
+            assert.matches("More addons by the same author", welcome.siblingsLabel:GetText())
+        end)
+
+        it("select their link when clicked, so it can be copied", function()
+            local box = welcome.siblingBoxes[1]
+            local highlighted = false
+            box.HighlightText = function() highlighted = true end
+            box._scripts.OnEditFocusGained(box)
+            assert.is_true(highlighted)
+        end)
+    end)
 end)

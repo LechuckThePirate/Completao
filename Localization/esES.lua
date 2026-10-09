@@ -166,6 +166,7 @@ ns.AddLocale({ "esES", "esMX" }, {
         "¿Has encontrado un error o algo que falta? Repórtalo en GitHub (clic para seleccionar, luego Ctrl+C):",
     ["What's new in v%s:"] = "Novedades en la v%s:",
     ["Don't show this message again"] = "No volver a mostrar este mensaje",
+    ["More addons by the same author (click a link, then Ctrl+C):"] = "Más addons del mismo autor (clic en un enlace y Ctrl+C):",
     ["Character specific preferences"] = "Preferencias de este personaje",
     ["Settings are saved for this character only."] = "Los ajustes se guardan solo para este personaje.",
     ["Settings are shared by all your characters."] = "Los ajustes son comunes a todos tus personajes.",

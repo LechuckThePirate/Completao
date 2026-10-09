@@ -36,6 +36,14 @@ local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
 local selectedId, expandedCat, listInitialized, viewRestored
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
 local frame, canvas, emptyText
+-- The scroll child. The canvas inside it is scaled by the zoom, but the client limits the scroll to the
+-- child's own size (it ignores the scale), so the holder is kept at the size the canvas has on screen.
+local holder
+local function syncHolder()
+    if not holder then return end
+    local scale = canvas:GetScale() or 1
+    holder:SetSize(math.max(1, canvas:GetWidth() * scale), math.max(1, canvas:GetHeight() * scale))
+end
 local openedWithLog = false -- the quest log opened the window (see the end)
 -- Global search (Search.lua): with searchMode, the main area shows the form and the results table
 -- instead of the tree; treeWidgets is what gets hidden then.
@@ -239,6 +247,7 @@ local function renderTree(d)
     canvas:SetSize(
         math.max(1, PAD * 2 + layout.cols * NODE_W + (layout.cols - 1) * GAP_X),
         math.max(1, PAD * 2 + layout.rows * NODE_H + (layout.rows - 1) * GAP_Y))
+    syncHolder()
 
     -- With a quest selected: its path (what comes before and after, along the chain) is highlighted in
     -- green and the rest of the visible quests are dimmed.
@@ -1057,9 +1066,12 @@ local function createFrame()
     local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
-    canvas = CreateFrame("Frame", nil, treeScroll)
+    holder = CreateFrame("Frame", nil, treeScroll)
+    holder:SetSize(1, 1)
+    canvas = CreateFrame("Frame", nil, holder)
+    canvas:SetPoint("TOPLEFT")
     canvas:SetSize(1, 1)
-    treeScroll:SetScrollChild(canvas)
+    treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
     ns.Detail_Create(frame, treeScroll, treeLeft(), frame.searchPanel)
     -- the tree's scroll bar only when it is taller than the view (the canvas is scaled by the zoom, which the
@@ -1108,6 +1120,7 @@ local function createFrame()
     -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))
     canvas:SetScale(zoom)
+    syncHolder()
 
     local function maxScroll(self)
         return math.max(0, canvas:GetWidth() * zoom - self:GetWidth()), math.max(0, canvas:GetHeight() * zoom - self:GetHeight())
@@ -1122,6 +1135,7 @@ local function createFrame()
         zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
+        syncHolder()
         treeBarUpdate()
         scrollTo(treeScroll, 0, 0)
     end
@@ -1153,6 +1167,7 @@ local function createFrame()
             zoom = newZoom
             ns.char.zoom = zoom
             canvas:SetScale(zoom)
+            syncHolder()
             treeBarUpdate()
             scrollTo(self, contentX * zoom - cx, contentY * zoom - cy)
         end

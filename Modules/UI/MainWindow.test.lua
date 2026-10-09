@@ -386,7 +386,7 @@ describe("MainWindow", function()
     end)
 
     describe("the tree's scroll bar", function()
-        local scroll, canvas
+        local scroll, canvas, holder
         -- where the tree ends on the right: -8 without the bar, -32 with it
         local function right()
             local x
@@ -397,8 +397,20 @@ describe("MainWindow", function()
 
         before_each(function()
             scroll = ns.UI.treeScroll
-            canvas = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)
+            holder = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)
+            canvas = WowMock.Find(function(f) return f._parent == holder and f._kind == "Frame" end)
             scroll:SetHeight(300)
+        end)
+
+        it("the scroll child is as big as the scaled canvas, so the client lets the scroll reach the end", function()
+            assert.are.equal(holder, scroll._scrollChild)
+            canvas:SetSize(1000, 800)
+            ns.UI_SetZoom(1.6)
+            assert.are.equal(1600, holder:GetWidth())
+            assert.are.equal(1280, holder:GetHeight())
+            ns.UI_SetZoom(0.5)
+            assert.are.equal(500, holder:GetWidth())
+            assert.are.equal(400, holder:GetHeight())
         end)
 
         it("is not there when the tree fits, and the tree takes its room", function()

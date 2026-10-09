@@ -9,6 +9,11 @@ let the addon walk you to the person who hands it out.
 Dungeons, raids, battlegrounds, zones, class and profession quests, races and
 world events are in, with more on the way.
 
+> **Enjoying Completao!!?** The same author makes more addons for WoW Forever, take a look:
+> - [**Embolsao!!**](https://www.curseforge.com/wow/addons/embolsao) -- one bag to rule them all: your bags and your bank in a single, clean window.
+> - [**Aggreao!!**](https://www.curseforge.com/wow/addons/aggreao) -- know who has the aggro before the mob does.
+> - [**Fabrikao!!**](https://www.curseforge.com/projects/1733457) -- your professions companion: every recipe, where to learn it, and the way to get there.
+
 ![Your quest log, in the Completao!! window](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
 
 ---

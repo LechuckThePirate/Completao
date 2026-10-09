@@ -12,12 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: an Opacity slider in the preferences sets the window's opacity at rest, for those who find the",
-    "  trees hard to see. The fade while moving and in combat starts from it, never going above it.",
-    "- Fixed: the window's background was slightly see-through even at full opacity. It now has a solid",
-    "  background; the Opacity slider is what makes it see-through.",
-    "- New: in the focus window's right click menu, each quest shows its status icon: the \"?\" when it is",
-    "  done and ready to hand in, the \"...\" while it is still in progress.",
+    "- Fixed: with a lot of zoom, dragging the tree (or the scroll wheel) did not reach the right or bottom",
+    "  edge. The scroll now follows the zoom.",
 }, "\n")
 
 local welcomeFrame

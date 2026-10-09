@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.0.4
 
 - New: inside a dungeon or raid, Autofocus only picks quests that are done in it, and the focus menu
   (right click) lists only those too.
+- Data: about 100 new quests from the latest Forever patch, among them the Syndicate chain (Syndicate Sabotage,
+  The Syndicate Sting...) and more shaman Call of Air quests.
 
 ## 1.0.3
 

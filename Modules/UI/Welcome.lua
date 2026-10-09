@@ -12,8 +12,10 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fixed: with a lot of zoom, dragging the tree (or the scroll wheel) did not reach the right or bottom",
-    "  edge. The scroll now follows the zoom.",
+    "- New: inside a dungeon or raid, Autofocus only picks quests that are done in it, and the focus menu",
+    "  (right click) lists only those too.",
+    "- Data: about 100 new quests from the latest Forever patch, among them the Syndicate chain and more",
+    "  shaman Call of Air quests.",
 }, "\n")
 
 local welcomeFrame

@@ -358,6 +358,65 @@ describe("MainWindow", function()
         assert.are.equal("Interface\\Icons\\INV_Misc_Head_Dragon_01", badge():GetTexture())
     end)
 
+    describe("a quest opened from elsewhere (a search result, another addon)", function()
+        -- a quest of the entry with a prerequisite, and every quest connected to it by prerequisites
+        local function chainOfQuestWithParent()
+            local quest
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if #ns.ParentsOf(q) > 0 then quest = q break end
+            end
+            assert.is_not_nil(quest)
+            local near, set, changed = {}, { [quest.id] = true }, true
+            for _, q in ipairs(ns.entries.vc.quests) do near[q.id] = q end
+            while changed do
+                changed = false
+                for _, q in ipairs(ns.entries.vc.quests) do
+                    for _, parent in ipairs(ns.ParentsOf(q)) do
+                        if near[parent] and (set[q.id] ~= set[parent]) then
+                            set[q.id], set[parent] = true, true
+                            changed = true
+                        end
+                    end
+                end
+            end
+            return quest, set
+        end
+
+        it("is shown with its whole chain, lit, even when the filters would hide it", function()
+            local quest, chain = chainOfQuestWithParent()
+            for _, q in ipairs(ns.entries.vc.quests) do WowMock.done[q.id] = true end
+            ns.char.filters.hideDone = true
+            ns.UI_Refresh()
+            local _, hidden = ShownNodes()
+            assert.are.equal(0, hidden)
+
+            ns.UI_OpenQuest("vc", quest.id)
+            local nodes = ShownNodes()
+            assert.are.equal(quest.id, ns.Detail_Current().id)
+            local count = 0
+            for id in pairs(chain) do
+                if ns.FindQuestDef(id) and ns.FindQuestDef(id).entryId == "vc" and ns.QuestVisible(ns.FindQuestDef(id), ns.entries.vc) then
+                    count = count + 1
+                    assert.is_not_nil(nodes[id], "quest " .. id .. " of the chain")
+                    assert.is_true(nodes[id]:GetAlpha() >= 0.5, "quest " .. id .. " is lit")
+                end
+            end
+            assert.is_true(count > 1)
+        end)
+
+        it("a filter changed afterwards applies again", function()
+            local quest = chainOfQuestWithParent()
+            for _, q in ipairs(ns.entries.vc.quests) do WowMock.done[q.id] = true end
+            ns.char.filters.hideDone = true
+            ns.UI_OpenQuest("vc", quest.id)
+            assert.is_not_nil(ShownNodes()[quest.id])
+            local check = WowMock.FindByText("Hide completed"):GetParent()
+            check:SetChecked(true)
+            check._scripts.OnClick(check) -- touching a filter ends the exception
+            assert.is_nil(ShownNodes()[quest.id])
+        end)
+    end)
+
     it("selecting a quest highlights its chain and dims the rest", function()
         local q = ns.entries.vc.quests[1]
         ns.UI_OpenQuest("vc", q.id)

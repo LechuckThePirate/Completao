@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: a quest opened from elsewhere (a search result, "View chain", another addon) is shown with its whole chain, lit with the green path, even when the filters (low level, too high, completed) would hide it. Touching a filter goes back to the normal view.
 - New: a small public API for other addons, `CompletaoAPI` (`HasQuest(questID)`, `ShowQuest(questID)` opens the window on that quest).
   Fabrikao!! uses it for the "View Quest" button of the recipes that come from a quest.
 

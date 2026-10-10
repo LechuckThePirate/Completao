@@ -136,6 +136,9 @@ local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
 local CHAIN_COLOR = { 0.35, 1, 0.35 }
 local searchText = ""
 local searchBox
+-- A quest opened from elsewhere (a search result, "View chain", another addon): its whole chain is shown whatever the filters
+-- say, as a set of quest ids, until the selection or a filter changes.
+local pinned
 local filterChecks = {}
 
 -- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
@@ -195,6 +198,40 @@ local function chainInfo(d)
     return info
 end
 
+-- The quests connected to `id` by prerequisites (itself included) among the visible ones of the entry, as a set.
+local function chainMembers(d, id)
+    local byId, kids = {}, {}
+    for _, q in ipairs(d.quests) do
+        if ns.QuestVisible(q, d) then
+            byId[q.id] = q
+            for _, parent in ipairs(ns.ParentsOf(q)) do
+                kids[parent] = kids[parent] or {}
+                table.insert(kids[parent], q.id)
+            end
+        end
+    end
+    local set, queue = {}, {}
+    if byId[id] then
+        set[id] = true
+        queue[1] = id
+    end
+    local i = 1
+    while queue[i] do
+        local q = byId[queue[i]]
+        i = i + 1
+        local near = {}
+        for _, parent in ipairs(ns.ParentsOf(q)) do near[#near + 1] = parent end
+        for _, child in ipairs(kids[q.id] or {}) do near[#near + 1] = child end
+        for _, other in ipairs(near) do
+            if byId[other] and not set[other] then
+                set[other] = true
+                queue[#queue + 1] = other
+            end
+        end
+    end
+    return set
+end
+
 -- Visibility predicate for an entry's tree: faction/race + the user's filters.
 -- By level, chains are shown or hidden as a whole, so they are never cut in half:
 --  * "too high" hides a chain when every quest it starts with is above your level; if you can start it,
@@ -209,6 +246,7 @@ local function makeFilter(d)
     local needle = searchText ~= "" and searchText or nil
     return function(q)
         if not ns.QuestVisible(q, d) then return false end
+        if pinned and pinned[q.id] then return true end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
@@ -272,6 +310,12 @@ local function renderTree(d)
         end
         walk(parents, selected.id)
         walk(kids, selected.id)
+        -- opened from elsewhere: the whole chain it belongs to is lit, branches included, not only the path through it
+        if pinned and pinned[selected.id] then
+            for id in pairs(pinned) do
+                if layout.nodes[id] then chainSet[id] = true end
+            end
+        end
     end
 
     local byId, i = {}, 0
@@ -444,6 +488,7 @@ local function showSideTooltip(self)
 end
 
 local function selectEntry(id)
+    pinned = nil
     ns.Detail_Hide()
     searchText = ""
     if searchBox then searchBox:SetText("") end
@@ -707,6 +752,7 @@ function ns.UI_OpenQuest(entryId, questId)
     expandedCat = d.category
     ns.char.category = expandedCat
     selectEntry(entryId)
+    pinned = chainMembers(d, questId)
     ns.UI_Refresh()
     for _, q in ipairs(d.quests) do
         if q.id == questId then ns.Detail_Show(q) break end
@@ -970,6 +1016,7 @@ local function createFrame()
     end
     box:HookScript("OnTextChanged", function(self)
         searchText = strtrim(self:GetText() or ""):lower()
+        pinned = nil
         if placeholder and not box.Instructions then placeholder:SetShown(searchText == "") end
         ns.RequestRefresh()
     end)
@@ -987,6 +1034,7 @@ local function createFrame()
         cb:SetChecked(ns.char.filters[key] and true or false)
         filterChecks[key] = cb
         cb:SetScript("OnClick", function(self)
+            pinned = nil
             ns.char.filters[key] = self:GetChecked() and true or false
             ns.UI_Refresh()
         end)

@@ -35,12 +35,12 @@ local function create()
     welcomeFrame:SetFrameStrata("DIALOG")
     welcomeFrame:SetClampedToScreen(true)
     welcomeFrame:SetBackdrop({
-        bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         tile = true, tileSize = 16, edgeSize = 16,
         insets = { left = 4, right = 4, top = 4, bottom = 4 },
     })
-    welcomeFrame:SetBackdropColor(0, 0, 0, 0.9)
+    welcomeFrame:SetBackdropColor(0.06, 0.06, 0.06, 1)
     welcomeFrame:SetMovable(true)
     welcomeFrame:EnableMouse(true)
     welcomeFrame:RegisterForDrag("LeftButton")

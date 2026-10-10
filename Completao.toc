@@ -15,7 +15,7 @@
 ## Category-itIT: Missioni
 ## Category-ptBR: Missões
 ## Author: LechuckThePirate
-## Version: 1.0.5
+## Version: 1.0.6
 ## X-License: GPL-3.0
 ## IconTexture: Interface\AddOns\Completao\Icons\Completao.png
 ## SavedVariables: CompletaoDB

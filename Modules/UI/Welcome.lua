@@ -12,9 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: the marker on the world map is now a navigation-style pin with the Completao icon in its head,",
-    "  instead of the gold \"!\". The point of the pin is on the spot.",
-    "- New: this window links to the other addons of the same author.",
+    "- Fixed: the window comes above the other addons' windows when it is shown or clicked, instead of looking see-through.",
+    "- Fixed: the welcome window is opaque, so the welcome windows of several addons no longer show through each other.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

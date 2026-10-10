@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: the window comes above the windows of the author's other addons when it is shown or clicked (it was drawn under their contents and looked see-through).
+- Fixed: the welcome window is opaque, so when the welcome windows of several of the author's addons open together each one hides the previous one instead of showing through it.
+
 ## 1.0.5
 
 - New: the welcome window links to the other addons of the same author, to copy and paste in a browser.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+
+- Data: rewards (gold, experience, reputation and items) of about 100 more quests, as the public databases have them now.
+
 ## 1.0.6
 
 - Fixed: the window comes above the windows of the author's other addons when it is shown or clicked (it was drawn under their contents and looked see-through).

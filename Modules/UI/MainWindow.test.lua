@@ -8,6 +8,10 @@ describe("MainWindow", function()
         ns = OpenAddon("vc")
     end)
 
+    it("is a top-level window, so it comes above the other addons' windows when shown or clicked", function()
+        assert.is_true(ns.UI._set.SetToplevel[1])
+    end)
+
     it("opens on the saved entry and draws its tree", function()
         assert.is_true(ns.UI:IsShown())
         local _, n = ShownNodes()

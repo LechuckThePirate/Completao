@@ -855,6 +855,9 @@ local function createFrame()
         frame:SetPoint("CENTER")
     end
     frame:SetFrameStrata("HIGH")
+    -- raised above the other addons' windows when shown or clicked, with all its children: otherwise another
+    -- window of the same strata draws its contents over this one's background
+    frame:SetToplevel(true)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:SetResizable(true)

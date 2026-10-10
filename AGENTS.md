@@ -23,6 +23,7 @@ Addon files live at the repo root and are packaged as the folder `Completao` (`.
 
 - `Completao.toc` (load order), `Completao.lua` (entry), `Bindings.xml`
 - `Localization/` — `Locale.lua` (English text is the key; `ns.AddLocale`) + `esES, deDE, frFR, itIT, ptBR`
+- `Modules/API/API.lua` -- the public global `CompletaoAPI` for other addons (Fabrikao reads it: keep it stable, bump `version` on a breaking change)
 - `Modules/{Database,Quest,Settings,Graph,Map,UI}/` — every `X.lua` has `X.test.lua` next to it
 - `Data/` — `Dungeons.lua`, `Raids.lua`, `Battlegrounds.lua` (hand-registered), `Overrides.lua` (manual fixes),
   `Generated/` (**never hand-edit; regenerate**)

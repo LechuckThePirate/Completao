@@ -58,4 +58,5 @@ Modules\UI\MainWindow.lua
 Modules\UI\Preferences.lua
 Modules\UI\Welcome.lua
 Modules\UI\MinimapButton.lua
+Modules\API\API.lua
 Completao.lua

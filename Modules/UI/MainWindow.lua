@@ -1237,6 +1237,17 @@ function ns.UI_Toggle()
     frame:SetShown(not frame:IsShown())
 end
 
+-- Opens the window (if it isn't) on a quest: its tree, with the quest selected and its panel open (CompletaoAPI.ShowQuest).
+-- Returns false when the addon doesn't know the quest.
+function ns.UI_ShowQuest(questID)
+    local def = ns.FindQuestDef(questID)
+    if not (def and ns.entries[def.entryId]) then return false end
+    if not frame then createFrame() end
+    frame:Show()
+    ns.UI_OpenQuest(def.entryId, def.id)
+    return true
+end
+
 -- Opens the window (if it isn't) on the Tracked Quests view (the focus window's right click).
 function ns.UI_OpenTracked()
     if not frame then createFrame() end

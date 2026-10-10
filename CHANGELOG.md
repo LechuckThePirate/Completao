@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: a small public API for other addons, `CompletaoAPI` (`HasQuest(questID)`, `ShowQuest(questID)` opens the window on that quest).
+  Fabrikao!! uses it for the "View Quest" button of the recipes that come from a quest.
+
 ## 1.0.7
 
 - Data: rewards (gold, experience, reputation and items) of about 100 more quests, as the public databases have them now.

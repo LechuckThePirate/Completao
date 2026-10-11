@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.1
 
 - Fixed: no waypoint for the quests of Zephras Isle (and any other zone whose map id is past 2500).
 - Fixed: quests that start or end at a world object or an item had no spot on the map; they now take the object's place, or where the item is found.

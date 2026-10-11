@@ -4,10 +4,13 @@ local ADDON, ns = ...
 -- itself gave the spot, { map = <uiMapID>, x, y }.
 -- The area id is turned into the client's map by zone name, the first time it is needed.
 local mapByName
+-- Highest map id looked at: Forever has maps past 2500 (Zephras Isle is 2521), so a bound that is too tight
+-- leaves a whole zone with no waypoints.
+local MAP_ID_MAX = 4000
 
 local function buildMapIndex()
     mapByName = {}
-    for id = 1, 2500 do
+    for id = 1, MAP_ID_MAX do
         local info = C_Map.GetMapInfo(id)
         if info and info.name and info.mapType == Enum.UIMapType.Zone and not mapByName[info.name] then
             mapByName[info.name] = id

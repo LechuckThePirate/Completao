@@ -102,8 +102,15 @@ function ns.QuestSteps(q)
     if completed then
         for _, s in ipairs(list) do if s.kind == "obj" then s.done = true end end
     end
-    list[#list + 1] = { kind = "finish", loc = q.finish, done = completed,
-        label = L["Turn in: %s"]:format(q.finish and q.finish.npc or "?") }
+    -- a quest ready to turn in whose turn-in has no spot in the data (a writ delivered to a place only the map
+    -- shows, a new quest with no NPC known) goes where the game marks it
+    local finish = q.finish
+    if onQuest and not (finish and finish.x and finish.x > 0) and ns.IsReadyToTurnIn(q.id) then
+        local spot = liveSpot(q)
+        if spot then finish = { npc = finish and finish.npc, map = spot.map, x = spot.x, y = spot.y } end
+    end
+    list[#list + 1] = { kind = "finish", loc = finish, done = completed,
+        label = L["Turn in: %s"]:format(finish and finish.npc or "?") }
 
     -- the one that comes next: not taken yet, the missing requirement or the start; in progress, the first
     -- unfinished objective (preferably one with a place) or the turn-in once ready; done, the turn-in

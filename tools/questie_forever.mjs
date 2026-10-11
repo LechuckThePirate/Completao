@@ -277,7 +277,8 @@ function densest(pts) {
     return [near.reduce((s, p) => s + p[0], 0) / near.length, near.reduce((s, p) => s + p[1], 0) / near.length];
 }
 
-function stepFrom(name, byZone) {
+// `key`: "name" for the objectives, "npc" for the place where a quest starts or ends
+function stepFrom(name, byZone, key = "name") {
     if (!name) return null;
     let bestZone, bestPts;
     for (const [zone, pts] of Object.entries(byZone)) {
@@ -285,11 +286,41 @@ function stepFrom(name, byZone) {
     }
     if (!bestPts) return null;
     const valid = bestPts.filter((c) => c[0] >= 0);
-    if (!valid.length) return `{ name = ${lua(name)}, area = ${areaOf.get(Number(bestZone)) ?? bestZone} }`; // inside an instance
+    if (!valid.length) return `{ ${key} = ${lua(name)}, area = ${areaOf.get(Number(bestZone)) ?? bestZone} }`; // inside an instance
     const [x, y] = densest(valid);
-    return `{ name = ${lua(name)}, area = ${bestZone}, x = ${f1(x)}, y = ${f1(y)} }`;
+    return `{ ${key} = ${lua(name)}, area = ${bestZone}, x = ${f1(x)}, y = ${f1(y)} }`;
 }
 const addSpawns = (acc, spawns) => { for (const [zone, list] of Object.entries(keyed(spawns))) (acc[zone] ??= []).push(...list); };
+
+// where an item is found: the spawns of what drops it and of the objects that hold it
+function itemSpawns(it) {
+    const acc = {};
+    let used = 0;
+    for (const id of it[2] ?? []) if (used < MAX_SOURCES && npc(id)) { addSpawns(acc, npc(id)[7]); used++; }
+    for (const id of it[3] ?? []) if (used < MAX_SOURCES && object(id)) { addSpawns(acc, object(id)[4]); used++; }
+    return acc;
+}
+
+// Who or what starts (q[2]) or ends (q[3]) a quest: { name, loc }. An NPC; failing that, a world object (its
+// spawns) or an item (where it is found, as for the objectives), so those quests are not left without a spot.
+function placeOf(list) {
+    const npcId = group(list, 1)[0];
+    if (npcId && npc(npcId)) return { name: npc(npcId)[1], loc: location(npcId) };
+    const objId = group(list, 2)[0];
+    if (objId && object(objId)) {
+        const ob = object(objId), acc = {};
+        addSpawns(acc, ob[4]);
+        const loc = stepFrom(ob[1], acc, "npc");
+        if (loc) return { name: ob[1], loc };
+    }
+    const itemId = group(list, 3)[0];
+    if (itemId && item(itemId)) {
+        const it = item(itemId);
+        const loc = stepFrom(it[1], itemSpawns(it), "npc");
+        if (loc) return { name: it[1], loc };
+    }
+    return null;
+}
 
 // one step per objective: kill, world object, collect an item (from its droppers), kill credit, event
 function stepsOf(q) {
@@ -301,11 +332,7 @@ function stepsOf(q) {
     for (const o of group(obj, 3)) {
         const it = item(o[0]);
         if (!it) continue;
-        const acc = {};
-        let used = 0;
-        for (const id of it[2] ?? []) if (used < MAX_SOURCES && npc(id)) { addSpawns(acc, npc(id)[7]); used++; }
-        for (const id of it[3] ?? []) if (used < MAX_SOURCES && object(id)) { addSpawns(acc, object(id)[4]); used++; }
-        add(stepFrom(it[1], acc));
+        add(stepFrom(it[1], itemSpawns(it)));
     }
     for (const o of group(obj, 5)) { // kill credit: { {npcs}, base npc, text }
         const acc = {};
@@ -364,9 +391,9 @@ function questLine(id, name, comment, noClasses) {
     const classes = classMask(id);
     if (classes && !noClasses) f.push(`classes = ${classes}`);
     if (dungeonOf.has(id)) f.push(`dungeon = ${lua(dungeonOf.get(id))}`);
-    const giver = group(q[2], 1)[0], finisher = group(q[3], 1)[0];
-    if (giver && npc(giver)) { f.push(`giver = ${lua(npc(giver)[1])}`); f.push(`start = ${location(giver)}`); }
-    if (finisher && npc(finisher)) f.push(`finish = ${location(finisher)}`);
+    const giver = placeOf(q[2]), finisher = placeOf(q[3]);
+    if (giver) { f.push(`giver = ${lua(giver.name)}`); f.push(`start = ${giver.loc}`); }
+    if (finisher) f.push(`finish = ${finisher.loc}`);
     const steps = stepsOf(q);
     if (steps.length) f.push(`steps = { ${steps.join(", ")} }`);
     const text = (q[8] ?? []).join(" ");

@@ -17,6 +17,13 @@ describe("Waypoints", function()
         assert.is_nil(ns.ResolveZone({ area = 999 }))
     end)
 
+    it("finds zones whose map id is past 2500 (Zephras Isle)", function()
+        WowMock.maps[2521] = { name = "Area16593", mapType = Enum.UIMapType.Zone }
+        ns = LoadAddon({ files = { "Modules/Map/Waypoints.lua" } })
+        assert.are.equal(2521, ns.ResolveZone({ area = 16593 }))
+        assert.is_true(ns.CanWaypoint({ npc = "Syriel Nightrain", area = 16593, x = 57.9, y = 75.5 }))
+    end)
+
     it("a waypoint needs coordinates; showing the map only needs the zone", function()
         assert.is_true(ns.CanWaypoint(elwynn))
         assert.is_false(ns.CanWaypoint({ area = 12 }))

@@ -12,8 +12,9 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Data: rewards (gold, experience, reputation and items) of about 100 more quests,",
-    "  as the public databases have them now.",
+    "- New: a click on the focus window opens the tracked quests with the focused quest's details open.",
+    "- Fixed: a quest opened from elsewhere is shown with its whole chain lit, whatever the filters say.",
+    "- New: a small public API, used by Fabrikao!! for the \"View Quest\" button of its recipes.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

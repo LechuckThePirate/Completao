@@ -13,7 +13,7 @@ exclude_files = {
 
 -- what the addon defines as globals
 globals = {
-    "CompletaoDB", "CompletaoCharDB",
+    "CompletaoDB", "CompletaoCharDB", "CompletaoAPI",
     "SlashCmdList", "SLASH_COMPLETAO1", "SLASH_COMPLETAO2",
     "BINDING_NAME_COMPLETAO_TOGGLE", "BINDING_NAME_COMPLETAO_PREFS",
     "Completao_Toggle", "Completao_TogglePreferences",

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New: a click on the focus window opens the tracked quests with the details of the focused quest open under the table, as after a click on its row.
+- Fixed: a quest opened from elsewhere (a search result, "View chain", another addon) is shown with its whole chain, lit with the green path, even when the filters (low level, too high, completed) would hide it. Touching a filter goes back to the normal view.
+- New: a small public API for other addons, `CompletaoAPI` (`HasQuest(questID)`, `ShowQuest(questID)` opens the window on that quest).
+  Fabrikao!! uses it for the "View Quest" button of the recipes that come from a quest.
+
 ## 1.0.7
 
 - Data: rewards (gold, experience, reputation and items) of about 100 more quests, as the public databases have them now.

@@ -151,6 +151,9 @@ local function create()
         if which == "LeftButton" and not dragged then
             ns.PopupMenu_Hide()
             ns.UI_OpenTracked()
+            -- with a quest focused, its details are open under the table, as after a click on its row
+            local id = ns.Focus_Quest()
+            if id then ns.Detail_Show(questDef(id)) end
         elseif which == "RightButton" then
             ns.Focus_ChooseQuest(frame)
         end

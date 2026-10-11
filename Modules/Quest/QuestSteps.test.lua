@@ -99,6 +99,26 @@ describe("QuestSteps", function()
             local list, current = ns.QuestSteps(q)
             assert.are.equal(30, list[current].loc.x)
         end)
+
+        it("is the turn-in of a quest that is ready and has no spot for it in the data", function()
+            q.finish = { npc = "Ender" }
+            WowMock.readyForTurnIn[901] = true
+            local list = ns.QuestSteps(q)
+            local finish = list[#list]
+            assert.are.equal("finish", finish.kind)
+            assert.are.equal("Ender", finish.loc.npc)
+            assert.are.equal(1411, finish.loc.map)
+            assert.is_true(math.abs(finish.loc.x - 56.5) < 1e-6)
+        end)
+
+        it("is not the turn-in while the quest is still in progress, nor over the data's own spot", function()
+            q.finish = { npc = "Ender" }
+            assert.is_nil(ns.QuestSteps(q)[#ns.QuestSteps(q)].loc.x)
+            WowMock.readyForTurnIn[901] = true
+            q.finish = { npc = "Ender", area = 12, x = 20, y = 21 }
+            local list = ns.QuestSteps(q)
+            assert.are.equal(20, list[#list].loc.x)
+        end)
     end)
     it("the game's objectives with no step in the data are added without a location", function()
         WowMock.onQuest[901] = true

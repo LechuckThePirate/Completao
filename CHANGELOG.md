@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: no waypoint for the quests of Zephras Isle (and any other zone whose map id is past 2500).
+- Fixed: quests that start or end at a world object or an item had no spot on the map; they now take the object's place, or where the item is found.
+- Fixed: a quest ready to turn in with no turn-in spot in the data (a Craftsman's Writ, for one) now takes the place the game marks for it, so the focus window sets its waypoint.
+
 ## 1.1.0
 
 - New: a click on the focus window opens the tracked quests with the details of the focused quest open under the table, as after a click on its row.

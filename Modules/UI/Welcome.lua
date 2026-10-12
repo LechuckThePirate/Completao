@@ -12,9 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fixed: no waypoint for the quests of Zephras Isle.",
-    "- Fixed: quests that start or end at a world object or an item now have a spot on the map.",
-    "- Fixed: a quest ready to hand in with no spot in the data takes the place the game marks for it.",
+    "- New: \"Untrack\" in the right click menu of a quest that is on the objective tracker.",
+    "- Fixed: a reward listed both as a choice and as a fixed reward showed twice in the quest details.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

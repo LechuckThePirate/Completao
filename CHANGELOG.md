@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Untrack" in the right click menu of a quest that is on the objective tracker, to take it off without leaving the window.
+
 ## 1.1.1
 
 - Fixed: no waypoint for the quests of Zephras Isle (and any other zone whose map id is past 2500).

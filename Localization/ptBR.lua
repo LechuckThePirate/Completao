@@ -136,6 +136,7 @@ ns.AddLocale({ "ptBR" }, {
     ["No quest focused"] = "Nenhuma missão em foco",
     ["Click to choose another."] = "Clique para escolher outra.",
     ["Stop focus"] = "Parar de focar",
+    ["Untrack"] = "Parar de rastrear",
     ["Right-click for options."] = "Clique com o botão direito para ver as opções.",
     ["Turn in %s (%s)"] = "Entregar %s (%s)",
     ["Turn in %s"] = "Entregar %s",

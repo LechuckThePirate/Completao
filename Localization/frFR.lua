@@ -137,6 +137,7 @@ ns.AddLocale({ "frFR" }, {
     ["No quest focused"] = "Aucune quête focalisée",
     ["Click to choose another."] = "Cliquez pour en choisir une autre.",
     ["Stop focus"] = "Arrêter la focalisation",
+    ["Untrack"] = "Ne plus suivre",
     ["Right-click for options."] = "Clic droit pour les options.",
     ["Turn in %s (%s)"] = "Rendre %s (%s)",
     ["Turn in %s"] = "Rendre %s",

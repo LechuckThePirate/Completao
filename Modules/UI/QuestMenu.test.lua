@@ -93,6 +93,40 @@ describe("QuestMenu", function()
             assert.are.equal(166, WowMock.selectedQuest)
         end)
 
+        describe("tracking", function()
+            local watched
+            before_each(function()
+                watched = { [166] = true }
+                C_QuestLog.GetQuestWatchType = function(id) return watched[id] and 0 or nil end
+                C_QuestLog.RemoveQuestWatch = function(id) watched[id] = nil end
+            end)
+            after_each(function()
+                C_QuestLog.GetQuestWatchType, C_QuestLog.RemoveQuestWatch = nil, nil
+                _G.RemoveQuestWatch = nil
+            end)
+
+            it("takes a tracked quest off the tracker", function()
+                ns.QuestMenu(WowMock.NewFrame("Button"), q)
+                choose("Untrack")
+                assert.is_nil(watched[166])
+            end)
+
+            it("is left out for a quest that is not tracked", function()
+                watched[166] = nil
+                ns.QuestMenu(WowMock.NewFrame("Button"), q)
+                for _, name in ipairs(labels()) do assert.is_not.equal("Untrack", name) end
+            end)
+
+            it("falls back to the global of the Classic clients, with the log index", function()
+                C_QuestLog.RemoveQuestWatch = nil
+                WowMock.log = { { questID = 100 }, { questID = 166 } }
+                local removed
+                _G.RemoveQuestWatch = function(index) removed = index end
+                ns.UntrackQuest(166)
+                assert.are.equal(2, removed)
+            end)
+        end)
+
         it("abandons it through the game's own confirmation", function()
             local asked
             _G.QuestMapQuestOptions_AbandonQuest = function(id) asked = id end

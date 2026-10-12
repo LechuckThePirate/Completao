@@ -3,8 +3,9 @@ local L = ns.L
 
 -- Right click on a quest (a node of a tree, a row of a table): a menu with what is usually done with a quest.
 -- The same options, in the same order, as the buttons of the quest details (QuestPanel.lua), but the ones that
--- don't apply are left out here, not greyed out (focus, log and abandon need the quest in the log; waypoint
--- and map a place to go to; chain a chain).
+-- don't apply are left out here, not greyed out (focus, log, untrack and abandon need the quest in the log,
+-- untrack also in the tracker; waypoint and map a place to go to; chain a chain). Untrack has no button in
+-- the details.
 local WIDTH = 190
 
 -- The game's own "Abandon quest" confirmation, as the quest log asks it.
@@ -18,6 +19,17 @@ function ns.AbandonQuest(id)
     if C_QuestLog.SetAbandonQuest then C_QuestLog.SetAbandonQuest() elseif SetAbandonQuest then SetAbandonQuest() end
     if StaticPopup_Show then StaticPopup_Show("ABANDON_QUEST", ns.QuestTitle(id)) end
     if last then C_QuestLog.SetSelectedQuest(last) end
+end
+
+-- Takes the quest off the objective tracker (it stays in the log). Retail style first; the Classic clients
+-- only have the global one, which wants the log index.
+function ns.UntrackQuest(id)
+    if C_QuestLog.RemoveQuestWatch then
+        C_QuestLog.RemoveQuestWatch(id)
+    elseif RemoveQuestWatch and C_QuestLog.GetLogIndexForQuestID then
+        local index = C_QuestLog.GetLogIndexForQuestID(id)
+        if index then RemoveQuestWatch(index) end
+    end
 end
 
 local function refresh()
@@ -42,6 +54,10 @@ function ns.QuestMenu(anchor, q)
         refresh()
     end, { disabled = not onQuest })
     add(L["Open quest"], function() ns.OpenQuestInLog(q.id) end, { disabled = not onQuest })
+    add(L["Untrack"], function()
+        ns.UntrackQuest(q.id)
+        refresh()
+    end, { disabled = not (onQuest and ns.IsQuestTracked(q.id)) })
     add(L["Set waypoint"], function() ns.SetWaypoint(loc, step.label) end,
         { disabled = not (loc and ns.CanWaypoint(loc)) })
     add(isEntrance and L["Show entrance"] or L["Show on map"], function() ns.ShowStepOnMap(q, step) end,

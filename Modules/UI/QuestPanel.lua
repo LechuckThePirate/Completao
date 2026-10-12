@@ -151,6 +151,21 @@ local function factionName(id)
     return L["Faction %d"]:format(id)
 end
 
+-- The fixed rewards without the ones that are also among the choices: some quests come from the data with the
+-- same items in both lists, and showing them twice ("choose one" and "you will also receive") makes no sense.
+-- nil when nothing is left.
+local function fixedItems(r)
+    if not r.items then return nil end
+    if not r.choice then return r.items end
+    local choices = {}
+    for _, entry in ipairs(r.choice) do choices[type(entry) == "table" and entry[1] or entry] = true end
+    local list = {}
+    for _, entry in ipairs(r.items) do
+        if not choices[type(entry) == "table" and entry[1] or entry] then list[#list + 1] = entry end
+    end
+    return #list > 0 and list or nil
+end
+
 -- Rows of the block: { text = "..." } or { items = { id | { id, count } } }. nil when there are no rewards.
 local function buildRewards(q)
     local r = ns.REWARDS and ns.REWARDS[q.id] or {}
@@ -159,10 +174,11 @@ local function buildRewards(q)
         rows[#rows + 1] = { text = REWARD_CHOICES or L["You will be able to choose one of these rewards:"] }
         rows[#rows + 1] = { items = r.choice }
     end
-    if r.items then
+    local fixed = fixedItems(r)
+    if fixed then
         rows[#rows + 1] = { text = r.choice and (REWARD_ITEMS or L["You will also receive:"])
             or (REWARD_ITEMS_ONLY or L["You will receive:"]) }
-        rows[#rows + 1] = { items = r.items }
+        rows[#rows + 1] = { items = fixed }
     end
     local lines = {}
     if r.money then lines[#lines + 1] = L["Money: %s"]:format(coinString(r.money)) end

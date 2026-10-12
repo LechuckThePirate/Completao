@@ -68,6 +68,41 @@ describe("QuestPanel", function()
             assert.matches("Reputation: %-25 Faction 999", all)
         end)
 
+        describe("an item in both the choices and the fixed rewards", function()
+            local function shownItems()
+                local n = {}
+                for _, f in ipairs(WowMock.frames) do
+                    if f.itemID and f.count and f._shown then n[f.itemID] = (n[f.itemID] or 0) + 1 end
+                end
+                return n
+            end
+            local function shownText(pattern)
+                for _, f in ipairs(WowMock.frames) do
+                    if f._shown ~= false and type(f._text) == "string" and f._text:find(pattern) then return true end
+                end
+                return false
+            end
+
+            it("is listed once, among the choices", function()
+                ns.REWARDS[166] = { choice = { 918, 6480 }, items = { 918, 6480 }, money = 1800, xp = 1600 }
+                ns.Detail_Show(ns.FindQuestDef(166))
+                local n = shownItems()
+                assert.are.equal(1, n[918])
+                assert.are.equal(1, n[6480])
+                assert.is_true(shownText("choose one of these rewards"))
+                assert.is_false(shownText("also receive"))
+            end)
+
+            it("keeps the fixed rewards that are not among the choices", function()
+                ns.REWARDS[166] = { choice = { { 4741, 1 }, 270056 }, items = { 4741, 6087 }, xp = 10 }
+                ns.Detail_Show(ns.FindQuestDef(166))
+                local n = shownItems()
+                assert.are.equal(1, n[4741])
+                assert.are.equal(1, n[6087])
+                assert.is_true(shownText("also receive"))
+            end)
+        end)
+
         it("experience is always listed, 0 when the quest gives none or has no row", function()
             local function allText()
                 local texts = {}

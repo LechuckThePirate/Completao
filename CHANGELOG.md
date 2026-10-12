@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: a reward that the data lists both as a choice and as a fixed reward (Deviate Hides, for one) showed twice in the quest details, under "choose one" and again under "you will also receive". It now shows once, among the choices.
+- New: "Untrack" in the right click menu of a quest that is on the objective tracker, to take it off without leaving the window.
+
 ## 1.1.1
 
 - Fixed: no waypoint for the quests of Zephras Isle (and any other zone whose map id is past 2500).

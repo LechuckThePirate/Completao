@@ -136,6 +136,7 @@ ns.AddLocale({ "deDE" }, {
     ["No quest focused"] = "Keine Quest fokussiert",
     ["Click to choose another."] = "Klicken, um eine andere zu wählen.",
     ["Stop focus"] = "Fokus beenden",
+    ["Untrack"] = "Nicht mehr verfolgen",
     ["Right-click for options."] = "Rechtsklick für Optionen.",
     ["Turn in %s (%s)"] = "%s abgeben (%s)",
     ["Turn in %s"] = "%s abgeben",

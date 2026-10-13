@@ -22,6 +22,17 @@ describe("Entries", function()
         assert.are.equal("dm", ns.entries.dm.quests[1].entryId)
     end)
 
+    it("adds a quest to an entry once, the first copy winning, but to other entries again", function()
+        ns.RegisterEntry({ id = "z1", name = "Dun Morogh", category = "zones" })
+        ns.RegisterEntry({ id = "c_MAGE", name = "Mage", category = "classes" })
+        ns.AddQuests("z1", { { id = 97277, name = "Grund and Gozwin", x = "database" } })
+        ns.AddQuests("z1", { { id = 97277, name = "Grund and Gozwin", x = "new quests" }, { id = 5, name = "Other" } })
+        ns.AddQuests("c_MAGE", { { id = 97277, name = "Grund and Gozwin" } })
+        assert.are.equal(2, #ns.entries.z1.quests)
+        assert.are.equal("database", ns.entries.z1.quests[1].x)
+        assert.are.equal(1, #ns.entries.c_MAGE.quests)
+    end)
+
     it("an entry has work while a quest you can see is in your log or available", function()
         ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
         ns.AddQuests("dm", {

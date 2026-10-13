@@ -61,14 +61,29 @@ end
 -- to find it fast and patch them all together.
 local copies = {}
 
+-- A quest is added to an entry once: the generated files come from different
+-- sources (the quest database, and the new quests of Forever that it did not
+-- have yet), and when the database catches up with a new quest both list it.
+-- The first one loaded wins, which is the database's. The same quest in
+-- another entry (a zone and a class, say) is a copy of its own, as before.
+local inEntry = {}
+
 function ns.AddQuests(entryId, list)
     local e = ns.entries[entryId]
     if not e then return end
+    local seen = inEntry[entryId]
+    if not seen then
+        seen = {}
+        inEntry[entryId] = seen
+    end
     for _, q in ipairs(list) do
-        q.entryId = q.entryId or entryId
-        e.quests[#e.quests + 1] = q
-        local c = copies[q.id]
-        if c then c[#c + 1] = q else copies[q.id] = { q } end
+        if not seen[q.id] then
+            seen[q.id] = true
+            q.entryId = q.entryId or entryId
+            e.quests[#e.quests + 1] = q
+            local c = copies[q.id]
+            if c then c[#c + 1] = q else copies[q.id] = { q } end
+        end
     end
 end
 

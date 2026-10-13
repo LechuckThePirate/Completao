@@ -509,8 +509,11 @@ describe("MainWindow", function()
                 for _, p in ipairs(detail._points) do if p[1] == "BOTTOMRIGHT" then x = p[#p - 1] end end
                 return x
             end
-            canvas:SetHeight(200)
+            -- Opening a quest lays the tree out again and sizes the canvas from
+            -- its real content, so the height is set after it, not before:
+            -- how tall the Deadmines tree really is changes with the data.
             ns.UI_OpenQuest("vc", ns.entries.vc.quests[1].id)
+            canvas:SetHeight(200)
             rangeChanged()
             assert.are.equal(-8, detailRight())
             canvas:SetHeight(900)

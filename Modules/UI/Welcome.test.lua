@@ -14,6 +14,14 @@ describe("Welcome", function()
         assert.are.equal(1, welcome._set.SetBackdropColor[4])
     end)
 
+    it("comes in front of the welcome windows other addons showed before, with all its content", function()
+        assert.is_true(welcome._set.SetToplevel[1])
+        local raised = 0
+        welcome.Raise = function() raised = raised + 1 end
+        ns.Welcome_Show()
+        assert.are.equal(1, raised)
+    end)
+
     it("shows once by itself, the first time (or after a version bump)", function()
         assert.is_not_nil(welcome)
         assert.is_true(welcome:IsShown())

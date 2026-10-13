@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.1
 
 - Fix: the welcome windows of several addons no longer show their text, buttons and links through each other when they open together: each one opens in front, with all its content, and a click brings it forward.
 

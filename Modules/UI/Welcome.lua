@@ -14,6 +14,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 local LATEST_CHANGELOG_TEXT = table.concat({
     "- New: \"Untrack\" in the right click menu of a quest that is on the objective tracker.",
     "- Fixed: a reward listed both as a choice and as a fixed reward showed twice in the quest details.",
+    "- Fixed: quests with no waypoint (Zephras Isle, and ones that start or end at an object or an item) now have one.",
+    "- Fixed: the welcome windows of several addons no longer show through each other.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

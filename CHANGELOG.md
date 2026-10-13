@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: the welcome windows of several addons no longer show their text, buttons and links through each other when they open together: each one opens in front, with all its content, and a click brings it forward.
+
 ## 1.2.0
 
 - Fixed: a reward that the data lists both as a choice and as a fixed reward (Deviate Hides, for one) showed twice in the quest details, under "choose one" and again under "you will also receive". It now shows once, among the choices.

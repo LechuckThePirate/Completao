@@ -67,12 +67,20 @@ pwsh tools\local\deploy.ps1                          # copy the addon into D:\Ga
 - **Repo hardening:** actions are pinned by commit SHA (Dependabot updates them weekly; the repo requires SHA pinning), a ruleset
   makes `master` PR-only (the owner can bypass), and `CF_API_KEY` belongs to the `release` environment, which only `master` and
   `v*` tags can use. Repository deploy keys count as admins for ruleset bypass, so never add a write deploy key.
-- **Release** (only when asked; used for every `0.x.0-beta`): on `master`, one commit `chore: release X.Y.Z-beta` that bumps
+- **Release** (only when asked; beta or stable, see below): on `master`, one commit `chore: release X.Y.Z` (`X.Y.Z-beta` for a beta) that bumps
   `## Version` in `Completao.toc`, renames `## Unreleased` to the version in `CHANGELOG.md`, and updates
   `LATEST_CHANGELOG_TEXT` in `Modules/UI/Welcome.lua` (keep the words "Turn in" out of it: a Search test looks for that text on
-  screen). Then `git tag vX.Y.Z-beta`, push `master` and the tag, and run
-  `gh workflow run release.yml --repo LechuckThePirate/Completao --ref vX.Y.Z-beta` (workflow_dispatch; BigWigsMods/packager
-  uploads to CurseForge with repo secret `CF_API_KEY` and creates the GitHub pre-release). Watch with `gh run watch`.
+  screen). Then `git tag vX.Y.Z` (`vX.Y.Z-beta` for a beta), push `master` and the tag, and run
+  `gh workflow run release.yml --repo LechuckThePirate/Completao --ref vX.Y.Z` (workflow_dispatch; BigWigsMods/packager
+  uploads to CurseForge with repo secret `CF_API_KEY` and creates the GitHub release). Watch with `gh run watch`.
+- **Beta vs stable:** the same commit, tag and workflow; only the tag name differs. The packager reads the channel from it: a tag
+  containing `alpha`/`beta` (`v1.2.0-beta`) goes out as a GitHub pre-release and a CurseForge Beta file, any other (`v1.2.1`) as the
+  GitHub "Latest" release and a CurseForge Release file. `## Version` in the `.toc` never carries the suffix. Betas have been the
+  norm; a stable one is cut when the maintainer asks, and it gets a version number of its own rather than reusing the last beta's
+  (`1.2.0-beta` -> stable `1.2.1`), so no two packages share one `.toc` version. Its CHANGELOG section lists only what is new since
+  the last beta (the beta sections stay as they are), but `LATEST_CHANGELOG_TEXT` summarizes everything since the last stable
+  release, since that is what players on the stable channel have not seen yet.
+  Check with `gh release list` that the new one is marked "Latest" and not "Pre-release".
 - **Screenshots:** `images/screencaps/*.png` are optimized and rsynced by `.github/workflows/sync-media.yml` (push to master touching
   that path, or `gh workflow run sync-media.yml`) to `https://media.joanvilarino.online/completao/images/screencaps/`, which
   `CURSEFORGE_DESCRIPTION.md` references. Secret `COMPLETAO_MEDIA_SSH_KEY` (restricted rsync-only user on the maintainer's VPS).

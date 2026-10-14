@@ -1,12 +1,13 @@
 name: CI
 
-# Tests (busted) and luacheck on every push and pull request, as in Questie. Lua 5.1: the game's version.
+# Tests (busted) and luacheck on every push, as in Questie. Lua 5.1: the game's version.
+# There is no pull_request trigger on purpose: a pull request shows the checks of its head commit, and the auto/* pull
+# requests opened by the bot would otherwise sit in "action required" waiting for a manual approval (their update
+# workflows run the tests themselves).
 on:
   push:
     branches:
       - '**'
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 jobs:
   luacheck:

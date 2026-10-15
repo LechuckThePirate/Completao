@@ -791,6 +791,7 @@ end
 -- filters.
 function ns.UI_ApplySettings()
     ns.Focus_ApplySettings()
+    ns.Tracker_Apply()
     if frame then
         local saved = ns.char.window
         frame:ClearAllPoints()

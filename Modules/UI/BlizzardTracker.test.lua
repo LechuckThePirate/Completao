@@ -29,6 +29,16 @@ describe("BlizzardTracker", function()
         assert.is_false(tracker:IsShown())
     end)
 
+    it("hides it within the show itself, with no timer tick in between (no blink)", function()
+        local original, queued = C_Timer.After, {}
+        C_Timer.After = function(_, f) queued[#queued + 1] = f end
+        StartAddon(LoadAddon(), nil, { hideBlizzardTracker = true })
+        C_Timer.After = original
+        assert.is_false(tracker:IsShown())
+        tracker:Show()
+        assert.is_false(tracker:IsShown())
+    end)
+
     it("turning the option on and off hides it and gives it back", function()
         local ns = StartAddon(LoadAddon(), nil, {})
         ns.char.hideBlizzardTracker = true

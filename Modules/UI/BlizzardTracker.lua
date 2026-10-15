@@ -25,11 +25,9 @@ local function hookShow(frame)
     if hooked[frame] then return end
     hooked[frame] = true
     frame:HookScript("OnShow", function(self)
-        if not enabled() then return end
-        -- one tick later: hiding inside the game's own show would run our code in the middle of its update
-        C_Timer.After(0, function()
-            if enabled() then hide(self) end
-        end)
+        -- right away, before the frame is drawn: a later tick would show it for a frame (the tracker blinked on
+        -- every craft). A hook runs after the game's own code, so it does not taint it.
+        if enabled() then hide(self) end
     end)
 end
 

@@ -20,8 +20,8 @@ describe("Preferences", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, follow Blizzard's tracker,
-        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do
-        assert.are.equal(11, #checks)
+        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide Blizzard's tracker
+        assert.are.equal(12, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
         assert.is_true(ns.char.quiet)
@@ -53,6 +53,11 @@ describe("Preferences", function()
         assert.is_true(ns.char.hideDone)
         checks[11]:SetChecked(false); checks[11]:Click()
         assert.is_nil(ns.char.hideDone)
+        assert.is_false(checks[12]:GetChecked()) -- the game's tracker stays by default
+        checks[12]:SetChecked(true); checks[12]:Click()
+        assert.is_true(ns.char.hideBlizzardTracker)
+        checks[12]:SetChecked(false); checks[12]:Click()
+        assert.is_nil(ns.char.hideBlizzardTracker)
         checks[2]:SetChecked(false); checks[2]:Click()
         assert.is_false(ns.Minimap_IsShown())
     end)
@@ -61,7 +66,7 @@ describe("Preferences", function()
         local labels = WowMock.FindAll(function(f)
             return f._kind == "FontString" and f._parent == prefs and f._set.SetWordWrap and f._w ~= nil
         end)
-        assert.is_true(#labels >= 11)
+        assert.is_true(#labels >= 12)
         for _, label in ipairs(labels) do
             assert.is_true(label._w <= 340 - 48 - 16, label._text)
             assert.is_true(label._set.SetWordWrap[1])

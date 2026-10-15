@@ -131,6 +131,7 @@ ns.AddLocale({ "ptBR" }, {
     ["No tracked quest to go to."] = "Nenhuma missão rastreada para ir.",
     ["Auto"] = "Auto",
     ["Hide empty or completed categories"] = "Ocultar categorias vazias ou concluídas",
+    ["Hide Blizzard's objective tracker"] = "Ocultar o rastreador de objetivos da Blizzard",
     ["Lock position"] = "Travar posição",
     ["Unlock position"] = "Destravar posição",
     ["No quest focused"] = "Nenhuma missão em foco",

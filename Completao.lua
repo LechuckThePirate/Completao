@@ -65,6 +65,9 @@ events:SetScript("OnEvent", function(_, event, arg1)
     elseif event == "PLAYER_ENTERING_WORLD" then
         -- also fires after /reload; announced (and the welcome window shown, if new) once per UI load
         C_Timer.After(1, announceReady)
+        -- the game shows its tracker again after a reload; the OnShow hook (BlizzardTracker.lua) covers a later show
+        ns.Tracker_Apply()
+        C_Timer.After(1, ns.Tracker_Apply)
         ns.RequestRefresh()
         if not shownWelcome then
             shownWelcome = true

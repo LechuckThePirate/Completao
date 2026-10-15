@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Hide Blizzard's objective tracker" in the preferences (off by default). The game puts the tracker back on every login and reload; with the option on, it is hidden again each time.
+
 ## 1.2.2
 
 - Data: new quests and the rewards of more quests, as the public databases have them now.

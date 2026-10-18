@@ -1,4 +1,4 @@
-local ADDON, ns = ...
+local _, ns = ...
 local L = ns.L
 
 -- Focus window: a small floating window for the one quest being focused on (right click on a quest in Tracked Quests,
@@ -579,16 +579,20 @@ local function autoFocus()
     return ok
 end
 
--- Auto-target (Preferences, off by default): with no target, and out of combat, targets by name
---  * first, the NPC who takes a quest that is ready to turn in (the focused one or any tracked one) once the
---    player is within TURNIN_RADIUS yards of him, the nearest first;
---  * then, with the focused quest still in progress, the creatures of its unfinished objectives (those to kill, and
---    those that drop the item asked for): the objective the waypoint is on first, then its other objectives, then
---    the objectives of the "Also here" quests.
--- Looked at on autofocus's clock. The game protects targeting: if it blocks this addon from it, the setting is
--- switched off for good and the player is told.
+-- Quest targeting. The game doesn't let addons change the target (TargetUnit is blocked for them, TargetByName is
+-- gone), so it is done by a secure button, CompletaoTargetButton, whose macro is kept up to date out of combat:
+--  * the NPC who takes a quest that is ready to turn in (the focused one or any tracked one) once the player is
+--    within TURNIN_RADIUS yards of him, the nearest first;
+--  * then the creatures of the focused quest's unfinished objectives (those to kill, and those that drop the item
+--    asked for): the objective the waypoint is on first, then its other objectives, then the objectives of the
+--    "Also here" quests.
+-- A press of the key (Key Bindings, or Tab itself with the Preferences option, off by default) runs the macro.
+-- With a target already, or in combat, it is the normal "target the nearest enemy". Without any quest creature
+-- around it falls back on that too, so taking over Tab costs nothing.
 local TURNIN_RADIUS = 40
-local targetBlocked = false
+local MACRO_MAX = 1000
+local TARGET_BUTTON = "CompletaoTargetButton"
+local targetButton, tabBound
 
 -- NPCs who take a ready quest and are close enough to be targeted, nearest first: { name, friendly = true }.
 local function turnInTargets(focusId)
@@ -634,74 +638,73 @@ local function creatureTargets(id)
     return out
 end
 
--- Everything auto-target would try now, in order: { name, friendly? }.
+-- Everything the key would try now, in order: { name, friendly? }.
 local function targetList(id)
     local list = turnInTargets(id)
     for _, c in ipairs(creatureTargets(id)) do list[#list + 1] = c end
     return list
 end
 
-local NAMEPLATES = 40
-
--- Targets the creature or NPC named `c.name` if the game gives a way: by name when it has TargetByName; else
--- through its nameplate (the "nameplateN" unit tokens), the nearest one that is alive (and an enemy, unless
--- `c.friendly`). Without nameplates showing it, nothing happens. Returns how it went: "name", "plate", or nil
--- when there is no way to target at all.
-local function acquire(c)
-    if TargetByName then
-        TargetByName(c.name)
-        return "name"
+-- The macro for a list: with a target, or in combat, the normal "target the nearest enemy" and nothing else; with
+-- none, each name in turn (the next only while there is still no target; a corpse, or a friend where an enemy is
+-- wanted, is let go), then the normal one if nothing was found.
+function ns.Focus_TargetMacro(list)
+    local out = { "/targetenemy [exists][combat]", "/stopmacro [exists][combat]" }
+    local size = #out[1] + #out[2] + 40
+    for _, c in ipairs(list) do
+        local a = "/targetexact [noexists] " .. c.name
+        local b = c.friendly and "/cleartarget [dead]" or "/cleartarget [dead][help]"
+        size = size + #a + #b + 2
+        if size > MACRO_MAX then break end
+        out[#out + 1], out[#out + 2] = a, b
     end
-    if not (TargetUnit and UnitName) then return nil end
-    local best, bestDist
-    for i = 1, NAMEPLATES do
-        local unit = "nameplate" .. i
-        if UnitExists(unit) and UnitName(unit) == c.name and not (UnitIsDead and UnitIsDead(unit))
-            and (c.friendly or not UnitCanAttack or UnitCanAttack("player", unit)) then
-            local d = UnitDistanceSquared and UnitDistanceSquared(unit) or 0
-            if not best or d < bestDist then best, bestDist = unit, d end
-        end
-    end
-    if best then TargetUnit(best) end
-    return "plate"
+    out[#out + 1] = "/targetenemy [noexists]"
+    return table.concat(out, "\n")
 end
 
-function ns.Focus_AutoTarget()
-    if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
-    if not UnitExists or UnitExists("target") then return false end
-    for _, c in ipairs(targetList(ns.Focus_Quest())) do
-        if not acquire(c) then return false end
-        if UnitExists("target") then
-            -- a corpse, or (for a creature) someone who isn't an enemy, is no use: let go of it and try the next
-            if (UnitIsDead and UnitIsDead("target"))
-                or (not c.friendly and UnitCanAttack and not UnitCanAttack("player", "target")) then
-                if ClearTarget then ClearTarget() end
-            else
-                return true
-            end
-        end
-    end
-    return false
+local function ensureTargetButton()
+    if targetButton then return targetButton end
+    local ok, button = pcall(CreateFrame, "Button", TARGET_BUTTON, UIParent, "SecureActionButtonTemplate")
+    if not ok or not button then return nil end
+    targetButton = button
+    button:SetAttribute("type", "macro")
+    -- on release, whatever the game's key-down setting: a press must run it once
+    button:SetAttribute("useOnKeyDown", false)
+    button:RegisterForClicks("AnyUp")
+    button:SetAttribute("macrotext", ns.Focus_TargetMacro({}))
+    return button
 end
 
--- "/completao target": says why auto-target does or doesn't act, and tries once, whatever the setting.
+-- Keeps the macro up to date (and Tab bound to it, or not, as the setting says). Nothing can change in combat:
+-- it is done again once it ends.
+function ns.Focus_UpdateTargeting()
+    if inCombat() then return end
+    local button = ensureTargetButton()
+    if not button then return end
+    local text = ns.Focus_TargetMacro(ready and targetList(ns.Focus_Quest()) or {})
+    if button:GetAttribute("macrotext") ~= text then button:SetAttribute("macrotext", text) end
+    local wantTab = ns.char and ns.char.tabTarget and true or false
+    if wantTab and not tabBound then
+        SetOverrideBindingClick(button, false, "TAB", TARGET_BUTTON)
+        tabBound = true
+    elseif not wantTab and tabBound then
+        ClearOverrideBindings(button)
+        tabBound = false
+    end
+end
+
+-- "/completao target": says what the key would do now.
 function ns.Focus_TargetReport()
     local function say(...) ns.Print("[target] " .. table.concat({ ... }, " ")) end
     local id = ns.Focus_Quest()
-    say("setting:", tostring(ns.char.autoTarget), "| blocked:", tostring(targetBlocked), "| log loaded:", tostring(ready),
+    say("Tab option:", tostring(ns.char.tabTarget), "| Tab bound:", tostring(tabBound), "| log loaded:", tostring(ready),
         "| combat:", tostring(inCombat()), "| focused quest:", tostring(id))
-    local plates = 0
-    for i = 1, NAMEPLATES do if UnitExists and UnitExists("nameplate" .. i) then plates = plates + 1 end end
-    say("TargetByName:", type(TargetByName), "| TargetUnit:", type(TargetUnit), "| UnitExists:", type(UnitExists),
-        "| nameplates showing:", plates, "| has a target:", tostring(UnitExists and UnitExists("target")))
     local list = targetList(id)
-    if #list == 0 then say("nothing to target: no creature known for the unfinished objectives, nobody to turn in to nearby") return end
     local names = {}
     for i, c in ipairs(list) do names[i] = c.name end
-    say("candidates:", table.concat(names, ", "))
-    local ok, how = pcall(acquire, list[1])
-    say("target", list[1].name, "->", ok and (how and ("by " .. how .. ", no error") or "no way to target") or tostring(how),
-        "| target now:", tostring(UnitExists and UnitExists("target") and UnitName and UnitName("target")))
+    say("candidates:", #names > 0 and table.concat(names, ", ") or "(none: no creature known for the unfinished objectives, nobody to turn in to nearby)")
+    ns.Focus_UpdateTargeting()
+    say("macro:", targetButton and tostring(targetButton:GetAttribute("macrotext")):gsub("\n", " / ") or "(no button yet)")
 end
 
 -- Preferences: the setting was switched.
@@ -806,21 +809,14 @@ pcall(events.RegisterEvent, events, "PLAYER_REGEN_DISABLED")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_ENABLED")
 pcall(events.RegisterEvent, events, "QUEST_ACCEPTED")
 pcall(events.RegisterEvent, events, "SUPER_TRACKING_CHANGED")
-pcall(events.RegisterEvent, events, "ADDON_ACTION_FORBIDDEN")
-pcall(events.RegisterEvent, events, "ADDON_ACTION_BLOCKED")
 events:SetScript("OnEvent", function(_, event, arg1, arg2)
     if event == "PLAYER_REGEN_DISABLED" then
         applyMouse(true)
     elseif event == "PLAYER_REGEN_ENABLED" then
         applyMouse(false)
+        ns.Focus_UpdateTargeting()
     elseif event == "SUPER_TRACKING_CHANGED" then
         ns.Focus_FollowBlizzard()
-    elseif event == "ADDON_ACTION_FORBIDDEN" or event == "ADDON_ACTION_BLOCKED" then
-        if arg1 == ADDON and ns.char and ns.char.autoTarget then
-            targetBlocked = true
-            ns.char.autoTarget = nil
-            ns.Print(L["The game doesn't let addons target here: auto-target is off."])
-        end
     elseif event == "QUEST_ACCEPTED" then
         -- (log index, quest id) in this client's payload; just the id in others. The main refresh (Completao.lua)
         -- comes a moment after the event, and finds it marked
@@ -841,5 +837,5 @@ events:SetScript("OnUpdate", function(_, elapsed)
     if sinceAuto < AUTO_EVERY then return end
     sinceAuto = 0
     if ns.char and ns.char.focusAuto then autoFocus() end
-    ns.Focus_AutoTarget()
+    ns.Focus_UpdateTargeting()
 end)

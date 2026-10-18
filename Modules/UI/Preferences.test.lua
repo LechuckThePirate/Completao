@@ -21,7 +21,7 @@ describe("Preferences", function()
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, follow Blizzard's tracker,
         -- focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide Blizzard's tracker,
-        -- auto-target
+        -- Tab targets quest creatures first
         assert.are.equal(13, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
@@ -59,11 +59,11 @@ describe("Preferences", function()
         assert.is_true(ns.char.hideBlizzardTracker)
         checks[12]:SetChecked(false); checks[12]:Click()
         assert.is_nil(ns.char.hideBlizzardTracker)
-        assert.is_false(checks[13]:GetChecked()) -- targeting stays the player's by default
+        assert.is_false(checks[13]:GetChecked()) -- Tab stays the player's own by default
         checks[13]:SetChecked(true); checks[13]:Click()
-        assert.is_true(ns.char.autoTarget)
+        assert.is_true(ns.char.tabTarget)
         checks[13]:SetChecked(false); checks[13]:Click()
-        assert.is_nil(ns.char.autoTarget)
+        assert.is_nil(ns.char.tabTarget)
         checks[2]:SetChecked(false); checks[2]:Click()
         assert.is_false(ns.Minimap_IsShown())
     end)

@@ -1210,9 +1210,10 @@ describe("FocusWindow", function()
         end)
     end)
 
-    describe("auto-target", function()
-        local events, target, tried
+    describe("targeting: the secure button and its macro", function()
+        local events, button
         local function tick() events._scripts.OnUpdate(events, 2) end
+        local function macro() return button:GetAttribute("macrotext") end
         before_each(function()
             -- Pest Control's creatures: Wolf (the wolves, the nearest) and Boar
             WowMock.objectives[999001] = {
@@ -1220,253 +1221,167 @@ describe("FocusWindow", function()
                 { text = "Wolf slain: 1/3", type = "monster", finished = false, numFulfilled = 1, numRequired = 3 },
             }
             events = WowMock.Find(function(f) return f._scripts.OnUpdate and f._events and f._events.PLAYER_ENTERING_WORLD end)
-            target, tried = nil, {}
-            _G.UnitExists = function() return target ~= nil end
-            _G.UnitIsDead = function() return target and target.dead or false end
-            _G.UnitCanAttack = function() return target and not target.friendly or false end
-            _G.ClearTarget = function() target = nil end
-            _G.TargetByName = function(name)
-                tried[#tried + 1] = name
-                target = { name = name }
-            end
             focus()
             FireEvent("PLAYER_ENTERING_WORLD") -- (the quest log counts as loaded after a moment)
-        end)
-        after_each(function()
-            for _, k in ipairs({ "UnitExists", "UnitIsDead", "UnitCanAttack", "ClearTarget", "TargetByName" }) do _G[k] = nil end
-        end)
-
-        it("does nothing unless the setting is on (it is off by default)", function()
             tick()
-            assert.are.equal(0, #tried)
+            button = CompletaoTargetButton
         end)
 
-        describe("with the setting on", function()
-            before_each(function() ns.char.autoTarget = true end)
+        it("is a secure button that runs a macro once, on release", function()
+            assert.is_not_nil(button)
+            assert.are.equal("macro", button:GetAttribute("type"))
+            assert.is_false(button:GetAttribute("useOnKeyDown"))
+        end)
 
-            it("targets the creature of the objective the waypoint is on", function()
-                tick()
-                assert.are.same({ "Wolf" }, tried)
-            end)
+        it("targets, by name, the creature of the objective the waypoint is on first, then the others", function()
+            local m = macro()
+            assert.matches("^/targetenemy %[exists%]%[combat%]\n/stopmacro %[exists%]%[combat%]\n", m)
+            local wolf, boar = m:find("/targetexact [noexists] Wolf", 1, true), m:find("/targetexact [noexists] Boar", 1, true)
+            assert.is_true(wolf ~= nil and boar ~= nil and wolf < boar)
+            assert.matches("/targetexact %[noexists%] Wolf\n/cleartarget %[dead%]%[help%]\n", m) -- not a corpse, not a friend
+            assert.matches("\n/targetenemy %[noexists%]$", m) -- nothing around: the normal key
+        end)
 
-            it("leaves a target you already have alone", function()
-                target = { name = "Somebody" }
-                tick()
-                assert.are.equal(0, #tried)
-            end)
+        it("is just the normal key when there is nothing to target", function()
+            WowMock.objectives[999001] = {
+                { text = "Wolf Pelts: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
+            }
+            tick()
+            assert.is_nil(macro():find("targetexact", 1, true))
+            assert.matches("/targetenemy %[noexists%]$", macro())
+        end)
 
-            it("does nothing in combat", function()
-                WowMock.inCombat = true
-                tick()
-                assert.are.equal(0, #tried)
-            end)
+        it("an item objective brings the creatures that drop it (from the data)", function()
+            ns.FindQuestDef(999001).steps[2] = { name = wolves.name, area = wolves.area, x = wolves.x, y = wolves.y,
+                mobs = { "Gray Wolf", "Dire Wolf" } }
+            WowMock.objectives[999001] = {
+                { text = "Boar Tusk: 5/5", type = "item", finished = true, numFulfilled = 5, numRequired = 5 },
+                { text = "Wolf Pelt: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
+            }
+            tick()
+            assert.matches("targetexact %[noexists%] Gray Wolf\n.-targetexact %[noexists%] Dire Wolf\n", macro())
+            assert.is_nil(macro():find("Boar", 1, true)) -- done
+        end)
 
-            it("does nothing once the quest is ready to turn in, or with no quest focused", function()
+        it("skips finished objectives", function()
+            WowMock.objectives[999001][1] = { text = "Boar slain: 5/5", type = "monster", finished = true, numFulfilled = 5, numRequired = 5 }
+            tick()
+            assert.is_nil(macro():find("Boar", 1, true))
+            assert.is_not_nil(macro():find("Wolf", 1, true))
+        end)
+
+        it("adds the creatures of the quests that are here too", function()
+            ns.DistanceBetween = function() return 10 end
+            local tracked = { [999004] = true }
+            WowMock.onQuest[999004] = true
+            WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999004, title = "Owl Watch", level = 20 } }
+            WowMock.objectives[999004] = { { text = "Owl slain: 0/10", type = "monster", finished = false, numRequired = 10 } }
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+            tick()
+            C_QuestLog.GetQuestWatchType = nil
+            assert.matches("Wolf\n.-Boar\n.-Owl\n", macro())
+        end)
+
+        describe("turn-in NPCs", function()
+            local near
+            before_each(function()
+                near = true
                 WowMock.readyForTurnIn[999001] = true
+                -- Farmer Bob (x 20) is close to the player or not
+                ns.DistanceTo = function(loc) return loc.x == 20 and (near and 12 or 300) or 200 end
+            end)
+
+            it("the one who takes the ready quest is targeted once the player is close, and a friend isn't let go", function()
                 tick()
-                assert.are.equal(0, #tried)
+                assert.matches("/targetexact %[noexists%] Farmer Bob\n/cleartarget %[dead%]\n", macro())
+                assert.is_nil(macro():find("Wolf", 1, true)) -- the quest is ready: no creatures
+            end)
+
+            it("not before he is close", function()
+                near = false
+                tick()
+                assert.is_nil(macro():find("Farmer Bob", 1, true))
+            end)
+
+            it("also for another tracked quest that is ready, before the creatures of the focused one", function()
                 WowMock.readyForTurnIn[999001] = nil
-                ns.Focus_Clear()
-                tick()
-                assert.are.equal(0, #tried)
-            end)
-
-            describe("turn-in NPCs", function()
-                local near
-                before_each(function()
-                    near = true
-                    WowMock.readyForTurnIn[999001] = true
-                    -- Farmer Bob (x 20) is close to the player or not
-                    ns.DistanceTo = function(loc) return loc.x == 20 and (near and 12 or 300) or 200 end
-                end)
-
-                it("targets who takes the ready quest once the player is close, even a friendly one", function()
-                    _G.UnitCanAttack = function() return false end
-                    tick()
-                    assert.are.same({ "Farmer Bob" }, tried)
-                    assert.are.equal("Farmer Bob", target.name)
-                end)
-
-                it("waits until the player is close to him", function()
-                    near = false
-                    tick()
-                    assert.are.equal(0, #tried)
-                end)
-
-                it("also does it for another tracked quest that is ready, with the focused one still in progress", function()
-                    WowMock.readyForTurnIn[999001] = nil
-                    local tracked = { [999003] = true }
-                    WowMock.onQuest[999003] = true
-                    WowMock.readyForTurnIn[999003] = true
-                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999003, title = "Fox Hunt", level = 20 } }
-                    C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
-                    ns.DistanceTo = function(loc) return loc.x == 31 and 20 or 200 end
-                    tick()
-                    C_QuestLog.GetQuestWatchType = nil
-                    assert.are.same({ "Hunter Ann" }, tried) -- before the creatures of the focused quest
-                end)
-
-                it("works with no quest focused", function()
-                    ns.Focus_Clear()
-                    local tracked = { [999001] = true }
-                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999001, title = "Pest Control", level = 20 } }
-                    C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
-                    tick()
-                    C_QuestLog.GetQuestWatchType = nil
-                    assert.are.same({ "Farmer Bob" }, tried)
-                end)
-
-                it("lets go of a dead one and doesn't hold a ready quest against attackability", function()
-                    _G.TargetByName = function(name)
-                        tried[#tried + 1] = name
-                        target = { name = name, dead = true }
-                    end
-                    tick()
-                    assert.are.same({ "Farmer Bob" }, tried)
-                    assert.is_nil(target)
-                end)
-            end)
-
-            it("skips finished objectives, and ones that aren't kills", function()
-                WowMock.objectives[999001] = {
-                    { text = "Boar slain: 5/5", type = "monster", finished = true, numFulfilled = 5, numRequired = 5 },
-                    { text = "Wolf Pelts: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
-                }
-                tick()
-                assert.are.equal(0, #tried)
-            end)
-
-            it("for an item objective, targets the creatures that drop it (from the data)", function()
-                -- (a copy of the step: the tables of the data are shared by every test)
-                ns.FindQuestDef(999001).steps[2] = { name = wolves.name, area = wolves.area, x = wolves.x, y = wolves.y,
-                    mobs = { "Gray Wolf", "Dire Wolf" } }
-                WowMock.objectives[999001] = {
-                    { text = "Boar Tusk: 5/5", type = "item", finished = true, numFulfilled = 5, numRequired = 5 },
-                    { text = "Wolf Pelt: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
-                }
-                tick()
-                assert.are.same({ "Gray Wolf" }, tried)
-                target = nil
-                _G.TargetByName = function(name) tried[#tried + 1] = name end -- (none of them is around)
-                tick()
-                assert.are.same({ "Gray Wolf", "Gray Wolf", "Dire Wolf" }, tried)
-            end)
-
-            it("lets go of a corpse or a friend and tries the next creature", function()
-                _G.TargetByName = function(name)
-                    tried[#tried + 1] = name
-                    target = { name = name, dead = name == "Wolf" }
-                end
-                tick()
-                assert.are.same({ "Wolf", "Boar" }, tried)
-                assert.are.equal("Boar", target.name)
-            end)
-
-            it("falls back on the creatures of the quests that are here too", function()
-                ns.DistanceBetween = function() return 10 end
-                local tracked = { [999004] = true }
-                WowMock.onQuest[999004] = true
-                WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999004, title = "Owl Watch", level = 20 } }
-                WowMock.objectives[999004] = { { text = "Owl slain: 0/10", type = "monster", finished = false, numRequired = 10 } }
+                local tracked = { [999003] = true }
+                WowMock.onQuest[999003] = true
+                WowMock.readyForTurnIn[999003] = true
+                WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999003, title = "Fox Hunt", level = 20 } }
                 C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
-                WowMock.objectives[999001] = { { text = "Wolf Pelts: 1/3", type = "item", finished = false, numRequired = 3 } }
+                ns.DistanceTo = function(loc) return loc.x == 31 and 20 or 200 end
                 tick()
                 C_QuestLog.GetQuestWatchType = nil
-                assert.are.same({ "Owl" }, tried)
+                assert.matches("Hunter Ann\n.-Wolf\n", macro())
             end)
 
-            it("/completao target says what it would do and tries once", function()
-                local said = {}
-                ns.Print = function(text) said[#said + 1] = text end
-                ns.char.autoTarget = nil -- (it reports and tries whatever the setting)
-                ns.Focus_TargetReport()
-                local all = table.concat(said, "\n")
-                assert.matches("focused quest: 999001", all)
-                assert.matches("candidates: Wolf, Boar", all)
-                assert.matches("target Wolf %-> by name, no error", all)
-                assert.are.same({ "Wolf" }, tried)
-            end)
-
-            describe("without TargetByName (as in the Forever client): through the nameplates", function()
-                local plates, realUnitName
-                before_each(function()
-                    plates = {} -- ["nameplate3"] = { name, dead, friendly, dist }
-                    realUnitName = _G.UnitName
-                    _G.TargetByName = nil
-                    _G.UnitExists = function(unit)
-                        if unit == "target" then return target ~= nil end
-                        return plates[unit] ~= nil
-                    end
-                    _G.UnitName = function(unit) return unit == "target" and target and target.name or plates[unit].name end
-                    _G.UnitIsDead = function(unit) return (unit == "target" and target or plates[unit]).dead or false end
-                    _G.UnitCanAttack = function(_, unit) return not (unit == "target" and target or plates[unit]).friendly end
-                    _G.UnitDistanceSquared = function(unit) return plates[unit].dist end
-                    _G.TargetUnit = function(unit)
-                        tried[#tried + 1] = unit
-                        target = { name = plates[unit].name }
-                    end
-                end)
-                after_each(function() _G.UnitName, _G.TargetUnit, _G.UnitDistanceSquared = realUnitName, nil, nil end)
-
-                it("targets the nearest living enemy with the creature's name", function()
-                    plates.nameplate2 = { name = "Wolf", dist = 900 }
-                    plates.nameplate5 = { name = "Wolf", dist = 100 }
-                    plates.nameplate7 = { name = "Wolf", dist = 10, dead = true }
-                    plates.nameplate9 = { name = "Boar", dist = 1 }
-                    tick()
-                    assert.are.same({ "nameplate5" }, tried)
-                end)
-
-                it("goes on to the next creature when none of the first one is showing", function()
-                    plates.nameplate4 = { name = "Boar", dist = 50 }
-                    tick()
-                    assert.are.same({ "nameplate4" }, tried)
-                end)
-
-                it("does nothing when no nameplate matches", function()
-                    plates.nameplate1 = { name = "Somebody", dist = 5 }
-                    tick()
-                    assert.are.equal(0, #tried)
-                end)
-
-                it("takes the turn-in NPC from a friendly nameplate", function()
-                    WowMock.readyForTurnIn[999001] = true
-                    ns.DistanceTo = function(loc) return loc.x == 20 and 12 or 200 end
-                    plates.nameplate1 = { name = "Farmer Bob", friendly = true, dist = 5 }
-                    tick()
-                    assert.are.same({ "nameplate1" }, tried)
-                end)
-
-                it("has no way to target without TargetUnit either, and does nothing", function()
-                    _G.TargetUnit = nil
-                    plates.nameplate1 = { name = "Wolf", dist = 5 }
-                    tick()
-                    assert.is_nil(target)
-                end)
-
-                it("the report says how it went", function()
-                    local said = {}
-                    ns.Print = function(text) said[#said + 1] = text end
-                    plates.nameplate1 = { name = "Wolf", dist = 5 }
-                    ns.Focus_TargetReport()
-                    local all = table.concat(said, "\n")
-                    assert.matches("TargetByName: nil", all)
-                    assert.matches("nameplates showing: 1", all)
-                    assert.matches("target Wolf %-> by plate, no error", all)
-                    assert.are.equal("Wolf", target.name)
-                end)
-            end)
-
-            it("when the game blocks it, switches itself off and says so", function()
-                FireEvent("ADDON_ACTION_FORBIDDEN", "SomeOtherAddon", "TargetByName()")
-                assert.is_true(ns.char.autoTarget) -- not ours
-                FireEvent("ADDON_ACTION_FORBIDDEN", "Completao", "TargetByName()")
-                assert.is_nil(ns.char.autoTarget)
-                assert.is_true(WowMock.chatted)
-                ns.char.autoTarget = true
+            it("works with no quest focused", function()
+                ns.Focus_Clear()
+                local tracked = { [999001] = true }
+                WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999001, title = "Pest Control", level = 20 } }
+                C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
                 tick()
-                assert.are.equal(0, #tried) -- and it doesn't try again
+                C_QuestLog.GetQuestWatchType = nil
+                assert.matches("Farmer Bob", macro())
             end)
         end)
+
+        it("the macro is never longer than the game takes, however many creatures", function()
+            local list = {}
+            for i = 1, 60 do list[i] = { name = "Some Quite Long Creature Name " .. i } end
+            local m = ns.Focus_TargetMacro(list)
+            assert.is_true(#m <= 1000)
+            assert.matches("/targetenemy %[noexists%]$", m)
+        end)
+
+        it("is left alone in combat, and brought up to date when it ends", function()
+            local before = macro()
+            WowMock.inCombat = true
+            WowMock.objectives[999001] = { { text = "Wolf Pelts: 1/3", type = "item", finished = false, numRequired = 3 } }
+            tick()
+            assert.are.equal(before, macro())
+            WowMock.inCombat = false
+            FireEvent("PLAYER_REGEN_ENABLED")
+            assert.is_nil(macro():find("targetexact", 1, true))
+        end)
+
+        describe("Tab", function()
+            it("is the player's own key unless the setting is on", function()
+                tick()
+                assert.is_nil(WowMock.overrideBindings.TAB)
+            end)
+
+            it("the setting binds Tab to the button, and switching it off gives Tab back", function()
+                ns.char.tabTarget = true
+                ns.Focus_UpdateTargeting()
+                assert.are.equal(button, WowMock.overrideBindings.TAB.owner)
+                assert.are.equal("CompletaoTargetButton", WowMock.overrideBindings.TAB.button)
+                ns.char.tabTarget = nil
+                ns.Focus_UpdateTargeting()
+                assert.is_nil(WowMock.overrideBindings.TAB)
+            end)
+
+            it("it is bound once, and not changed in combat", function()
+                ns.char.tabTarget = true
+                WowMock.inCombat = true
+                ns.Focus_UpdateTargeting()
+                assert.is_nil(WowMock.overrideBindings.TAB)
+                WowMock.inCombat = false
+                FireEvent("PLAYER_REGEN_ENABLED")
+                assert.is_not_nil(WowMock.overrideBindings.TAB)
+            end)
+        end)
+
+        it("/completao target says what it would do", function()
+            local said = {}
+            ns.Print = function(text) said[#said + 1] = text end
+            ns.Focus_TargetReport()
+            local all = table.concat(said, "\n")
+            assert.matches("focused quest: 999001", all)
+            assert.matches("candidates: Wolf, Boar", all)
+            assert.matches("macro: /targetenemy", all)
+        end)
     end)
+
 end)

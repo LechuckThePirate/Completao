@@ -207,10 +207,13 @@ local function create()
             ns.Tracker_Apply()
         end)
 
-    -- off unless ticked: targeting is the player's business by default
-    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 4 * STEP, L["Auto-target quest creatures and turn-in NPCs"],
-        function() return ns.char.autoTarget end,
-        function(value) ns.char.autoTarget = value or nil end)
+    -- off unless ticked: Tab is the player's own key by default
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 4 * STEP, L["Tab targets quest creatures and turn-in NPCs first"],
+        function() return ns.char.tabTarget end,
+        function(value)
+            ns.char.tabTarget = value or nil
+            ns.Focus_UpdateTargeting()
+        end)
 
     makeButton(prefs, RX, -346, L["Reset window position"], function() ns.UI_ResetWindow() end)
     makeButton(prefs, RX, -376, L["Reset zoom"], function() ns.UI_SetZoom(1) end)

@@ -33,7 +33,7 @@ read_globals = {
     "QuestMapFrame", "QuestMapFrame_OpenToQuestDetails", "QuestMapFrame_ShowQuestDetails","REWARDS", "REWARD_CHOICES", "REWARD_ITEMS",
     "REWARD_ITEMS_ONLY", "ScrollFrame_OnScrollRangeChanged", "ShowUIPanel", "ToggleQuestLog", "TomTom", "UIParent", "UiMapPoint", "UnitClass",
     "UnitFactionGroup", "UnitLevel", "UnitName", "UnitRace", "WorldMapFrame",
-    "GetTime", "TargetByName", "TargetUnit", "UnitDistanceSquared", "UnitExists", "UnitIsDead", "UnitCanAttack", "ClearTarget", "QUEST_MONSTERS_KILLED",
+    "GetTime", "SetOverrideBindingClick", "ClearOverrideBindings", "QUEST_MONSTERS_KILLED",
     "hooksecurefunc", "issecretvalue", "strtrim", "tinsert", "wipe",
     "QuestMapQuestOptions_AbandonQuest", "SetAbandonQuest", "StaticPopup_Show", "RemoveQuestWatch",
 }

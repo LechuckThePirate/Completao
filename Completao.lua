@@ -93,6 +93,7 @@ end
 -- (like Questie).
 BINDING_NAME_COMPLETAO_TOGGLE = ns.L["Open / close the window"]
 BINDING_NAME_COMPLETAO_PREFS = ns.L["Open / close the preferences"]
+_G["BINDING_NAME_CLICK CompletaoTargetButton:LeftButton"] = ns.L["Target quest creatures and turn-in NPCs"]
 function Completao_Toggle() ns.UI_Toggle() end
 function Completao_TogglePreferences() ns.Prefs_Toggle() end
 

@@ -153,6 +153,17 @@ describe("QuestState", function()
             assert.is_true(ns.QuestVisible({ classes = 128 }))         -- mage
             assert.is_true(ns.QuestVisible({ classes = 1 }, { category = "classes" }))
         end)
+        it("hides the quests of another class's entry, which carry no mask, unless looking at the classes section", function()
+            ns.RegisterEntry({ id = "c_WARRIOR", name = "Warrior", category = "classes", classFile = "WARRIOR" })
+            ns.RegisterEntry({ id = "c_MAGE", name = "Mage", category = "classes", classFile = "MAGE" })
+            ns.AddQuests("c_WARRIOR", { { id = 20, name = "Warrior quest" } })
+            ns.AddQuests("c_MAGE", { { id = 21, name = "Mage quest" } })
+            local warrior, mage = ns.FindQuestDef(20), ns.FindQuestDef(21)
+            assert.is_false(ns.QuestVisible(warrior))                                    -- (the player is a mage)
+            assert.is_true(ns.QuestVisible(mage))
+            assert.is_true(ns.QuestVisible(warrior, ns.entries.c_WARRIOR))               -- looked at in its own entry
+            assert.is_true(ns.QuestVisible(ns.FindQuestDef(10)))                         -- a zone quest is not affected
+        end)
         it("hides other-race quests of your faction unless looking at the races section", function()
             assert.is_false(ns.QuestVisible({ races = 4 }))            -- dwarf (the player is human)
             assert.is_true(ns.QuestVisible({ races = 4 }, { category = "races" }))

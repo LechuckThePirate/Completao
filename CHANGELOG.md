@@ -3,6 +3,7 @@
 ## Unreleased
 
 - New: each quest box in the chain view also shows, at its bottom left, the money the quest gives and small icons of the items it gives (up to five, as many as fit), without making the boxes any bigger.
+- Fixed: the quests of another class (a shaman quest for a hunter) no longer show up as available in the search.
 
 ## 1.4.0
 

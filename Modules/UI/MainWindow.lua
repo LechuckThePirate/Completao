@@ -90,6 +90,15 @@ local function showNodeTooltip(btn)
     GameTooltip:Show()
 end
 
+local function onNodeClick(self, button)
+    if button == "RightButton" then
+        ns.QuestMenu(self, self.quest)
+        return
+    end
+    ns.Detail_Toggle(self.quest)
+    ns.UI_Refresh()
+end
+
 local function getNodeButton(i)
     local b = nodeButtons[i]
     if b then return b end
@@ -110,9 +119,20 @@ local function getNodeButton(i)
     b.money:SetJustifyH("LEFT")
     b.icons = {}
     for k = 1, NODE_ICONS do
-        local icon = b:CreateTexture(nil, "ARTWORK")
+        -- buttons, for the item's tooltip on hover; a click goes on to the box
+        local icon = CreateFrame("Button", nil, b)
         icon:SetSize(NODE_ICON, NODE_ICON)
-        icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        icon.tex = icon:CreateTexture(nil, "ARTWORK")
+        icon.tex:SetAllPoints()
+        icon.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        icon:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        icon:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetItemByID(self.itemID)
+            GameTooltip:Show()
+        end)
+        icon:SetScript("OnLeave", GameTooltip_Hide)
+        icon:SetScript("OnClick", function(self, button) onNodeClick(self:GetParent(), button) end)
         icon:Hide()
         b.icons[k] = icon
     end
@@ -131,14 +151,7 @@ local function getNodeButton(i)
     b:SetScript("OnEnter", showNodeTooltip)
     b:SetScript("OnLeave", GameTooltip_Hide)
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-    b:SetScript("OnClick", function(self, button)
-        if button == "RightButton" then
-            ns.QuestMenu(self, self.quest)
-            return
-        end
-        ns.Detail_Toggle(self.quest)
-        ns.UI_Refresh()
-    end)
+    b:SetScript("OnClick", onNodeClick)
     nodeButtons[i] = b
     return b
 end
@@ -392,7 +405,8 @@ local function renderTree(d)
             if itemId and x + NODE_ICON <= limit then
                 icon:ClearAllPoints()
                 icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, 3)
-                icon:SetTexture(itemIcon(itemId))
+                icon.itemID = itemId
+                icon.tex:SetTexture(itemIcon(itemId))
                 icon:Show()
                 x = x + NODE_ICON + 2
             else

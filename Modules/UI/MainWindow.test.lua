@@ -373,6 +373,14 @@ describe("MainWindow", function()
             if icon:IsShown() then shown = shown + 1 end
         end
         assert.are.equal(3, shown)               -- the two to choose from and the fixed one
+        -- hovering an icon shows its item, and a click on it is a click on the box
+        local tipped
+        GameTooltip.SetItemByID = function(_, itemId) tipped = itemId end
+        local first = node.icons[1]
+        first._scripts.OnEnter(first)
+        assert.are.equal(2901, tipped)
+        first._scripts.OnClick(first, "LeftButton")
+        assert.are.equal(id, ns.Detail_Current().id)
         ns.REWARDS = {}
         ns.UI_Refresh()
         node = (ShownNodes())[id]

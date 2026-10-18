@@ -343,6 +343,21 @@ describe("MainWindow", function()
         assert.is_false(check())                 -- turned in
     end)
 
+    it("a node shows the experience its quest gives, and nothing when it gives none", function()
+        local id
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if ns.QuestVisible(q, ns.entries.vc) then id = q.id break end
+        end
+        local saved = ns.REWARDS
+        ns.REWARDS = { [id] = { xp = 1200 } }
+        ns.UI_Refresh()
+        assert.matches("^1.?200 XP$", (ShownNodes())[id].xp._text)
+        ns.REWARDS = {}
+        ns.UI_Refresh()
+        assert.are.equal("", (ShownNodes())[id].xp._text)
+        ns.REWARDS = saved
+    end)
+
     it("a dragon badge marks elite quests, in place of the dungeon door", function()
         local id
         for _, q in ipairs(ns.entries.vc.quests) do

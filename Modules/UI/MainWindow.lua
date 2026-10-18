@@ -1,6 +1,6 @@
 local ADDON, ns = ...
 
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 40, 60, 20, 20
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 52, 60, 20, 20
 
 local STATUS_COLORS = {
     done      = { 0.20, 0.80, 0.20 },
@@ -90,8 +90,12 @@ local function getNodeButton(i)
     b:SetBackdrop(BACKDROP)
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     b.text:SetPoint("TOPLEFT", 6, -4)
-    b.text:SetPoint("BOTTOMRIGHT", -6, 4)
+    b.text:SetPoint("BOTTOMRIGHT", -6, 16) -- (the XP line takes the bottom of the box)
     b.text:SetJustifyH("LEFT")
+    b.xp = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.xp:SetPoint("BOTTOMRIGHT", -6, 4)
+    b.xp:SetJustifyH("RIGHT")
+    b.xp:SetTextColor(0.5, 0.75, 1)
     -- top-left corner badge, over the border: a dragon head for elite quests, or a dungeon door for
     -- quests done inside an instance (elite takes priority; texture and color are set on each redraw)
     b.badge = b:CreateTexture(nil, "OVERLAY")
@@ -355,6 +359,8 @@ local function renderTree(d)
         b.readyToTurnIn = status == "active" and ns.IsReadyToTurnIn(n.quest.id)
         b.ready:SetShown(b.readyToTurnIn)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
+        local xp = ns.QuestXP(n.quest.id)
+        b.xp:SetText(xp > 0 and ("%s %s"):format(BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp, ns.L["XP"]) or "")
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
         -- translucent when they don't fit your level (too high ones more than low level ones);
         -- done ones and the ones in your log are always shown sharp

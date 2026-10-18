@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: each quest box in the chain view shows the experience the quest gives, in its bottom-right corner, so you no longer have to open the quest and scroll down to read it. The boxes are a little taller to make room for it.
+
 ## 1.3.0
 
 - New: the focus window now lists, under "Also here:", the other tracked quests with something to do near the step you are working on (the miniboss's quest and the 10 critters beside it), with their objectives. Clicking one sets the waypoint on it. When you are away from that spot it says "Also there:" instead, and switches by itself as you walk to or from it.

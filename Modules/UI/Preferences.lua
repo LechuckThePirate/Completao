@@ -3,18 +3,32 @@ local L = ns.L
 
 -- Preferences window (opened with the main window's gear or with /completao prefs).
 -- Basic settings, in ns.char: per character or shared by the account, depending on the first checkbox.
-local WIDTH, HEIGHT = 340, 764
-local LABEL_W = WIDTH - 48 - 16 -- a checkbox's text: from after the box (x = 48) to the window's right margin
+-- Two columns, related options together under a heading: general and the main window on the left; the quest
+-- log, the focus window and the buttons on the right.
+local COL_W = 290
+local LEFT_X, RIGHT_X = 20, 20 + COL_W + 20
+local WIDTH, HEIGHT = RIGHT_X + COL_W + 20, 500
+local LABEL_W = COL_W - 28 - 8 -- a checkbox's text: from after the box to the column's right edge
 local prefs
 
-local function makeSlider(parent, y, getValue, setValue, labelFor)
+local function makeHeading(parent, x, y, text)
+    local heading = parent:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    heading:SetPoint("TOPLEFT", x + 4, y)
+    heading:SetText(text)
+    local line = parent:CreateTexture(nil, "ARTWORK")
+    line:SetColorTexture(1, 0.82, 0, 0.35)
+    line:SetSize(COL_W - 4, 1)
+    line:SetPoint("TOPLEFT", x + 4, y - 18)
+end
+
+local function makeSlider(parent, x, y, getValue, setValue, labelFor)
     local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    label:SetPoint("TOPLEFT", 24, y)
+    label:SetPoint("TOPLEFT", x + 4, y)
 
     local slider = CreateFrame("Slider", nil, parent)
     slider:SetOrientation("HORIZONTAL")
-    slider:SetSize(280, 16)
-    slider:SetPoint("TOPLEFT", 28, y - 24)
+    slider:SetSize(COL_W - 24, 16)
+    slider:SetPoint("TOPLEFT", x + 8, y - 24)
     slider:SetMinMaxValues(0.1, 1.0)
     slider:SetValueStep(0.05)
     if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
@@ -42,10 +56,10 @@ local function makeSlider(parent, y, getValue, setValue, labelFor)
     return slider
 end
 
-local function makeCheck(parent, y, text, getValue, setValue)
+local function makeCheck(parent, x, y, text, getValue, setValue)
     local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
     check:SetSize(24, 24)
-    check:SetPoint("TOPLEFT", 20, y)
+    check:SetPoint("TOPLEFT", x, y)
     local label = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     label:SetPoint("LEFT", check, "RIGHT", 4, 0)
     -- a long text (or a longer translation) wraps to a second line instead of running out of the window
@@ -58,10 +72,10 @@ local function makeCheck(parent, y, text, getValue, setValue)
     return check
 end
 
-local function makeButton(parent, y, text, onClick)
+local function makeButton(parent, x, y, text, onClick)
     local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(292, 24)
-    button:SetPoint("TOPLEFT", 24, y)
+    button:SetSize(COL_W - 8, 24)
+    button:SetPoint("TOPLEFT", x + 4, y)
     button:SetText(text)
     button:SetScript("OnClick", onClick)
     return button
@@ -106,70 +120,79 @@ local function create()
             or L["Settings are shared by all your characters."])
     end
 
+    -- The widgets are made in this order (the tests count on it); where each one sits is its own x and y.
+    local LX, RX = LEFT_X, RIGHT_X
+    local STEP = 32 -- between checkboxes: room for a text that wraps to a second line
+
+    makeHeading(prefs, LX, -44, L["General"])
+    makeHeading(prefs, LX, -200, L["Main window"])
+    makeHeading(prefs, RX, -44, L["Quest Log"])
+    makeHeading(prefs, RX, -140, L["Focus"])
+
     -- As in Embolsao: decides where everything below is kept (Modules/Settings, ns.SetPerCharacter).
-    widgets[#widgets + 1] = makeCheck(prefs, -48, L["Character specific preferences"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -70, L["Character specific preferences"],
         function() return ns.IsPerCharacter() end,
         function(value)
             ns.SetPerCharacter(value)
             refreshAll()
         end)
 
-    widgets[#widgets + 1] = makeSlider(prefs, -84,
+    widgets[#widgets + 1] = makeSlider(prefs, LX, -226,
         function() return ns.char.windowAlpha or 1 end,
         function(value) ns.char.windowAlpha = value end,
         function(value) return L["Opacity: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
 
-    widgets[#widgets + 1] = makeSlider(prefs, -136,
+    widgets[#widgets + 1] = makeSlider(prefs, LX, -274,
         function() return ns.char.fadeAlpha or 0.5 end,
         function(value) ns.char.fadeAlpha = value end,
         function(value) return L["Opacity while moving: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
 
-    widgets[#widgets + 1] = makeSlider(prefs, -188,
+    widgets[#widgets + 1] = makeSlider(prefs, LX, -322,
         function() return ns.char.fadeAlphaCombat or 1 end,
         function(value) ns.char.fadeAlphaCombat = value end,
         function(value) return L["Opacity in combat: %d%%"]:format(math.floor(value * 100 + 0.5)) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -240, L["Show the minimap button"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -70 - STEP, L["Show the minimap button"],
         function() return ns.Minimap_IsShown() end,
         function(value) ns.Minimap_SetShown(value) end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -268, L["Show chat messages at startup"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -70 - 2 * STEP, L["Show chat messages at startup"],
         function() return not ns.char.quiet end,
         function(value) ns.char.quiet = (not value) or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -296, L["Sync with Blizzard Quest Log"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -70, L["Sync with Blizzard Quest Log"],
         function() return ns.char.openWithQuestLog end,
         function(value) ns.char.openWithQuestLog = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -324, L["Always open on the Quest Log"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -70 - STEP, L["Always open on the Quest Log"],
         function() return ns.char.openOnQuestLog end,
         function(value) ns.char.openOnQuestLog = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -352, L["Click-through in combat"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -372, L["Click-through in combat"],
         function() return ns.char.clickThroughCombat end,
         function(value) ns.char.clickThroughCombat = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -380, L["Click-through while moving"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -372 - STEP, L["Click-through while moving"],
         function() return ns.char.clickThroughMoving end,
         function(value) ns.char.clickThroughMoving = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -408, L["Autofocus tracked quests"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166, L["Autofocus tracked quests"],
         function() return ns.char.focusAuto end,
         function(value) ns.Focus_SetAuto(value) end)
 
     -- on unless switched off: saved as false, since nil means "never chosen"
-    widgets[#widgets + 1] = makeCheck(prefs, -436, L["Follow Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - STEP, L["Follow Blizzard's quest tracker"],
         function() return ns.char.followBlizzardFocus ~= false end,
         function(value)
             ns.char.followBlizzardFocus = value
             if value then ns.Focus_FollowBlizzard() end
         end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -464, L["Focusing here also sets Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 2 * STEP, L["Focusing here also sets Blizzard's quest tracker"],
         function() return ns.char.setBlizzardFocus ~= false end,
         function(value) ns.char.setBlizzardFocus = value end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, -492, L["Hide empty or completed categories"],
+    widgets[#widgets + 1] = makeCheck(prefs, LX, -70 - 3 * STEP, L["Hide empty or completed categories"],
         function() return ns.char.hideDone end,
         function(value)
             ns.char.hideDone = value or nil
@@ -177,7 +200,7 @@ local function create()
         end)
 
     -- off unless ticked: the game's own tracker stays as it is by default
-    widgets[#widgets + 1] = makeCheck(prefs, -520, L["Hide Blizzard's objective tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 3 * STEP, L["Hide Blizzard's objective tracker"],
         function() return ns.char.hideBlizzardTracker end,
         function(value)
             ns.char.hideBlizzardTracker = value or nil
@@ -185,17 +208,17 @@ local function create()
         end)
 
     -- off unless ticked: targeting is the player's business by default
-    widgets[#widgets + 1] = makeCheck(prefs, -548, L["Auto-target quest creatures and turn-in NPCs"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 4 * STEP, L["Auto-target quest creatures and turn-in NPCs"],
         function() return ns.char.autoTarget end,
         function(value) ns.char.autoTarget = value or nil end)
 
-    makeButton(prefs, -596, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, -626, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, -656, L["Reset filters"], function()
+    makeButton(prefs, RX, -346, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, RX, -376, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, RX, -406, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, -690, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, RX, -440, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

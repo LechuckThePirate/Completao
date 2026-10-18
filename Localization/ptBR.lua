@@ -137,6 +137,8 @@ ns.AddLocale({ "ptBR" }, {
     ["No quest focused"] = "Nenhuma missão em foco",
     ["Click to choose another."] = "Clique para escolher outra.",
     ["Also here:"] = "Também aqui:",
+    ["General"] = "Geral",
+    ["Main window"] = "Janela principal",
     ["Auto-target quest creatures and turn-in NPCs"] = "Selecionar automaticamente criaturas de quest e NPCs de entrega",
     ["The game doesn't let addons target here: auto-target is off."] = "O jogo não deixa addons selecionarem alvos: seleção automática desativada.",
     ["Stop focus"] = "Parar de focar",

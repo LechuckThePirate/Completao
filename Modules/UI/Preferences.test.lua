@@ -79,6 +79,32 @@ describe("Preferences", function()
         end
     end)
 
+    it("is laid out in two columns: everything inside the window, nothing on top of anything else in a column", function()
+        local W, H = prefs._w, prefs._h
+        assert.is_true(W > H) -- wider than tall
+        local boxes = {}
+        for _, f in ipairs(WowMock.frames) do
+            local pt = f._parent == prefs and f._points and f._points[1]
+            if pt and pt[1] == "TOPLEFT" and (f._kind == "CheckButton" or f._kind == "Slider" or (f._kind == "Button" and f._w == 282)) then
+                boxes[#boxes + 1] = { x = pt[2], top = -pt[3], w = f._w, h = f._h or 24 }
+            end
+        end
+        assert.is_true(#boxes >= 20)
+        for _, b in ipairs(boxes) do
+            assert.is_true(b.x + b.w <= W, "right edge")
+            assert.is_true(b.top + b.h <= H - 28, "bottom edge") -- (the note is at the bottom)
+        end
+        for i, b in ipairs(boxes) do
+            for j = i + 1, #boxes do
+                local c = boxes[j]
+                if b.x == c.x or (b.x < c.x + c.w and c.x < b.x + b.w) then
+                    local apart = b.top + b.h <= c.top or c.top + c.h <= b.top
+                    assert.is_true(apart, "overlap at " .. b.x .. "," .. b.top .. " and " .. c.x .. "," .. c.top)
+                end
+            end
+        end
+    end)
+
     it("the opacity while moving comes from the slider", function()
         local sliders = WowMock.FindAll(function(f) return f._kind == "Slider" end)
         sliders[2]._scripts.OnValueChanged(sliders[2], 0.3)

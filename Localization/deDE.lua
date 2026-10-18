@@ -137,6 +137,8 @@ ns.AddLocale({ "deDE" }, {
     ["No quest focused"] = "Keine Quest fokussiert",
     ["Click to choose another."] = "Klicken, um eine andere zu wählen.",
     ["Also here:"] = "Auch hier:",
+    ["General"] = "Allgemein",
+    ["Main window"] = "Hauptfenster",
     ["Auto-target quest creatures and turn-in NPCs"] = "Quest-Kreaturen und Abgabe-NPCs automatisch anvisieren",
     ["The game doesn't let addons target here: auto-target is off."] = "Das Spiel erlaubt Addons hier kein Anvisieren: Auto-Anvisieren ist aus.",
     ["Stop focus"] = "Fokus beenden",

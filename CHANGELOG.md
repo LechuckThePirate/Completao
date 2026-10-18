@@ -4,6 +4,7 @@
 
 - New: the focus window now lists, under "Also here:", the other tracked quests with something to do near the step you are working on (the miniboss's quest and the 10 critters beside it), with their objectives. Clicking one sets the waypoint on it.
 - New: "Auto-target quest creatures and turn-in NPCs" in the preferences (off by default). With no target, and out of combat, it targets by name the NPC who takes a quest that is ready to turn in once you are close to him, and otherwise the creature of an unfinished kill objective of the focused quest (and of the quests listed under "Also here:"). If the game blocks addons from targeting, the option switches itself off.
+- The preferences window is wider and shorter: two columns, with the related options grouped under headings (general, main window, quest log, focus).
 
 ## 1.2.4
 

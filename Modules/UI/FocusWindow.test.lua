@@ -1336,6 +1336,22 @@ describe("FocusWindow", function()
                 assert.are.equal(0, #tried)
             end)
 
+            it("for an item objective, targets the creatures that drop it (from the data)", function()
+                -- (a copy of the step: the tables of the data are shared by every test)
+                ns.FindQuestDef(999001).steps[2] = { name = wolves.name, area = wolves.area, x = wolves.x, y = wolves.y,
+                    mobs = { "Gray Wolf", "Dire Wolf" } }
+                WowMock.objectives[999001] = {
+                    { text = "Boar Tusk: 5/5", type = "item", finished = true, numFulfilled = 5, numRequired = 5 },
+                    { text = "Wolf Pelt: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
+                }
+                tick()
+                assert.are.same({ "Gray Wolf" }, tried)
+                target = nil
+                _G.TargetByName = function(name) tried[#tried + 1] = name end -- (none of them is around)
+                tick()
+                assert.are.same({ "Gray Wolf", "Gray Wolf", "Dire Wolf" }, tried)
+            end)
+
             it("lets go of a corpse or a friend and tries the next creature", function()
                 _G.TargetByName = function(name)
                     tried[#tried + 1] = name

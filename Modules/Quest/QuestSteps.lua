@@ -25,7 +25,7 @@ end
 -- The creature a kill objective asks for ("Boar slain: 3/5" -> "Boar"): the game's own wording for the
 -- client's language (QUEST_MONSTERS_KILLED), else the English one. nil for any other kind of objective.
 local function creatureOf(o)
-    if o.type ~= "monster" or not o.text then return nil end
+    if (o.type and o.type ~= "monster") or not o.text then return nil end
     local pattern = QUEST_MONSTERS_KILLED and (QUEST_MONSTERS_KILLED:gsub("%p", "%%%0"):gsub("%%%%s", "(.+)"):gsub("%%%%d", "%%d+"))
         or "(.+) slain: %d+%s*/%s*%d+"
     return o.text:match("^" .. pattern .. "%s*$") or o.text:match("^(.-)%s+slain")
@@ -37,7 +37,8 @@ end
 -- the game's objectives, else by order); the game's objectives with no step in the data are added without
 -- a place. Out of the log the client may still know a quest's objectives (once it has loaded it): their text,
 -- in the client's language, replaces the data's English one, with no progress. Returns the list and the index of the step that comes next. Step: { kind =
--- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", creature = "Boar" (kill objectives in the log), current }.
+-- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", creature = "Boar" (kill objectives in the log),
+-- mobs = { "Boar", ... } (the creatures that drop the item of an item objective, from the data), current }.
 function ns.QuestSteps(q)
     local L = ns.L
     local list = {}
@@ -71,7 +72,7 @@ function ns.QuestSteps(q)
         if o.numRequired and o.numRequired > 0 then return ("%d/%d"):format(o.numFulfilled or 0, o.numRequired) end
     end
     for i, s in ipairs(q.steps or {}) do
-        local step = { kind = "obj", label = s.name, loc = s.x and s or nil, area = s.area }
+        local step = { kind = "obj", label = s.name, loc = s.x and s or nil, area = s.area, mobs = s.mobs }
         local match, byName
         for j, o in ipairs(objectives) do
             if not used[j] and o.text and o.text:lower():find(s.name:lower(), 1, true) then match, byName = j, true break end

@@ -582,8 +582,9 @@ end
 -- Auto-target (Preferences, off by default): with no target, and out of combat, targets by name
 --  * first, the NPC who takes a quest that is ready to turn in (the focused one or any tracked one) once the
 --    player is within TURNIN_RADIUS yards of him, the nearest first;
---  * then, with the focused quest still in progress, the creature of an unfinished kill objective of it: the one
---    the waypoint is on first, then its other objectives, then the objectives of the "Also here" quests.
+--  * then, with the focused quest still in progress, the creatures of its unfinished objectives (those to kill, and
+--    those that drop the item asked for): the objective the waypoint is on first, then its other objectives, then
+--    the objectives of the "Also here" quests.
 -- Looked at on autofocus's clock. The game protects targeting: if it blocks this addon from it, the setting is
 -- switched off for good and the player is told.
 local TURNIN_RADIUS = 40
@@ -608,15 +609,20 @@ local function turnInTargets(focusId)
     return found
 end
 
--- The creatures of the focused quest's unfinished kill objectives (and of the quests that are here too).
+-- The creatures of the focused quest's unfinished objectives (and of the quests that are here too): the ones to
+-- kill, and the ones that drop what it asks for.
 local function creatureTargets(id)
     local out, seen = {}, {}
     if not (id and C_QuestLog.IsOnQuest(id)) or ns.IsReadyToTurnIn(id) then return out end
     local steps = ns.QuestSteps(questDef(id))
+    -- a kill objective names its creature; an item objective, the creatures that drop it (from the data)
     local function add(step)
-        if step.kind == "obj" and not step.done and step.creature and not seen[step.creature] then
-            seen[step.creature] = true
-            out[#out + 1] = { name = step.creature }
+        if step.kind ~= "obj" or step.done then return end
+        for _, name in ipairs(step.creature and { step.creature } or step.mobs or {}) do
+            if not seen[name] then
+                seen[name] = true
+                out[#out + 1] = { name = name }
+            end
         end
     end
     local at = ns.Focus_PickStep(steps, false)

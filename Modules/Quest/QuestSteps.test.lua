@@ -226,4 +226,11 @@ describe("QuestSteps", function()
         WowMock.objectives[901] = { { text = "Defias Thug slain: 0/4", type = "monster", numRequired = 4 } }
         for _, s in ipairs(ns.QuestSteps(q)) do assert.is_nil(s.creature) end
     end)
+
+    it("carries the creatures that drop an item objective, from the data", function()
+        q.steps[1].mobs = { "Gray Wolf", "Dire Wolf" }
+        local list = ns.QuestSteps(q)
+        assert.are.same({ "Gray Wolf", "Dire Wolf" }, list[3].mobs)
+        assert.is_nil(list[4].mobs)
+    end)
 end)

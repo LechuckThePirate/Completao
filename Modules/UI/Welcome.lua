@@ -12,7 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: the focus window lists, under \"Also here:\" (or \"Also there:\" when you are away), the other tracked quests with something to do near the step you are working on.",
+    "- New: the focus window lists, under \"Also here:\" (\"Also there:\" when you are away), the other tracked quests " ..
+        "with something to do near the step you are working on.",
     "- New: a key to target the quest's creatures and the NPC who takes a ready quest, and an option to make Tab do it first.",
     "- The preferences window is wider and shorter, in two columns with headings.",
     "- Data: new quests and the rewards of more quests, as the public databases have them now.",

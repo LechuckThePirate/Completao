@@ -1383,8 +1383,78 @@ describe("FocusWindow", function()
                 local all = table.concat(said, "\n")
                 assert.matches("focused quest: 999001", all)
                 assert.matches("candidates: Wolf, Boar", all)
-                assert.matches("TargetByName%(Wolf%) %-> no error", all)
+                assert.matches("target Wolf %-> by name, no error", all)
                 assert.are.same({ "Wolf" }, tried)
+            end)
+
+            describe("without TargetByName (as in the Forever client): through the nameplates", function()
+                local plates, realUnitName
+                before_each(function()
+                    plates = {} -- ["nameplate3"] = { name, dead, friendly, dist }
+                    realUnitName = _G.UnitName
+                    _G.TargetByName = nil
+                    _G.UnitExists = function(unit)
+                        if unit == "target" then return target ~= nil end
+                        return plates[unit] ~= nil
+                    end
+                    _G.UnitName = function(unit) return unit == "target" and target and target.name or plates[unit].name end
+                    _G.UnitIsDead = function(unit) return (unit == "target" and target or plates[unit]).dead or false end
+                    _G.UnitCanAttack = function(_, unit) return not (unit == "target" and target or plates[unit]).friendly end
+                    _G.UnitDistanceSquared = function(unit) return plates[unit].dist end
+                    _G.TargetUnit = function(unit)
+                        tried[#tried + 1] = unit
+                        target = { name = plates[unit].name }
+                    end
+                end)
+                after_each(function() _G.UnitName, _G.TargetUnit, _G.UnitDistanceSquared = realUnitName, nil, nil end)
+
+                it("targets the nearest living enemy with the creature's name", function()
+                    plates.nameplate2 = { name = "Wolf", dist = 900 }
+                    plates.nameplate5 = { name = "Wolf", dist = 100 }
+                    plates.nameplate7 = { name = "Wolf", dist = 10, dead = true }
+                    plates.nameplate9 = { name = "Boar", dist = 1 }
+                    tick()
+                    assert.are.same({ "nameplate5" }, tried)
+                end)
+
+                it("goes on to the next creature when none of the first one is showing", function()
+                    plates.nameplate4 = { name = "Boar", dist = 50 }
+                    tick()
+                    assert.are.same({ "nameplate4" }, tried)
+                end)
+
+                it("does nothing when no nameplate matches", function()
+                    plates.nameplate1 = { name = "Somebody", dist = 5 }
+                    tick()
+                    assert.are.equal(0, #tried)
+                end)
+
+                it("takes the turn-in NPC from a friendly nameplate", function()
+                    WowMock.readyForTurnIn[999001] = true
+                    ns.DistanceTo = function(loc) return loc.x == 20 and 12 or 200 end
+                    plates.nameplate1 = { name = "Farmer Bob", friendly = true, dist = 5 }
+                    tick()
+                    assert.are.same({ "nameplate1" }, tried)
+                end)
+
+                it("has no way to target without TargetUnit either, and does nothing", function()
+                    _G.TargetUnit = nil
+                    plates.nameplate1 = { name = "Wolf", dist = 5 }
+                    tick()
+                    assert.is_nil(target)
+                end)
+
+                it("the report says how it went", function()
+                    local said = {}
+                    ns.Print = function(text) said[#said + 1] = text end
+                    plates.nameplate1 = { name = "Wolf", dist = 5 }
+                    ns.Focus_TargetReport()
+                    local all = table.concat(said, "\n")
+                    assert.matches("TargetByName: nil", all)
+                    assert.matches("nameplates showing: 1", all)
+                    assert.matches("target Wolf %-> by plate, no error", all)
+                    assert.are.equal("Wolf", target.name)
+                end)
             end)
 
             it("when the game blocks it, switches itself off and says so", function()

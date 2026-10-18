@@ -641,11 +641,36 @@ local function targetList(id)
     return list
 end
 
+local NAMEPLATES = 40
+
+-- Targets the creature or NPC named `c.name` if the game gives a way: by name when it has TargetByName; else
+-- through its nameplate (the "nameplateN" unit tokens), the nearest one that is alive (and an enemy, unless
+-- `c.friendly`). Without nameplates showing it, nothing happens. Returns how it went: "name", "plate", or nil
+-- when there is no way to target at all.
+local function acquire(c)
+    if TargetByName then
+        TargetByName(c.name)
+        return "name"
+    end
+    if not (TargetUnit and UnitName) then return nil end
+    local best, bestDist
+    for i = 1, NAMEPLATES do
+        local unit = "nameplate" .. i
+        if UnitExists(unit) and UnitName(unit) == c.name and not (UnitIsDead and UnitIsDead(unit))
+            and (c.friendly or not UnitCanAttack or UnitCanAttack("player", unit)) then
+            local d = UnitDistanceSquared and UnitDistanceSquared(unit) or 0
+            if not best or d < bestDist then best, bestDist = unit, d end
+        end
+    end
+    if best then TargetUnit(best) end
+    return "plate"
+end
+
 function ns.Focus_AutoTarget()
     if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
-    if not (TargetByName and UnitExists) or UnitExists("target") then return false end
+    if not UnitExists or UnitExists("target") then return false end
     for _, c in ipairs(targetList(ns.Focus_Quest())) do
-        TargetByName(c.name)
+        if not acquire(c) then return false end
         if UnitExists("target") then
             -- a corpse, or (for a creature) someone who isn't an enemy, is no use: let go of it and try the next
             if (UnitIsDead and UnitIsDead("target"))
@@ -665,17 +690,18 @@ function ns.Focus_TargetReport()
     local id = ns.Focus_Quest()
     say("setting:", tostring(ns.char.autoTarget), "| blocked:", tostring(targetBlocked), "| log loaded:", tostring(ready),
         "| combat:", tostring(inCombat()), "| focused quest:", tostring(id))
-    say("TargetByName:", type(TargetByName), "| UnitExists:", type(UnitExists), "| has a target:",
-        tostring(UnitExists and UnitExists("target")))
+    local plates = 0
+    for i = 1, NAMEPLATES do if UnitExists and UnitExists("nameplate" .. i) then plates = plates + 1 end end
+    say("TargetByName:", type(TargetByName), "| TargetUnit:", type(TargetUnit), "| UnitExists:", type(UnitExists),
+        "| nameplates showing:", plates, "| has a target:", tostring(UnitExists and UnitExists("target")))
     local list = targetList(id)
     if #list == 0 then say("nothing to target: no creature known for the unfinished objectives, nobody to turn in to nearby") return end
     local names = {}
     for i, c in ipairs(list) do names[i] = c.name end
     say("candidates:", table.concat(names, ", "))
-    if not TargetByName then return end
-    local ok, err = pcall(TargetByName, list[1].name)
-    say("TargetByName(" .. list[1].name .. ") ->", ok and "no error" or tostring(err), "| target now:",
-        tostring(UnitExists and UnitExists("target") and UnitName and UnitName("target")))
+    local ok, how = pcall(acquire, list[1])
+    say("target", list[1].name, "->", ok and (how and ("by " .. how .. ", no error") or "no way to target") or tostring(how),
+        "| target now:", tostring(UnitExists and UnitExists("target") and UnitName and UnitName("target")))
 end
 
 -- Preferences: the setting was switched.

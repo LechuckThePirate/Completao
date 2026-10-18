@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.0
 
 - New: the focus window now lists, under "Also here:", the other tracked quests with something to do near the step you are working on (the miniboss's quest and the 10 critters beside it), with their objectives. Clicking one sets the waypoint on it. When you are away from that spot it says "Also there:" instead, and switches by itself as you walk to or from it.
 - New: a key to target the quest's creatures (Key Bindings, "Target quest creatures and turn-in NPCs"), and the preferences option "Tab targets quest creatures and turn-in NPCs first" (off by default) to use Tab for it. With no target and out of combat it targets by name the NPC who takes a quest that is ready to turn in once you are close to him, and otherwise the creatures of the unfinished objectives of the focused quest (the ones to kill, and the ones that drop the item asked for; also for the quests listed under "Also here:"). With a target, in combat, or with nothing to target around, it is the normal "target the nearest enemy". The game does not let addons change the target by themselves, so it takes a key press.

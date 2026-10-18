@@ -185,7 +185,7 @@ local function create()
         end)
 
     -- off unless ticked: targeting is the player's business by default
-    widgets[#widgets + 1] = makeCheck(prefs, -548, L["Auto-target the creatures of the focused quest"],
+    widgets[#widgets + 1] = makeCheck(prefs, -548, L["Auto-target quest creatures and turn-in NPCs"],
         function() return ns.char.autoTarget end,
         function(value) ns.char.autoTarget = value or nil end)
 

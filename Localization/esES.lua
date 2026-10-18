@@ -137,7 +137,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["No quest focused"] = "Ninguna quest enfocada",
     ["Click to choose another."] = "Clic para elegir otra.",
     ["Also here:"] = "También aquí:",
-    ["Auto-target the creatures of the focused quest"] = "Fijar automáticamente las criaturas de la quest enfocada",
+    ["Auto-target quest creatures and turn-in NPCs"] = "Fijar automáticamente criaturas de quest y PNJ de entrega",
     ["The game doesn't let addons target here: auto-target is off."] = "El juego no permite a los addons fijar objetivo aquí: el autotarget queda desactivado.",
     ["Stop focus"] = "Dejar de enfocar",
     ["Untrack"] = "Dejar de seguir",

@@ -1271,6 +1271,62 @@ describe("FocusWindow", function()
                 assert.are.equal(0, #tried)
             end)
 
+            describe("turn-in NPCs", function()
+                local near
+                before_each(function()
+                    near = true
+                    WowMock.readyForTurnIn[999001] = true
+                    -- Farmer Bob (x 20) is close to the player or not
+                    ns.DistanceTo = function(loc) return loc.x == 20 and (near and 12 or 300) or 200 end
+                end)
+
+                it("targets who takes the ready quest once the player is close, even a friendly one", function()
+                    _G.UnitCanAttack = function() return false end
+                    tick()
+                    assert.are.same({ "Farmer Bob" }, tried)
+                    assert.are.equal("Farmer Bob", target.name)
+                end)
+
+                it("waits until the player is close to him", function()
+                    near = false
+                    tick()
+                    assert.are.equal(0, #tried)
+                end)
+
+                it("also does it for another tracked quest that is ready, with the focused one still in progress", function()
+                    WowMock.readyForTurnIn[999001] = nil
+                    local tracked = { [999003] = true }
+                    WowMock.onQuest[999003] = true
+                    WowMock.readyForTurnIn[999003] = true
+                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999003, title = "Fox Hunt", level = 20 } }
+                    C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+                    ns.DistanceTo = function(loc) return loc.x == 31 and 20 or 200 end
+                    tick()
+                    C_QuestLog.GetQuestWatchType = nil
+                    assert.are.same({ "Hunter Ann" }, tried) -- before the creatures of the focused quest
+                end)
+
+                it("works with no quest focused", function()
+                    ns.Focus_Clear()
+                    local tracked = { [999001] = true }
+                    WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999001, title = "Pest Control", level = 20 } }
+                    C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+                    tick()
+                    C_QuestLog.GetQuestWatchType = nil
+                    assert.are.same({ "Farmer Bob" }, tried)
+                end)
+
+                it("lets go of a dead one and doesn't hold a ready quest against attackability", function()
+                    _G.TargetByName = function(name)
+                        tried[#tried + 1] = name
+                        target = { name = name, dead = true }
+                    end
+                    tick()
+                    assert.are.same({ "Farmer Bob" }, tried)
+                    assert.is_nil(target)
+                end)
+            end)
+
             it("skips finished objectives, and ones that aren't kills", function()
                 WowMock.objectives[999001] = {
                     { text = "Boar slain: 5/5", type = "monster", finished = true, numFulfilled = 5, numRequired = 5 },

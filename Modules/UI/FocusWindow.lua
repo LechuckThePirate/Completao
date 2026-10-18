@@ -579,23 +579,44 @@ local function autoFocus()
     return ok
 end
 
--- Auto-target (Preferences, off by default): with no target, the creature of an unfinished kill objective of
--- the focused quest is targeted by name, the one the waypoint is on first, then its other objectives, then the
--- objectives of the "Also here" quests. Out of combat only, looked at on autofocus's clock. The game protects
--- targeting: if it blocks this addon from it, the setting is switched off for good and the player is told.
+-- Auto-target (Preferences, off by default): with no target, and out of combat, targets by name
+--  * first, the NPC who takes a quest that is ready to turn in (the focused one or any tracked one) once the
+--    player is within TURNIN_RADIUS yards of him, the nearest first;
+--  * then, with the focused quest still in progress, the creature of an unfinished kill objective of it: the one
+--    the waypoint is on first, then its other objectives, then the objectives of the "Also here" quests.
+-- Looked at on autofocus's clock. The game protects targeting: if it blocks this addon from it, the setting is
+-- switched off for good and the player is told.
+local TURNIN_RADIUS = 40
 local targetBlocked = false
-function ns.Focus_AutoTarget()
-    if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
-    if not (TargetByName and UnitExists) or UnitExists("target") then return false end
-    local id = ns.Focus_Quest()
-    if not (id and C_QuestLog.IsOnQuest(id)) or ns.IsReadyToTurnIn(id) then return false end
-    local q = questDef(id)
-    local steps = ns.QuestSteps(q)
-    local names, seen = {}, {}
+
+-- NPCs who take a ready quest and are close enough to be targeted, nearest first: { name, friendly = true }.
+local function turnInTargets(focusId)
+    local ids, seen, found = {}, {}, {}
+    if focusId then ids[1], seen[focusId] = focusId, true end
+    for _, id in ipairs(trackedIds()) do
+        if not seen[id] then ids[#ids + 1], seen[id] = id, true end
+    end
+    for _, id in ipairs(ids) do
+        if C_QuestLog.IsOnQuest(id) and ns.IsReadyToTurnIn(id) then
+            local steps = ns.QuestSteps(questDef(id))
+            local loc = steps[#steps].loc
+            local d = loc and loc.npc and ns.DistanceTo(loc)
+            if d and d <= TURNIN_RADIUS then found[#found + 1] = { name = loc.npc, dist = d, friendly = true } end
+        end
+    end
+    table.sort(found, function(x, y) return x.dist < y.dist end)
+    return found
+end
+
+-- The creatures of the focused quest's unfinished kill objectives (and of the quests that are here too).
+local function creatureTargets(id)
+    local out, seen = {}, {}
+    if not (id and C_QuestLog.IsOnQuest(id)) or ns.IsReadyToTurnIn(id) then return out end
+    local steps = ns.QuestSteps(questDef(id))
     local function add(step)
         if step.kind == "obj" and not step.done and step.creature and not seen[step.creature] then
             seen[step.creature] = true
-            names[#names + 1] = step.creature
+            out[#out + 1] = { name = step.creature }
         end
     end
     local at = ns.Focus_PickStep(steps, false)
@@ -604,11 +625,21 @@ function ns.Focus_AutoTarget()
     for _, e in ipairs(relatedQuests(id, at and steps[at].loc)) do
         for _, i in ipairs(e.indexes) do add(e.steps[i]) end
     end
-    for _, name in ipairs(names) do
-        TargetByName(name)
+    return out
+end
+
+function ns.Focus_AutoTarget()
+    if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
+    if not (TargetByName and UnitExists) or UnitExists("target") then return false end
+    local id = ns.Focus_Quest()
+    local list = turnInTargets(id)
+    for _, c in ipairs(creatureTargets(id)) do list[#list + 1] = c end
+    for _, c in ipairs(list) do
+        TargetByName(c.name)
         if UnitExists("target") then
-            -- a corpse, or someone who isn't an enemy, is no use: let go of it and try the next one
-            if (UnitIsDead and UnitIsDead("target")) or (UnitCanAttack and not UnitCanAttack("player", "target")) then
+            -- a corpse, or (for a creature) someone who isn't an enemy, is no use: let go of it and try the next
+            if (UnitIsDead and UnitIsDead("target"))
+                or (not c.friendly and UnitCanAttack and not UnitCanAttack("player", "target")) then
                 if ClearTarget then ClearTarget() end
             else
                 return true

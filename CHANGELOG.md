@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: the quests of another class (a shaman quest for a hunter) no longer show up as available in the search.
+
 ## 1.4.0
 
 - New: each quest box in the chain view shows the experience the quest gives, in its bottom-right corner, so you no longer have to open the quest and scroll down to read it. The boxes are a little taller to make room for it.

@@ -181,11 +181,18 @@ end
 -- What the character sees. Quests of another class, race or faction are hidden, unless that class or
 -- race is being looked at (its entry in the panel; `d` is the entry being looked at) or the "other
 -- faction" filter is on, which allows the opposite faction's.
-local playerRaceId, playerClassId
+local playerRaceId, playerClassId, playerClassFile
 function ns.QuestVisible(q, d)
     if q.hidden then return false end
     local category = d and d.category
     local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
+
+    -- the quests of a class entry carry no mask: the entry says whose they are (the search looks at them without an entry)
+    local home = q.entryId and ns.entries and ns.entries[q.entryId]
+    if home and home.classFile and category ~= "classes" then
+        playerClassFile = playerClassFile or select(2, UnitClass("player"))
+        if playerClassFile and playerClassFile ~= home.classFile then return false end
+    end
 
     if q.classes and category ~= "classes" then
         playerClassId = playerClassId or select(3, UnitClass("player"))

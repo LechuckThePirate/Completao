@@ -3,6 +3,7 @@
 ## Unreleased
 
 - New: the focus window now lists, under "Also here:", the other tracked quests with something to do near the step you are working on (the miniboss's quest and the 10 critters beside it), with their objectives. Clicking one sets the waypoint on it.
+- New: "Auto-target the creatures of the focused quest" in the preferences (off by default). With no target, and out of combat, it targets by name the creature of an unfinished kill objective of the focused quest (and of the quests listed under "Also here:"). If the game blocks addons from targeting, the option switches itself off.
 
 ## 1.2.4
 

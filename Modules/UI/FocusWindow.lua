@@ -1,4 +1,4 @@
-local _, ns = ...
+local ADDON, ns = ...
 local L = ns.L
 
 -- Focus window: a small floating window for the one quest being focused on (right click on a quest in Tracked Quests,
@@ -579,6 +579,45 @@ local function autoFocus()
     return ok
 end
 
+-- Auto-target (Preferences, off by default): with no target, the creature of an unfinished kill objective of
+-- the focused quest is targeted by name, the one the waypoint is on first, then its other objectives, then the
+-- objectives of the "Also here" quests. Out of combat only, looked at on autofocus's clock. The game protects
+-- targeting: if it blocks this addon from it, the setting is switched off for good and the player is told.
+local targetBlocked = false
+function ns.Focus_AutoTarget()
+    if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
+    if not (TargetByName and UnitExists) or UnitExists("target") then return false end
+    local id = ns.Focus_Quest()
+    if not (id and C_QuestLog.IsOnQuest(id)) or ns.IsReadyToTurnIn(id) then return false end
+    local q = questDef(id)
+    local steps = ns.QuestSteps(q)
+    local names, seen = {}, {}
+    local function add(step)
+        if step.kind == "obj" and not step.done and step.creature and not seen[step.creature] then
+            seen[step.creature] = true
+            names[#names + 1] = step.creature
+        end
+    end
+    local at = ns.Focus_PickStep(steps, false)
+    if at then add(steps[at]) end
+    for _, s in ipairs(steps) do add(s) end
+    for _, e in ipairs(relatedQuests(id, at and steps[at].loc)) do
+        for _, i in ipairs(e.indexes) do add(e.steps[i]) end
+    end
+    for _, name in ipairs(names) do
+        TargetByName(name)
+        if UnitExists("target") then
+            -- a corpse, or someone who isn't an enemy, is no use: let go of it and try the next one
+            if (UnitIsDead and UnitIsDead("target")) or (UnitCanAttack and not UnitCanAttack("player", "target")) then
+                if ClearTarget then ClearTarget() end
+            else
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- Preferences: the setting was switched.
 function ns.Focus_SetAuto(on)
     ns.char.focusAuto = on and true or nil
@@ -681,6 +720,8 @@ pcall(events.RegisterEvent, events, "PLAYER_REGEN_DISABLED")
 pcall(events.RegisterEvent, events, "PLAYER_REGEN_ENABLED")
 pcall(events.RegisterEvent, events, "QUEST_ACCEPTED")
 pcall(events.RegisterEvent, events, "SUPER_TRACKING_CHANGED")
+pcall(events.RegisterEvent, events, "ADDON_ACTION_FORBIDDEN")
+pcall(events.RegisterEvent, events, "ADDON_ACTION_BLOCKED")
 events:SetScript("OnEvent", function(_, event, arg1, arg2)
     if event == "PLAYER_REGEN_DISABLED" then
         applyMouse(true)
@@ -688,6 +729,12 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2)
         applyMouse(false)
     elseif event == "SUPER_TRACKING_CHANGED" then
         ns.Focus_FollowBlizzard()
+    elseif event == "ADDON_ACTION_FORBIDDEN" or event == "ADDON_ACTION_BLOCKED" then
+        if arg1 == ADDON and ns.char and ns.char.autoTarget then
+            targetBlocked = true
+            ns.char.autoTarget = nil
+            ns.Print(L["The game doesn't let addons target here: auto-target is off."])
+        end
     elseif event == "QUEST_ACCEPTED" then
         -- (log index, quest id) in this client's payload; just the id in others. The main refresh (Completao.lua)
         -- comes a moment after the event, and finds it marked
@@ -708,4 +755,5 @@ events:SetScript("OnUpdate", function(_, elapsed)
     if sinceAuto < AUTO_EVERY then return end
     sinceAuto = 0
     if ns.char and ns.char.focusAuto then autoFocus() end
+    ns.Focus_AutoTarget()
 end)

@@ -138,6 +138,8 @@ ns.AddLocale({ "frFR" }, {
     ["No quest focused"] = "Aucune quête focalisée",
     ["Click to choose another."] = "Cliquez pour en choisir une autre.",
     ["Also here:"] = "Aussi ici :",
+    ["Auto-target the creatures of the focused quest"] = "Cibler automatiquement les créatures de la quête focalisée",
+    ["The game doesn't let addons target here: auto-target is off."] = "Le jeu n'autorise pas les addons à cibler ici : le ciblage auto est désactivé.",
     ["Stop focus"] = "Arrêter la focalisation",
     ["Untrack"] = "Ne plus suivre",
     ["Right-click for options."] = "Clic droit pour les options.",

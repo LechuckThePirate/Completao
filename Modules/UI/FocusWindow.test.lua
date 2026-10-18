@@ -1209,4 +1209,110 @@ describe("FocusWindow", function()
             assert.is_nil(lineWith("Owls"))
         end)
     end)
+
+    describe("auto-target", function()
+        local events, target, tried
+        local function tick() events._scripts.OnUpdate(events, 2) end
+        before_each(function()
+            -- Pest Control's creatures: Wolf (the wolves, the nearest) and Boar
+            WowMock.objectives[999001] = {
+                { text = "Boar slain: 0/5", type = "monster", finished = false, numFulfilled = 0, numRequired = 5 },
+                { text = "Wolf slain: 1/3", type = "monster", finished = false, numFulfilled = 1, numRequired = 3 },
+            }
+            events = WowMock.Find(function(f) return f._scripts.OnUpdate and f._events and f._events.PLAYER_ENTERING_WORLD end)
+            target, tried = nil, {}
+            _G.UnitExists = function() return target ~= nil end
+            _G.UnitIsDead = function() return target and target.dead or false end
+            _G.UnitCanAttack = function() return target and not target.friendly or false end
+            _G.ClearTarget = function() target = nil end
+            _G.TargetByName = function(name)
+                tried[#tried + 1] = name
+                target = { name = name }
+            end
+            focus()
+            FireEvent("PLAYER_ENTERING_WORLD") -- (the quest log counts as loaded after a moment)
+        end)
+        after_each(function()
+            for _, k in ipairs({ "UnitExists", "UnitIsDead", "UnitCanAttack", "ClearTarget", "TargetByName" }) do _G[k] = nil end
+        end)
+
+        it("does nothing unless the setting is on (it is off by default)", function()
+            tick()
+            assert.are.equal(0, #tried)
+        end)
+
+        describe("with the setting on", function()
+            before_each(function() ns.char.autoTarget = true end)
+
+            it("targets the creature of the objective the waypoint is on", function()
+                tick()
+                assert.are.same({ "Wolf" }, tried)
+            end)
+
+            it("leaves a target you already have alone", function()
+                target = { name = "Somebody" }
+                tick()
+                assert.are.equal(0, #tried)
+            end)
+
+            it("does nothing in combat", function()
+                WowMock.inCombat = true
+                tick()
+                assert.are.equal(0, #tried)
+            end)
+
+            it("does nothing once the quest is ready to turn in, or with no quest focused", function()
+                WowMock.readyForTurnIn[999001] = true
+                tick()
+                assert.are.equal(0, #tried)
+                WowMock.readyForTurnIn[999001] = nil
+                ns.Focus_Clear()
+                tick()
+                assert.are.equal(0, #tried)
+            end)
+
+            it("skips finished objectives, and ones that aren't kills", function()
+                WowMock.objectives[999001] = {
+                    { text = "Boar slain: 5/5", type = "monster", finished = true, numFulfilled = 5, numRequired = 5 },
+                    { text = "Wolf Pelts: 1/3", type = "item", finished = false, numFulfilled = 1, numRequired = 3 },
+                }
+                tick()
+                assert.are.equal(0, #tried)
+            end)
+
+            it("lets go of a corpse or a friend and tries the next creature", function()
+                _G.TargetByName = function(name)
+                    tried[#tried + 1] = name
+                    target = { name = name, dead = name == "Wolf" }
+                end
+                tick()
+                assert.are.same({ "Wolf", "Boar" }, tried)
+                assert.are.equal("Boar", target.name)
+            end)
+
+            it("falls back on the creatures of the quests that are here too", function()
+                ns.DistanceBetween = function() return 10 end
+                local tracked = { [999004] = true }
+                WowMock.onQuest[999004] = true
+                WowMock.log = { { isHeader = true, title = "Zone" }, { questID = 999004, title = "Owl Watch", level = 20 } }
+                WowMock.objectives[999004] = { { text = "Owl slain: 0/10", type = "monster", finished = false, numRequired = 10 } }
+                C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+                WowMock.objectives[999001] = { { text = "Wolf Pelts: 1/3", type = "item", finished = false, numRequired = 3 } }
+                tick()
+                C_QuestLog.GetQuestWatchType = nil
+                assert.are.same({ "Owl" }, tried)
+            end)
+
+            it("when the game blocks it, switches itself off and says so", function()
+                FireEvent("ADDON_ACTION_FORBIDDEN", "SomeOtherAddon", "TargetByName()")
+                assert.is_true(ns.char.autoTarget) -- not ours
+                FireEvent("ADDON_ACTION_FORBIDDEN", "Completao", "TargetByName()")
+                assert.is_nil(ns.char.autoTarget)
+                assert.is_true(WowMock.chatted)
+                ns.char.autoTarget = true
+                tick()
+                assert.are.equal(0, #tried) -- and it doesn't try again
+            end)
+        end)
+    end)
 end)

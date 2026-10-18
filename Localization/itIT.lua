@@ -137,6 +137,8 @@ ns.AddLocale({ "itIT" }, {
     ["No quest focused"] = "Nessuna missione in focus",
     ["Click to choose another."] = "Clicca per sceglierne un'altra.",
     ["Also here:"] = "Anche qui:",
+    ["Auto-target the creatures of the focused quest"] = "Bersaglia automaticamente le creature della quest in evidenza",
+    ["The game doesn't let addons target here: auto-target is off."] = "Il gioco non permette di bersagliare agli addon: bersaglio automatico disattivato.",
     ["Stop focus"] = "Interrompi il focus",
     ["Untrack"] = "Smetti di seguire",
     ["Right-click for options."] = "Clic destro per le opzioni.",

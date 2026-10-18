@@ -205,4 +205,25 @@ describe("QuestSteps", function()
         assert.is_nil(list[4].loc)
         assert.are.equal(1581, list[4].area)
     end)
+
+    it("kill objectives in the log carry the creature's name, in the game's wording", function()
+        WowMock.onQuest[901] = true
+        WowMock.objectives[901] = {
+            { text = "Tough Wolf Meat: 3/8", type = "item", finished = false, numFulfilled = 3, numRequired = 8 },
+            { text = "Defias Thug slain: 0/4", type = "monster", finished = false, numFulfilled = 0, numRequired = 4 },
+        }
+        local list = ns.QuestSteps(q)
+        assert.is_nil(list[2].creature) -- an item
+        assert.are.equal("Defias Thug", list[3].creature)
+        _G.QUEST_MONSTERS_KILLED = "%s getötet: %d/%d"
+        WowMock.objectives[901][2].text = "Defias-Schläger getötet: 0/4"
+        list = ns.QuestSteps(q)
+        _G.QUEST_MONSTERS_KILLED = nil
+        assert.are.equal("Defias-Schläger", list[3].creature)
+    end)
+
+    it("out of the log no creature is given", function()
+        WowMock.objectives[901] = { { text = "Defias Thug slain: 0/4", type = "monster", numRequired = 4 } }
+        for _, s in ipairs(ns.QuestSteps(q)) do assert.is_nil(s.creature) end
+    end)
 end)

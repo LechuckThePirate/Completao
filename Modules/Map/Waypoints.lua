@@ -78,6 +78,19 @@ function ns.DistanceTo(loc)
     return d
 end
 
+-- Distance in yards between two locations, or nil when it can't be told (no coordinates for one, or they are
+-- on different continents).
+function ns.DistanceBetween(a, b)
+    local mapA, mapB = ns.ResolveMap(a), ns.ResolveMap(b)
+    if not (mapA and mapB) then return nil end
+    local c1, x1, y1 = worldPos(mapA, a.x / 100, a.y / 100)
+    local c2, x2, y2 = worldPos(mapB, b.x / 100, b.y / 100)
+    if not (c1 and c2 and c1 == c2) then return nil end
+    local d = math.sqrt((x1 - x2) ^ 2 + (y1 - y2) ^ 2)
+    if d ~= d or d == math.huge then return nil end
+    return d
+end
+
 -- Distances read in meters unless the client is in a yards locale (US and UK English); the game gives
 -- them in yards. ns.char.distanceUnit = "yd" | "m" forces one.
 local YARD = 0.9144

@@ -136,6 +136,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Unlock position"] = "Desbloquear posición",
     ["No quest focused"] = "Ninguna quest enfocada",
     ["Click to choose another."] = "Clic para elegir otra.",
+    ["Also here:"] = "También aquí:",
     ["Stop focus"] = "Dejar de enfocar",
     ["Untrack"] = "Dejar de seguir",
     ["Right-click for options."] = "Clic derecho para ver las opciones.",

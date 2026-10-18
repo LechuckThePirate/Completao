@@ -12,6 +12,9 @@ local L = ns.L
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
 -- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
 -- distance; inside a dungeon, only the quests done in it). In combat the window stops taking the mouse, so clicks reach the world.
+-- Under the focused quest, "Also here:" lists the other tracked quests with something to do within a short
+-- distance of the step being worked on (the miniboss's quest and the 10 critters beside it), each with its
+-- objectives there; clicking one sets the waypoint on it.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -270,35 +273,104 @@ local function setLine(i, l)
     line.button:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -(TOP + HEADER_H + 4 + (i - 1) * LINE_H))
     line.button.step = l
     line.check:SetShown(l.struck)
-    line.text:SetText(("|c%s%s|r"):format(COLORS[l.kind], l.text))
+    -- the "Also here" headers and quest titles start flush left; the objectives leave room for the check
+    line.offset = l.flush and 0 or CHECK_W
+    line.text:ClearAllPoints()
+    line.text:SetPoint("LEFT", line.button, "LEFT", line.offset, 0)
+    line.text:SetText(("|c%s%s|r"):format(l.color or COLORS[l.kind], l.text))
     line.strike:SetShown(l.struck)
     line.button:Show()
     return line
 end
 
+-- The ids of the tracked quests in the log, in log order. Inside a known dungeon or raid only the quests done
+-- in it are listed, for autofocus, the menu and "Also here" alike.
+local function trackedIds()
+    local ids = {}
+    local inside = ns.CurrentInstanceEntry()
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local id = info and not info.isHeader and info.questID
+        if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
+            and not C_QuestLog.IsQuestFlaggedCompleted(id) and (not inside or ns.QuestDoneInside(id, inside)) then
+            ids[#ids + 1] = id
+        end
+    end
+    return ids
+end
+
+-- "Also here": the other tracked quests with something to do by the spot `near` (within RELATED_RADIUS yards):
+-- each unfinished objective there, or the turn-in when the quest is ready and who takes it is there. Returns a
+-- list of { q, steps, indexes = { step indexes } }, in log order. Needs coordinates on both sides, so quests
+-- done inside an instance (no coordinates) never match.
+local RELATED_RADIUS = 150
+local function relatedQuests(focusId, near)
+    local out = {}
+    if not near then return out end
+    for _, id in ipairs(trackedIds()) do
+        if id ~= focusId then
+            local q = questDef(id)
+            local steps = ns.QuestSteps(q)
+            local indexes = {}
+            local function check(i)
+                local d = steps[i].loc and ns.DistanceBetween(near, steps[i].loc)
+                if d and d <= RELATED_RADIUS then indexes[#indexes + 1] = i end
+            end
+            if ns.IsReadyToTurnIn(id) then
+                check(#steps)
+            else
+                for i, s in ipairs(steps) do
+                    if s.kind == "obj" and not s.done then check(i) end
+                end
+            end
+            if #indexes > 0 then out[#out + 1] = { q = q, steps = steps, indexes = indexes } end
+        end
+    end
+    return out
+end
+
+local function hexColor(r, g, b)
+    return ("ff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
 -- What the lines say: the objectives, or the turn-in once the quest is ready. Each carries its step, for the
--- click; the one the waypoint is on is in gold.
-local function buildLines(q, steps, isReady)
+-- click; the one the waypoint is on is in gold. Under them, "Also here:" and the other quests that have
+-- something to do by the same spot (`related`, see relatedQuests).
+local function buildLines(q, steps, isReady, related)
     local out = {}
     local function place(step) return step.loc or (step.area and { area = step.area }) or nil end
     local function canShow(loc) return loc and ns.CanShowMap(loc) and loc or nil end
+    local focusTag = ns.FocusTag()
     if isReady then
         local finish = steps[#steps]
         local npc = finish.loc and finish.loc.npc
         local name = ns.QuestTitle(q.id, q.name)
         out[1] = { text = npc and L["Turn in %s (%s)"]:format(name, npc) or L["Turn in %s"]:format(name), kind = "target",
             struck = false, loc = canShow(place(finish)), label = finish.label, tag = q.id .. ":" .. #steps }
-        return out
+    else
+        for i, s in ipairs(steps) do
+            if s.kind == "obj" then
+                local tag = q.id .. ":" .. i
+                out[#out + 1] = {
+                    text = s.label .. (s.progress and (" " .. s.progress) or ""),
+                    kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
+                    loc = canShow(place(s)), label = s.label, tag = tag,
+                }
+            end
+        end
     end
-    local focusTag = ns.FocusTag()
-    for i, s in ipairs(steps) do
-        if s.kind == "obj" then
-            local tag = q.id .. ":" .. i
-            out[#out + 1] = {
-                text = s.label .. (s.progress and (" " .. s.progress) or ""),
-                kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
-                loc = canShow(place(s)), label = s.label, tag = tag,
-            }
+    if related and #related > 0 then
+        out[#out + 1] = { text = L["Also here:"], kind = "hint", struck = false, flush = true }
+        for _, e in ipairs(related) do
+            local r, g, b = ns.QuestLevelColorRGB(e.q.level or e.q.minLevel)
+            out[#out + 1] = { text = ns.QuestPrefix(e.q) .. ns.QuestTitle(e.q.id, e.q.name), kind = "todo", struck = false,
+                flush = true, color = hexColor(r, g, b) }
+            for _, i in ipairs(e.indexes) do
+                local s = e.steps[i]
+                local tag = e.q.id .. ":" .. i
+                out[#out + 1] = { text = s.label .. (s.progress and (" " .. s.progress) or ""), kind = tag == focusTag and "target" or "todo", struck = false,
+                    loc = canShow(s.loc), label = s.label, tag = tag }
+            end
         end
     end
     return out
@@ -341,7 +413,7 @@ local function draw(iconKind, title, r, g, b, content)
     local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
     for i, l in ipairs(content) do
         local line = setLine(i, l)
-        width = math.max(width, CHECK_W + line.text:GetStringWidth())
+        width = math.max(width, line.offset + line.text:GetStringWidth())
     end
     for i = #content + 1, #lines do lines[i].button:Hide() end
     width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
@@ -350,8 +422,8 @@ local function draw(iconKind, title, r, g, b, content)
     for i in ipairs(content) do
         local line = lines[i]
         line.button:SetWidth(width - 2 * PAD)
-        line.text:SetWidth(width - 2 * PAD - CHECK_W)
-        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - CHECK_W))
+        line.text:SetWidth(width - 2 * PAD - line.offset)
+        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - line.offset))
     end
     frame:Show()
 end
@@ -384,19 +456,13 @@ local fresh = {}         -- [questId] = GetTime() until which it counts as just 
 -- autofocus and the menu alike.
 local function trackedQuests()
     local list = {}
-    local inside = ns.CurrentInstanceEntry()
-    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
-        local info = C_QuestLog.GetInfo(i)
-        local id = info and not info.isHeader and info.questID
-        if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
-            and not C_QuestLog.IsQuestFlaggedCompleted(id) and (not inside or ns.QuestDoneInside(id, inside)) then
-            local q = questDef(id)
-            local steps = ns.QuestSteps(q)
-            local isReady = ns.IsReadyToTurnIn(id)
-            local index = ns.Focus_PickStep(steps, isReady)
-            local d = index and ns.DistanceTo(steps[index].loc)
-            list[#list + 1] = { id = id, def = q, dist = d, ready = isReady }
-        end
+    for _, id in ipairs(trackedIds()) do
+        local q = questDef(id)
+        local steps = ns.QuestSteps(q)
+        local isReady = ns.IsReadyToTurnIn(id)
+        local index = ns.Focus_PickStep(steps, isReady)
+        local d = index and ns.DistanceTo(steps[index].loc)
+        list[#list + 1] = { id = id, def = q, dist = d, ready = isReady }
     end
     return list
 end
@@ -538,7 +604,7 @@ function ns.Focus_Refresh(force)
     retarget(q, steps, target, force, isReady)
     local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
-        buildLines(q, steps, isReady))
+        buildLines(q, steps, isReady, relatedQuests(id, target and steps[target].loc)))
 end
 
 -- "Focusing here sets Blizzard's tracker" (Preferences, on unless switched off): a quest focused here, by the

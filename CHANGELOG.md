@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: the focus window now lists, under "Also here:", the other tracked quests with something to do near the step you are working on (the miniboss's quest and the 10 critters beside it), with their objectives. Clicking one sets the waypoint on it.
+
 ## 1.2.4
 
 - Data: new quests and the rewards of more quests, as the public databases have them now.

@@ -1118,4 +1118,72 @@ describe("FocusWindow", function()
             assert.is_not_nil(WowMock.FindButton("Stop focus"))
         end)
     end)
+
+    describe("Also here: other tracked quests by the same spot", function()
+        local tracked
+        before_each(function()
+            -- near: within 25 map units of the step being worked on (the wolves, x 60): the owls (80), not the foxes (30)
+            ns.DistanceBetween = function(a, b)
+                local d = math.abs(a.x - b.x)
+                return d <= 25 and d or 1000
+            end
+            tracked = { [999001] = true, [999003] = true, [999004] = true }
+            WowMock.log = { { isHeader = true, title = "Zone" } }
+            for _, id in ipairs({ 999001, 999003, 999004 }) do
+                WowMock.onQuest[id] = true
+                WowMock.log[#WowMock.log + 1] = { questID = id, title = "Quest " .. id, level = 20 }
+            end
+            WowMock.titles[999003], WowMock.titles[999004] = "Fox Hunt", "Owl Watch"
+            WowMock.objectives[999004] = { { text = "Owls: 2/10", finished = false, numFulfilled = 2, numRequired = 10 } }
+            C_QuestLog.GetQuestWatchType = function(id) return tracked[id] and 0 or nil end
+        end)
+        after_each(function() C_QuestLog.GetQuestWatchType = nil end)
+
+        it("lists the objectives of the quests whose spot is near the one being worked on, under a header", function()
+            focus()
+            local texts = shownTexts()
+            assert.are.equal(5, #texts)
+            assert.matches("Wolves 1/3", texts[2])
+            assert.matches("Also here:", texts[3])
+            assert.matches("Owl Watch", texts[4])
+            assert.matches("Owls 2/10", texts[5])
+            assert.is_nil(lineWith("Fox"))
+        end)
+
+        it("leaves out untracked quests and the focused one's own objectives", function()
+            tracked[999004] = nil
+            focus()
+            assert.are.equal(2, #shownTexts())
+        end)
+
+        it("shows nothing extra when no other quest is near", function()
+            ns.DistanceBetween = function() return nil end
+            focus()
+            assert.are.equal(2, #shownTexts())
+        end)
+
+        it("clicking one of its objectives puts the waypoint on it", function()
+            focus()
+            lineWith("Owls"):Click()
+            assert.are.equal("999004:2", ns.FocusTag())
+            assert.near(0.8, WowMock.userWaypoint.x, 1e-9)
+        end)
+
+        it("a quest ready to turn in shows its turn-in when who takes it is near", function()
+            WowMock.readyForTurnIn[999004] = true
+            focus()
+            local texts = shownTexts()
+            assert.are.equal(5, #texts)
+            assert.matches("Turn in: Watcher Bo", texts[5])
+        end)
+
+        it("follows the focused quest's next step as it changes", function()
+            objectives(false, true) -- the wolves are done: the boars (x 10) are what's left, and the foxes (30) are by them
+            focus()
+            local texts = shownTexts()
+            assert.are.equal(5, #texts)
+            assert.matches("Fox Hunt", texts[4])
+            assert.is_nil(lineWith("Owls"))
+        end)
+    end)
 end)

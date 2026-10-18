@@ -1192,6 +1192,29 @@ describe("FocusWindow", function()
             assert.matches("ffd100", shownTexts()[6]) -- and the gold follows
         end)
 
+        it("says 'Also there:' while the player is away from the spot, and 'Also here:' once there", function()
+            ns.DistanceTo = function() return 900 end -- far from everything
+            focus()
+            local all = table.concat(shownTexts(), "\n")
+            assert.matches("Also there:", all)
+            assert.is_nil(all:find("Also here:", 1, true))
+            ns.DistanceTo = function() return 10 end -- the player walks up to it
+            local events = WowMock.Find(function(f) return f._scripts.OnUpdate and f._events and f._events.PLAYER_ENTERING_WORLD end)
+            events._scripts.OnUpdate(events, 2)
+            all = table.concat(shownTexts(), "\n")
+            assert.matches("Also here:", all)
+            assert.is_nil(all:find("Also there:", 1, true))
+            ns.DistanceTo = function() return 900 end -- and away again
+            events._scripts.OnUpdate(events, 2)
+            assert.matches("Also there:", table.concat(shownTexts(), "\n"))
+        end)
+
+        it("an unknown distance counts as away", function()
+            ns.DistanceTo = function() return nil end
+            focus()
+            assert.matches("Also there:", table.concat(shownTexts(), "\n"))
+        end)
+
         it("a quest ready to turn in shows its turn-in when who takes it is near", function()
             WowMock.readyForTurnIn[999004] = true
             focus()

@@ -337,6 +337,14 @@ local function relatedQuests(focusId, near)
     return out
 end
 
+-- Is the player at that spot? ("Also here" says so only then; away from it, "Also there": the quests by the spot
+-- of the step being worked on, which may be far from where the player stands.) Unknown distance counts as far.
+local relatedSpot, relatedHere -- what the list under the quest was last worked out for, and whether it was "here"
+local function isNear(loc)
+    local d = loc and ns.DistanceTo(loc)
+    return d ~= nil and d <= RELATED_RADIUS
+end
+
 local function hexColor(r, g, b)
     return ("ff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 end
@@ -344,7 +352,7 @@ end
 -- What the lines say: the objectives, or the turn-in once the quest is ready. Each carries its step, for the
 -- click; the one the waypoint is on is in gold. Under them, "Also here:" and the other quests that have
 -- something to do by the same spot (`related`, see relatedQuests).
-local function buildLines(q, steps, isReady, related)
+local function buildLines(q, steps, isReady, related, here)
     local out = {}
     local function place(step) return step.loc or (step.area and { area = step.area }) or nil end
     local function canShow(loc) return loc and ns.CanShowMap(loc) and loc or nil end
@@ -368,7 +376,7 @@ local function buildLines(q, steps, isReady, related)
         end
     end
     if related and #related > 0 then
-        out[#out + 1] = { text = L["Also here:"], kind = "hint", struck = false, flush = true }
+        out[#out + 1] = { text = here and L["Also here:"] or L["Also there:"], kind = "hint", struck = false, flush = true }
         for _, e in ipairs(related) do
             local r, g, b = ns.QuestLevelColorRGB(e.q.level or e.q.minLevel)
             out[#out + 1] = { text = ns.QuestPrefix(e.q) .. ns.QuestTitle(e.q.id, e.q.name), kind = "todo", struck = false,
@@ -716,6 +724,7 @@ end
 
 function ns.Focus_Refresh(force)
     if autoFocus() then return end
+    relatedSpot = nil
     local id = ns.Focus_Quest()
     if not id then
         -- nothing focused: the message stays up (after a turn-in, or with autofocus on and nothing it can pick,
@@ -740,8 +749,11 @@ function ns.Focus_Refresh(force)
     local target = ns.Focus_PickStep(steps, isReady)
     retarget(q, steps, target, force, isReady)
     local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
+    local spot = target and steps[target].loc
+    local related = relatedQuests(id, spot)
+    relatedSpot, relatedHere = #related > 0 and spot or nil, isNear(spot)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
-        buildLines(q, steps, isReady, relatedQuests(id, target and steps[target].loc)))
+        buildLines(q, steps, isReady, related, relatedHere))
 end
 
 -- "Focusing here sets Blizzard's tracker" (Preferences, on unless switched off): a quest focused here, by the
@@ -837,5 +849,7 @@ events:SetScript("OnUpdate", function(_, elapsed)
     if sinceAuto < AUTO_EVERY then return end
     sinceAuto = 0
     if ns.char and ns.char.focusAuto then autoFocus() end
+    -- "Also here" turns into "Also there" (and back) as the player walks off from, or to, the spot
+    if relatedSpot and frame and frame:IsShown() and isNear(relatedSpot) ~= relatedHere then ns.Focus_Refresh() end
     ns.Focus_UpdateTargeting()
 end)

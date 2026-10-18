@@ -137,6 +137,7 @@ ns.AddLocale({ "ptBR" }, {
     ["No quest focused"] = "Nenhuma missão em foco",
     ["Click to choose another."] = "Clique para escolher outra.",
     ["Also here:"] = "Também aqui:",
+    ["Also there:"] = "Também lá:",
     ["General"] = "Geral",
     ["Main window"] = "Janela principal",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab seleciona primeiro criaturas de quest e NPCs de entrega",

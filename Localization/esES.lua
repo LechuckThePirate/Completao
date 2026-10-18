@@ -137,6 +137,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["No quest focused"] = "Ninguna quest enfocada",
     ["Click to choose another."] = "Clic para elegir otra.",
     ["Also here:"] = "También aquí:",
+    ["Also there:"] = "También allí:",
     ["General"] = "General",
     ["Main window"] = "Ventana principal",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab apunta primero a criaturas de quest y PNJ de entrega",

@@ -137,6 +137,7 @@ ns.AddLocale({ "itIT" }, {
     ["No quest focused"] = "Nessuna missione in focus",
     ["Click to choose another."] = "Clicca per sceglierne un'altra.",
     ["Also here:"] = "Anche qui:",
+    ["Also there:"] = "Anche lì:",
     ["General"] = "Generale",
     ["Main window"] = "Finestra principale",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab bersaglia prima creature di quest e PNG di consegna",

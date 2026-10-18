@@ -142,6 +142,15 @@ describe("Waypoints", function()
             C_Map.GetWorldPosFromMapPos = function(_, v) n = n + 1; return n, { x = v.x, y = v.y } end
             assert.is_nil(ns.DistanceTo(elwynn))
         end)
+
+        it("between two locations is unknown without coordinates or across continents", function()
+            local other = { area = 12, x = 52.1, y = 65.9 }
+            assert.near(0.1 * 1000, ns.DistanceBetween(elwynn, other), 1e-6)
+            assert.is_nil(ns.DistanceBetween(elwynn, { area = 12 }))
+            local n = 0
+            C_Map.GetWorldPosFromMapPos = function(_, v) n = n + 1; return n, { x = v.x, y = v.y } end
+            assert.is_nil(ns.DistanceBetween(elwynn, other))
+        end)
     end)
 
     it("show on map opens the zone's map and marks the spot", function()

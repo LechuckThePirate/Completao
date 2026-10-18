@@ -20,8 +20,9 @@ describe("Preferences", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, follow Blizzard's tracker,
-        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide Blizzard's tracker
-        assert.are.equal(12, #checks)
+        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide Blizzard's tracker,
+        -- Tab targets quest creatures first
+        assert.are.equal(13, #checks)
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
         assert.is_true(ns.char.quiet)
@@ -58,6 +59,11 @@ describe("Preferences", function()
         assert.is_true(ns.char.hideBlizzardTracker)
         checks[12]:SetChecked(false); checks[12]:Click()
         assert.is_nil(ns.char.hideBlizzardTracker)
+        assert.is_false(checks[13]:GetChecked()) -- Tab stays the player's own by default
+        checks[13]:SetChecked(true); checks[13]:Click()
+        assert.is_true(ns.char.tabTarget)
+        checks[13]:SetChecked(false); checks[13]:Click()
+        assert.is_nil(ns.char.tabTarget)
         checks[2]:SetChecked(false); checks[2]:Click()
         assert.is_false(ns.Minimap_IsShown())
     end)
@@ -66,10 +72,36 @@ describe("Preferences", function()
         local labels = WowMock.FindAll(function(f)
             return f._kind == "FontString" and f._parent == prefs and f._set.SetWordWrap and f._w ~= nil
         end)
-        assert.is_true(#labels >= 12)
+        assert.is_true(#labels >= 13)
         for _, label in ipairs(labels) do
             assert.is_true(label._w <= 340 - 48 - 16, label._text)
             assert.is_true(label._set.SetWordWrap[1])
+        end
+    end)
+
+    it("is laid out in two columns: everything inside the window, nothing on top of anything else in a column", function()
+        local W, H = prefs._w, prefs._h
+        assert.is_true(W > H) -- wider than tall
+        local boxes = {}
+        for _, f in ipairs(WowMock.frames) do
+            local pt = f._parent == prefs and f._points and f._points[1]
+            if pt and pt[1] == "TOPLEFT" and (f._kind == "CheckButton" or f._kind == "Slider" or (f._kind == "Button" and f._w == 282)) then
+                boxes[#boxes + 1] = { x = pt[2], top = -pt[3], w = f._w, h = f._h or 24 }
+            end
+        end
+        assert.is_true(#boxes >= 20)
+        for _, b in ipairs(boxes) do
+            assert.is_true(b.x + b.w <= W, "right edge")
+            assert.is_true(b.top + b.h <= H - 28, "bottom edge") -- (the note is at the bottom)
+        end
+        for i, b in ipairs(boxes) do
+            for j = i + 1, #boxes do
+                local c = boxes[j]
+                if b.x == c.x or (b.x < c.x + c.w and c.x < b.x + b.w) then
+                    local apart = b.top + b.h <= c.top or c.top + c.h <= b.top
+                    assert.is_true(apart, "overlap at " .. b.x .. "," .. b.top .. " and " .. c.x .. "," .. c.top)
+                end
+            end
         end
     end)
 

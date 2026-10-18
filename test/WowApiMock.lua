@@ -28,6 +28,7 @@ local function resetState()
     WowMock.onTaxi = false
     WowMock.skills = {}        -- professions the character has: skill line ids, as GetProfessionInfo gives them
     WowMock.frames = {}
+    WowMock.overrideBindings = {} -- ["TAB"] = { owner, button }: SetOverrideBindingClick
     WowMock.hooks = {}
     WowMock.selectedQuest = 0
     WowMock.superTrackedQuest = 0 -- the quest Blizzard's tracker has focused (C_SuperTrack), 0 for none
@@ -113,6 +114,8 @@ function frameMethods:GetFrameLevel() return self._level or 1 end
 function frameMethods:SetScale(s) self._scale = s end
 function frameMethods:GetScale() return self._scale or 1 end
 function frameMethods:GetEffectiveScale() return 1 end
+function frameMethods:SetAttribute(name, value) self._attrs = self._attrs or {}; self._attrs[name] = value end
+function frameMethods:GetAttribute(name) return self._attrs and self._attrs[name] end
 function frameMethods:SetPoint(...) self._points = self._points or {}; table.insert(self._points, { ... }); self._set.SetPoint = { ... } end
 function frameMethods:ClearAllPoints() self._points = {} end
 function frameMethods:GetPoint(i) local p = self._points and self._points[i or 1]; if p then return unpackArgs(p) end end
@@ -266,6 +269,10 @@ GetProfessions = function()
     return unpackArgs(list)
 end
 GetProfessionInfo = function(index) return "Skill " .. tostring(WowMock.skills[index]), 0, 1, 75, 0, 0, WowMock.skills[index] end
+SetOverrideBindingClick = function(owner, _, key, button) WowMock.overrideBindings[key] = { owner = owner, button = button } end
+ClearOverrideBindings = function(owner)
+    for key, b in pairs(WowMock.overrideBindings) do if b.owner == owner then WowMock.overrideBindings[key] = nil end end
+end
 UnitAffectingCombat = function() return WowMock.inCombat or false end
 GetCursorPosition = function() return WowMock.cursor[1], WowMock.cursor[2] end
 IsShiftKeyDown = function() return WowMock.shift or false end

@@ -22,13 +22,23 @@ local function liveSpot(q)
     end
 end
 
+-- The creature a kill objective asks for ("Boar slain: 3/5" -> "Boar"): the game's own wording for the
+-- client's language (QUEST_MONSTERS_KILLED), else the English one. nil for any other kind of objective.
+local function creatureOf(o)
+    if (o.type and o.type ~= "monster") or not o.text then return nil end
+    local pattern = QUEST_MONSTERS_KILLED and (QUEST_MONSTERS_KILLED:gsub("%p", "%%%0"):gsub("%%%%s", "(.+)"):gsub("%%%%d", "%%d+"))
+        or "(.+) slain: %d+%s*/%s*%d+"
+    return o.text:match("^" .. pattern .. "%s*$") or o.text:match("^(.-)%s+slain")
+end
+
 -- Steps of a quest, for the waypoints and the panel's list: the missing requirement (the start of the
 -- previous quest not done yet), the start, one step per objective (q.steps: zone and spot from the data)
 -- and the turn-in. With the quest in the log each objective carries its live progress (matched by name to
 -- the game's objectives, else by order); the game's objectives with no step in the data are added without
 -- a place. Out of the log the client may still know a quest's objectives (once it has loaded it): their text,
 -- in the client's language, replaces the data's English one, with no progress. Returns the list and the index of the step that comes next. Step: { kind =
--- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", current }.
+-- "req"|"start"|"obj"|"finish", label, loc = { npc, area, x, y } or nil, done, progress = "3/10", creature = "Boar" (kill objectives in the log),
+-- mobs = { "Boar", ... } (the creatures that drop the item of an item objective, from the data), current }.
 function ns.QuestSteps(q)
     local L = ns.L
     local list = {}
@@ -62,7 +72,7 @@ function ns.QuestSteps(q)
         if o.numRequired and o.numRequired > 0 then return ("%d/%d"):format(o.numFulfilled or 0, o.numRequired) end
     end
     for i, s in ipairs(q.steps or {}) do
-        local step = { kind = "obj", label = s.name, loc = s.x and s or nil, area = s.area }
+        local step = { kind = "obj", label = s.name, loc = s.x and s or nil, area = s.area, mobs = s.mobs }
         local match, byName
         for j, o in ipairs(objectives) do
             if not used[j] and o.text and o.text:lower():find(s.name:lower(), 1, true) then match, byName = j, true break end
@@ -76,6 +86,7 @@ function ns.QuestSteps(q)
             if onQuest then
                 step.done = objectives[match].finished
                 step.progress = progressOf(objectives[match])
+                step.creature = creatureOf(objectives[match])
             end
         end
         list[#list + 1] = step
@@ -84,7 +95,7 @@ function ns.QuestSteps(q)
         -- out of the log they only stand in for a quest the data lists no steps for
         if not used[j] and o.text and o.text ~= "" and (onQuest or #(q.steps or {}) == 0) then
             list[#list + 1] = { kind = "obj", label = liveLabel(o), done = onQuest and o.finished or nil,
-                progress = onQuest and progressOf(o) or nil }
+                progress = onQuest and progressOf(o) or nil, creature = onQuest and creatureOf(o) or nil }
         end
     end
     -- the unfinished objectives with no place of their own take the one the game gives for the quest

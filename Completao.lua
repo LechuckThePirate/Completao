@@ -93,6 +93,7 @@ end
 -- (like Questie).
 BINDING_NAME_COMPLETAO_TOGGLE = ns.L["Open / close the window"]
 BINDING_NAME_COMPLETAO_PREFS = ns.L["Open / close the preferences"]
+_G["BINDING_NAME_CLICK CompletaoTargetButton:LeftButton"] = ns.L["Target quest creatures and turn-in NPCs"]
 function Completao_Toggle() ns.UI_Toggle() end
 function Completao_TogglePreferences() ns.Prefs_Toggle() end
 
@@ -106,6 +107,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Prefs_Toggle()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
+    elseif msg == "target" then
+        ns.Focus_TargetReport()
     elseif msg == "changelog" or msg == "whatsnew" then
         ns.Welcome_Show()
     elseif msg:match("^fade") then

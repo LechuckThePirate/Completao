@@ -12,6 +12,9 @@ local L = ns.L
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
 -- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
 -- distance; inside a dungeon, only the quests done in it). In combat the window stops taking the mouse, so clicks reach the world.
+-- Under the focused quest, "Also here:" lists the other tracked quests with something to do within a short
+-- distance of the step being worked on (the miniboss's quest and the 10 critters beside it), each with all
+-- its objectives; clicking one sets the waypoint on it.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -270,35 +273,121 @@ local function setLine(i, l)
     line.button:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -(TOP + HEADER_H + 4 + (i - 1) * LINE_H))
     line.button.step = l
     line.check:SetShown(l.struck)
-    line.text:SetText(("|c%s%s|r"):format(COLORS[l.kind], l.text))
+    -- the "Also here" headers and quest titles start flush left; the objectives leave room for the check
+    line.offset = l.flush and 0 or CHECK_W
+    line.text:ClearAllPoints()
+    line.text:SetPoint("LEFT", line.button, "LEFT", line.offset, 0)
+    line.text:SetText(("|c%s%s|r"):format(l.color or COLORS[l.kind], l.text))
     line.strike:SetShown(l.struck)
     line.button:Show()
     return line
 end
 
+-- The ids of the tracked quests in the log, in log order. Inside a known dungeon or raid only the quests done
+-- in it are listed, for autofocus, the menu and "Also here" alike.
+local function trackedIds()
+    local ids = {}
+    local inside = ns.CurrentInstanceEntry()
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local id = info and not info.isHeader and info.questID
+        if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
+            and not C_QuestLog.IsQuestFlaggedCompleted(id) and (not inside or ns.QuestDoneInside(id, inside)) then
+            ids[#ids + 1] = id
+        end
+    end
+    return ids
+end
+
+-- "Also here": the other tracked quests with something to do by the spot `near` (within RELATED_RADIUS yards):
+-- an unfinished objective there, or the turn-in when the quest is ready and who takes it is there. Returns a
+-- list of { q, steps, indexes = { step indexes } }, in log order: all the quest's objectives (done ones and
+-- the ones elsewhere too), or just the turn-in when it is ready. Needs coordinates on both sides, so quests
+-- done inside an instance (no coordinates) never match.
+local RELATED_RADIUS = 150
+local function relatedQuests(focusId, near)
+    local out = {}
+    if not near then return out end
+    for _, id in ipairs(trackedIds()) do
+        if id ~= focusId then
+            local q = questDef(id)
+            local steps = ns.QuestSteps(q)
+            local indexes = {}
+            local function check(i)
+                local d = steps[i].loc and ns.DistanceBetween(near, steps[i].loc)
+                if d and d <= RELATED_RADIUS then indexes[#indexes + 1] = i end
+            end
+            if ns.IsReadyToTurnIn(id) then
+                check(#steps)
+            else
+                for i, s in ipairs(steps) do
+                    if s.kind == "obj" and not s.done then check(i) end
+                end
+                -- the quest is here: it lists all its objectives, the ones elsewhere and the done ones too
+                if #indexes > 0 then
+                    indexes = {}
+                    for i, s in ipairs(steps) do
+                        if s.kind == "obj" then indexes[#indexes + 1] = i end
+                    end
+                end
+            end
+            if #indexes > 0 then out[#out + 1] = { q = q, steps = steps, indexes = indexes } end
+        end
+    end
+    return out
+end
+
+-- Is the player at that spot? ("Also here" says so only then; away from it, "Also there": the quests by the spot
+-- of the step being worked on, which may be far from where the player stands.) Unknown distance counts as far.
+local relatedSpot, relatedHere -- what the list under the quest was last worked out for, and whether it was "here"
+local function isNear(loc)
+    local d = loc and ns.DistanceTo(loc)
+    return d ~= nil and d <= RELATED_RADIUS
+end
+
+local function hexColor(r, g, b)
+    return ("ff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
+end
+
 -- What the lines say: the objectives, or the turn-in once the quest is ready. Each carries its step, for the
--- click; the one the waypoint is on is in gold.
-local function buildLines(q, steps, isReady)
+-- click; the one the waypoint is on is in gold. Under them, "Also here:" and the other quests that have
+-- something to do by the same spot (`related`, see relatedQuests).
+local function buildLines(q, steps, isReady, related, here)
     local out = {}
     local function place(step) return step.loc or (step.area and { area = step.area }) or nil end
     local function canShow(loc) return loc and ns.CanShowMap(loc) and loc or nil end
+    local focusTag = ns.FocusTag()
     if isReady then
         local finish = steps[#steps]
         local npc = finish.loc and finish.loc.npc
         local name = ns.QuestTitle(q.id, q.name)
         out[1] = { text = npc and L["Turn in %s (%s)"]:format(name, npc) or L["Turn in %s"]:format(name), kind = "target",
             struck = false, loc = canShow(place(finish)), label = finish.label, tag = q.id .. ":" .. #steps }
-        return out
+    else
+        for i, s in ipairs(steps) do
+            if s.kind == "obj" then
+                local tag = q.id .. ":" .. i
+                out[#out + 1] = {
+                    text = s.label .. (s.progress and (" " .. s.progress) or ""),
+                    kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
+                    loc = canShow(place(s)), label = s.label, tag = tag,
+                }
+            end
+        end
     end
-    local focusTag = ns.FocusTag()
-    for i, s in ipairs(steps) do
-        if s.kind == "obj" then
-            local tag = q.id .. ":" .. i
-            out[#out + 1] = {
-                text = s.label .. (s.progress and (" " .. s.progress) or ""),
-                kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
-                loc = canShow(place(s)), label = s.label, tag = tag,
-            }
+    if related and #related > 0 then
+        out[#out + 1] = { text = here and L["Also here:"] or L["Also there:"], kind = "hint", struck = false, flush = true }
+        for _, e in ipairs(related) do
+            local r, g, b = ns.QuestLevelColorRGB(e.q.level or e.q.minLevel)
+            out[#out + 1] = { text = ns.QuestPrefix(e.q) .. ns.QuestTitle(e.q.id, e.q.name), kind = "todo", struck = false,
+                flush = true, color = hexColor(r, g, b) }
+            for _, i in ipairs(e.indexes) do
+                local s = e.steps[i]
+                local tag = e.q.id .. ":" .. i
+                out[#out + 1] = { text = s.label .. (s.progress and (" " .. s.progress) or ""),
+                    kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
+                    loc = canShow(place(s)), label = s.label, tag = tag }
+            end
         end
     end
     return out
@@ -341,7 +430,7 @@ local function draw(iconKind, title, r, g, b, content)
     local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
     for i, l in ipairs(content) do
         local line = setLine(i, l)
-        width = math.max(width, CHECK_W + line.text:GetStringWidth())
+        width = math.max(width, line.offset + line.text:GetStringWidth())
     end
     for i = #content + 1, #lines do lines[i].button:Hide() end
     width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
@@ -350,8 +439,8 @@ local function draw(iconKind, title, r, g, b, content)
     for i in ipairs(content) do
         local line = lines[i]
         line.button:SetWidth(width - 2 * PAD)
-        line.text:SetWidth(width - 2 * PAD - CHECK_W)
-        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - CHECK_W))
+        line.text:SetWidth(width - 2 * PAD - line.offset)
+        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - line.offset))
     end
     frame:Show()
 end
@@ -384,19 +473,13 @@ local fresh = {}         -- [questId] = GetTime() until which it counts as just 
 -- autofocus and the menu alike.
 local function trackedQuests()
     local list = {}
-    local inside = ns.CurrentInstanceEntry()
-    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
-        local info = C_QuestLog.GetInfo(i)
-        local id = info and not info.isHeader and info.questID
-        if id and id > 0 and ns.IsQuestTracked(id) and C_QuestLog.IsOnQuest(id)
-            and not C_QuestLog.IsQuestFlaggedCompleted(id) and (not inside or ns.QuestDoneInside(id, inside)) then
-            local q = questDef(id)
-            local steps = ns.QuestSteps(q)
-            local isReady = ns.IsReadyToTurnIn(id)
-            local index = ns.Focus_PickStep(steps, isReady)
-            local d = index and ns.DistanceTo(steps[index].loc)
-            list[#list + 1] = { id = id, def = q, dist = d, ready = isReady }
-        end
+    for _, id in ipairs(trackedIds()) do
+        local q = questDef(id)
+        local steps = ns.QuestSteps(q)
+        local isReady = ns.IsReadyToTurnIn(id)
+        local index = ns.Focus_PickStep(steps, isReady)
+        local d = index and ns.DistanceTo(steps[index].loc)
+        list[#list + 1] = { id = id, def = q, dist = d, ready = isReady }
     end
     return list
 end
@@ -504,6 +587,134 @@ local function autoFocus()
     return ok
 end
 
+-- Quest targeting. The game doesn't let addons change the target (TargetUnit is blocked for them, TargetByName is
+-- gone), so it is done by a secure button, CompletaoTargetButton, whose macro is kept up to date out of combat:
+--  * the NPC who takes a quest that is ready to turn in (the focused one or any tracked one) once the player is
+--    within TURNIN_RADIUS yards of him, the nearest first;
+--  * then the creatures of the focused quest's unfinished objectives (those to kill, and those that drop the item
+--    asked for): the objective the waypoint is on first, then its other objectives, then the objectives of the
+--    "Also here" quests.
+-- A press of the key (Key Bindings, or Tab itself with the Preferences option, off by default) runs the macro.
+-- With a target already, or in combat, it is the normal "target the nearest enemy". Without any quest creature
+-- around it falls back on that too, so taking over Tab costs nothing.
+local TURNIN_RADIUS = 40
+local MACRO_MAX = 1000
+local TARGET_BUTTON = "CompletaoTargetButton"
+local targetButton, tabBound
+
+-- NPCs who take a ready quest and are close enough to be targeted, nearest first: { name, friendly = true }.
+local function turnInTargets(focusId)
+    local ids, seen, found = {}, {}, {}
+    if focusId then ids[1], seen[focusId] = focusId, true end
+    for _, id in ipairs(trackedIds()) do
+        if not seen[id] then ids[#ids + 1], seen[id] = id, true end
+    end
+    for _, id in ipairs(ids) do
+        if C_QuestLog.IsOnQuest(id) and ns.IsReadyToTurnIn(id) then
+            local steps = ns.QuestSteps(questDef(id))
+            local loc = steps[#steps].loc
+            local d = loc and loc.npc and ns.DistanceTo(loc)
+            if d and d <= TURNIN_RADIUS then found[#found + 1] = { name = loc.npc, dist = d, friendly = true } end
+        end
+    end
+    table.sort(found, function(x, y) return x.dist < y.dist end)
+    return found
+end
+
+-- The creatures of the focused quest's unfinished objectives (and of the quests that are here too): the ones to
+-- kill, and the ones that drop what it asks for.
+local function creatureTargets(id)
+    local out, seen = {}, {}
+    if not (id and C_QuestLog.IsOnQuest(id)) or ns.IsReadyToTurnIn(id) then return out end
+    local steps = ns.QuestSteps(questDef(id))
+    -- a kill objective names its creature; an item objective, the creatures that drop it (from the data)
+    local function add(step)
+        if step.kind ~= "obj" or step.done then return end
+        for _, name in ipairs(step.creature and { step.creature } or step.mobs or {}) do
+            if not seen[name] then
+                seen[name] = true
+                out[#out + 1] = { name = name }
+            end
+        end
+    end
+    local at = ns.Focus_PickStep(steps, false)
+    if at then add(steps[at]) end
+    for _, s in ipairs(steps) do add(s) end
+    for _, e in ipairs(relatedQuests(id, at and steps[at].loc)) do
+        for _, i in ipairs(e.indexes) do add(e.steps[i]) end
+    end
+    return out
+end
+
+-- Everything the key would try now, in order: { name, friendly? }.
+local function targetList(id)
+    local list = turnInTargets(id)
+    for _, c in ipairs(creatureTargets(id)) do list[#list + 1] = c end
+    return list
+end
+
+-- The macro for a list: with a target, or in combat, the normal "target the nearest enemy" and nothing else; with
+-- none, each name in turn (the next only while there is still no target; a corpse, or a friend where an enemy is
+-- wanted, is let go), then the normal one if nothing was found.
+function ns.Focus_TargetMacro(list)
+    local out = { "/targetenemy [exists][combat]", "/stopmacro [exists][combat]" }
+    local size = #out[1] + #out[2] + 40
+    for _, c in ipairs(list) do
+        local a = "/targetexact [noexists] " .. c.name
+        local b = c.friendly and "/cleartarget [dead]" or "/cleartarget [dead][help]"
+        size = size + #a + #b + 2
+        if size > MACRO_MAX then break end
+        out[#out + 1], out[#out + 2] = a, b
+    end
+    out[#out + 1] = "/targetenemy [noexists]"
+    return table.concat(out, "\n")
+end
+
+local function ensureTargetButton()
+    if targetButton then return targetButton end
+    local ok, button = pcall(CreateFrame, "Button", TARGET_BUTTON, UIParent, "SecureActionButtonTemplate")
+    if not ok or not button then return nil end
+    targetButton = button
+    button:SetAttribute("type", "macro")
+    -- on release, whatever the game's key-down setting: a press must run it once
+    button:SetAttribute("useOnKeyDown", false)
+    button:RegisterForClicks("AnyUp")
+    button:SetAttribute("macrotext", ns.Focus_TargetMacro({}))
+    return button
+end
+
+-- Keeps the macro up to date (and Tab bound to it, or not, as the setting says). Nothing can change in combat:
+-- it is done again once it ends.
+function ns.Focus_UpdateTargeting()
+    if inCombat() then return end
+    local button = ensureTargetButton()
+    if not button then return end
+    local text = ns.Focus_TargetMacro(ready and targetList(ns.Focus_Quest()) or {})
+    if button:GetAttribute("macrotext") ~= text then button:SetAttribute("macrotext", text) end
+    local wantTab = ns.char and ns.char.tabTarget and true or false
+    if wantTab and not tabBound then
+        SetOverrideBindingClick(button, false, "TAB", TARGET_BUTTON)
+        tabBound = true
+    elseif not wantTab and tabBound then
+        ClearOverrideBindings(button)
+        tabBound = false
+    end
+end
+
+-- "/completao target": says what the key would do now.
+function ns.Focus_TargetReport()
+    local function say(...) ns.Print("[target] " .. table.concat({ ... }, " ")) end
+    local id = ns.Focus_Quest()
+    say("Tab option:", tostring(ns.char.tabTarget), "| Tab bound:", tostring(tabBound), "| log loaded:", tostring(ready),
+        "| combat:", tostring(inCombat()), "| focused quest:", tostring(id))
+    local list = targetList(id)
+    local names = {}
+    for i, c in ipairs(list) do names[i] = c.name end
+    say("candidates:", #names > 0 and table.concat(names, ", ") or "(none: no creature known for the unfinished objectives, nobody to turn in to nearby)")
+    ns.Focus_UpdateTargeting()
+    say("macro:", targetButton and tostring(targetButton:GetAttribute("macrotext")):gsub("\n", " / ") or "(no button yet)")
+end
+
 -- Preferences: the setting was switched.
 function ns.Focus_SetAuto(on)
     ns.char.focusAuto = on and true or nil
@@ -513,6 +724,7 @@ end
 
 function ns.Focus_Refresh(force)
     if autoFocus() then return end
+    relatedSpot = nil
     local id = ns.Focus_Quest()
     if not id then
         -- nothing focused: the message stays up (after a turn-in, or with autofocus on and nothing it can pick,
@@ -537,8 +749,11 @@ function ns.Focus_Refresh(force)
     local target = ns.Focus_PickStep(steps, isReady)
     retarget(q, steps, target, force, isReady)
     local r, g, b = ns.QuestLevelColorRGB(q.level or q.minLevel)
+    local spot = target and steps[target].loc
+    local related = relatedQuests(id, spot)
+    relatedSpot, relatedHere = #related > 0 and spot or nil, isNear(spot)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
-        buildLines(q, steps, isReady))
+        buildLines(q, steps, isReady, related, relatedHere))
 end
 
 -- "Focusing here sets Blizzard's tracker" (Preferences, on unless switched off): a quest focused here, by the
@@ -611,6 +826,7 @@ events:SetScript("OnEvent", function(_, event, arg1, arg2)
         applyMouse(true)
     elseif event == "PLAYER_REGEN_ENABLED" then
         applyMouse(false)
+        ns.Focus_UpdateTargeting()
     elseif event == "SUPER_TRACKING_CHANGED" then
         ns.Focus_FollowBlizzard()
     elseif event == "QUEST_ACCEPTED" then
@@ -633,4 +849,7 @@ events:SetScript("OnUpdate", function(_, elapsed)
     if sinceAuto < AUTO_EVERY then return end
     sinceAuto = 0
     if ns.char and ns.char.focusAuto then autoFocus() end
+    -- "Also here" turns into "Also there" (and back) as the player walks off from, or to, the spot
+    if relatedSpot and frame and frame:IsShown() and isNear(relatedSpot) ~= relatedHere then ns.Focus_Refresh() end
+    ns.Focus_UpdateTargeting()
 end)

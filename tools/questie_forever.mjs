@@ -55,7 +55,7 @@ const SORT_ENTRIES = [
     { sort: -1, id: "epic", name: "Epic", category: "misc" },
 ];
 const UP_HOPS = 6 * 2, DOWN_HOPS = 3;
-const MAX_SOURCES = 40, MAX_STEPS = 6;
+const MAX_SOURCES = 40, MAX_STEPS = 6, MAX_MOBS = 4;
 const ALLIANCE = 77, HORDE = 178, ALL_RACES = 255;
 
 const lua = (s) => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
@@ -277,20 +277,42 @@ function densest(pts) {
     return [near.reduce((s, p) => s + p[0], 0) / near.length, near.reduce((s, p) => s + p[1], 0) / near.length];
 }
 
-// `key`: "name" for the objectives, "npc" for the place where a quest starts or ends
-function stepFrom(name, byZone, key = "name") {
+// `key`: "name" for the objectives, "npc" for the place where a quest starts or ends. `mobs`: the names of the
+// creatures that drop the item (an item objective), as { name -> its spawn points per zone }: the ones that
+// spawn in the zone the step is placed in come along, the most numerous first.
+function stepFrom(name, byZone, key = "name", mobs = null) {
     if (!name) return null;
     let bestZone, bestPts;
     for (const [zone, pts] of Object.entries(byZone)) {
         if (!bestPts || pts.length > bestPts.length || (pts.length === bestPts.length && Number(zone) < Number(bestZone))) { bestZone = zone; bestPts = pts; }
     }
     if (!bestPts) return null;
+    const dropped = mobs ? [...mobs].map(([n, zones]) => [n, zones[bestZone] ?? 0]).filter(([, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, MAX_MOBS).map(([n]) => n) : [];
+    const extra = dropped.length ? `, mobs = { ${dropped.map(lua).join(", ")} }` : "";
     const valid = bestPts.filter((c) => c[0] >= 0);
-    if (!valid.length) return `{ ${key} = ${lua(name)}, area = ${areaOf.get(Number(bestZone)) ?? bestZone} }`; // inside an instance
+    if (!valid.length) return `{ ${key} = ${lua(name)}, area = ${areaOf.get(Number(bestZone)) ?? bestZone}${extra} }`; // inside an instance
     const [x, y] = densest(valid);
-    return `{ ${key} = ${lua(name)}, area = ${bestZone}, x = ${f1(x)}, y = ${f1(y)} }`;
+    return `{ ${key} = ${lua(name)}, area = ${bestZone}, x = ${f1(x)}, y = ${f1(y)}${extra} }`;
 }
 const addSpawns = (acc, spawns) => { for (const [zone, list] of Object.entries(keyed(spawns))) (acc[zone] ??= []).push(...list); };
+
+// the creatures that drop an item, by name: { name -> { zone -> number of spawn points } } (as many as
+// itemSpawns looks at)
+function itemDroppers(it) {
+    const out = new Map();
+    let used = 0;
+    for (const id of it[2] ?? []) {
+        if (used >= MAX_SOURCES) break;
+        const n = npc(id);
+        if (!n) continue;
+        used++;
+        const zones = out.get(n[1]) ?? {};
+        for (const [zone, list] of Object.entries(keyed(n[7]))) zones[zone] = (zones[zone] ?? 0) + list.length;
+        out.set(n[1], zones);
+    }
+    return out;
+}
 
 // where an item is found: the spawns of what drops it and of the objects that hold it
 function itemSpawns(it) {
@@ -332,7 +354,7 @@ function stepsOf(q) {
     for (const o of group(obj, 3)) {
         const it = item(o[0]);
         if (!it) continue;
-        add(stepFrom(it[1], itemSpawns(it)));
+        add(stepFrom(it[1], itemSpawns(it), "name", itemDroppers(it)));
     }
     for (const o of group(obj, 5)) { // kill credit: { {npcs}, base npc, text }
         const acc = {};

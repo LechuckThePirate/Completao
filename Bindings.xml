@@ -5,4 +5,6 @@
     <Binding name="COMPLETAO_PREFS" category="Completao!!">
         Completao_TogglePreferences()
     </Binding>
+    <!-- a secure button (Modules/UI/FocusWindow.lua): the game only lets its own code change the target -->
+    <Binding name="CLICK CompletaoTargetButton:LeftButton" category="Completao!!"></Binding>
 </Bindings>

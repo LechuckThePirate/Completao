@@ -46,8 +46,7 @@ local state = {
 local rows = {}
 
 local function coinString(copper)
-    local f = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
-    return f and f(copper) or (copper .. "c")
+    return ns.CoinString(copper)
 end
 
 local function xpString(xp)
@@ -74,11 +73,7 @@ local function itemClass(id)
 end
 
 local function rewardIds(r)
-    local ids = {}
-    for _, list in ipairs({ r.choice or {}, r.items or {} }) do
-        for _, e in ipairs(list) do ids[#ids + 1] = type(e) == "table" and e[1] or e end
-    end
-    return ids
+    return ns.RewardItemIds(r)
 end
 
 -- Reward types present in the data: { {id, name, subs = { {id, name} }} }, by name.

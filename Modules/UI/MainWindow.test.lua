@@ -358,6 +358,29 @@ describe("MainWindow", function()
         ns.REWARDS = saved
     end)
 
+    it("a node shows the money and small icons of the items its quest gives, at the bottom left", function()
+        local id
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if ns.QuestVisible(q, ns.entries.vc) then id = q.id break end
+        end
+        local saved = ns.REWARDS
+        ns.REWARDS = { [id] = { money = 4500, xp = 100, items = { 1652 }, choice = { 2901, { 3334, 2 } } } }
+        ns.UI_Refresh()
+        local node = (ShownNodes())[id]
+        assert.are.equal("4500c", node.money._text)
+        local shown = 0
+        for _, icon in ipairs(node.icons) do
+            if icon:IsShown() then shown = shown + 1 end
+        end
+        assert.are.equal(3, shown)               -- the two to choose from and the fixed one
+        ns.REWARDS = {}
+        ns.UI_Refresh()
+        node = (ShownNodes())[id]
+        assert.are.equal("", node.money._text)
+        for _, icon in ipairs(node.icons) do assert.is_false(icon:IsShown()) end
+        ns.REWARDS = saved
+    end)
+
     it("a dragon badge marks elite quests, in place of the dungeon door", function()
         local id
         for _, q in ipairs(ns.entries.vc.quests) do

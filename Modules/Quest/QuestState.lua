@@ -260,3 +260,18 @@ function ns.QuestXP(id)
     local r = ns.REWARDS and ns.REWARDS[id]
     return r and r.xp or 0
 end
+
+-- The ids of the items a reward row gives: the ones to choose from, then the fixed ones (an entry is an id or { id, count }).
+function ns.RewardItemIds(r)
+    local ids = {}
+    for _, list in ipairs({ r.choice or {}, r.items or {} }) do
+        for _, e in ipairs(list) do ids[#ids + 1] = type(e) == "table" and e[1] or e end
+    end
+    return ids
+end
+
+-- Copper as the client writes it, with its coin icons ("4|TInterface...|t 50|T...|t").
+function ns.CoinString(copper)
+    local f = (C_CurrencyInfo and C_CurrencyInfo.GetCoinTextureString) or GetCoinTextureString
+    return f and f(copper) or (copper .. "c")
+end

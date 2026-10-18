@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: each quest box in the chain view also shows, at its bottom left, the money the quest gives and small icons of the items it gives (up to five, as many as fit), without making the boxes any bigger.
+
 ## 1.4.0
 
 - New: each quest box in the chain view shows the experience the quest gives, in its bottom-right corner, so you no longer have to open the quest and scroll down to read it. The boxes are a little taller to make room for it.

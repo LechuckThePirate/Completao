@@ -1,6 +1,14 @@
 local ADDON, ns = ...
 
 local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 52, 60, 20, 20
+local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
+
+-- The icon of an item, from what the client knows of it without loading it (a question mark when it knows nothing).
+local function itemIcon(id)
+    local f = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
+    local icon = f and select(5, f(id))
+    return icon or 134400
+end
 
 local STATUS_COLORS = {
     done      = { 0.20, 0.80, 0.20 },
@@ -96,6 +104,18 @@ local function getNodeButton(i)
     b.xp:SetPoint("BOTTOMRIGHT", -6, 4)
     b.xp:SetJustifyH("RIGHT")
     b.xp:SetTextColor(0.5, 0.75, 1)
+    -- the bottom-left of the box: the money, then small icons of the items the quest gives (textures, so a click still reaches the box)
+    b.money = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.money:SetPoint("BOTTOMLEFT", 6, 4)
+    b.money:SetJustifyH("LEFT")
+    b.icons = {}
+    for k = 1, NODE_ICONS do
+        local icon = b:CreateTexture(nil, "ARTWORK")
+        icon:SetSize(NODE_ICON, NODE_ICON)
+        icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+        icon:Hide()
+        b.icons[k] = icon
+    end
     -- top-left corner badge, over the border: a dragon head for elite quests, or a dungeon door for
     -- quests done inside an instance (elite takes priority; texture and color are set on each redraw)
     b.badge = b:CreateTexture(nil, "OVERLAY")
@@ -361,6 +381,24 @@ local function renderTree(d)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
         local xp = ns.QuestXP(n.quest.id)
         b.xp:SetText(xp > 0 and ("%s %s"):format(BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp, ns.L["XP"]) or "")
+        local reward = ns.REWARDS and ns.REWARDS[n.quest.id]
+        b.money:SetText(reward and reward.money and ns.CoinString(reward.money) or "")
+        -- the item icons go after the money while they fit before the XP
+        local x = 6 + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
+        local limit = NODE_W - 6 - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
+        local ids = reward and ns.RewardItemIds(reward) or {}
+        for k, icon in ipairs(b.icons) do
+            local itemId = ids[k]
+            if itemId and x + NODE_ICON <= limit then
+                icon:ClearAllPoints()
+                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, 3)
+                icon:SetTexture(itemIcon(itemId))
+                icon:Show()
+                x = x + NODE_ICON + 2
+            else
+                icon:Hide()
+            end
+        end
         b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
         -- translucent when they don't fit your level (too high ones more than low level ones);
         -- done ones and the ones in your log are always shown sharp

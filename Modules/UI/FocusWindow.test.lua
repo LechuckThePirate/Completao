@@ -1375,6 +1375,18 @@ describe("FocusWindow", function()
                 assert.are.same({ "Owl" }, tried)
             end)
 
+            it("/completao target says what it would do and tries once", function()
+                local said = {}
+                ns.Print = function(text) said[#said + 1] = text end
+                ns.char.autoTarget = nil -- (it reports and tries whatever the setting)
+                ns.Focus_TargetReport()
+                local all = table.concat(said, "\n")
+                assert.matches("focused quest: 999001", all)
+                assert.matches("candidates: Wolf, Boar", all)
+                assert.matches("TargetByName%(Wolf%) %-> no error", all)
+                assert.are.same({ "Wolf" }, tried)
+            end)
+
             it("when the game blocks it, switches itself off and says so", function()
                 FireEvent("ADDON_ACTION_FORBIDDEN", "SomeOtherAddon", "TargetByName()")
                 assert.is_true(ns.char.autoTarget) -- not ours

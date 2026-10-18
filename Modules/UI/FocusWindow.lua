@@ -634,13 +634,17 @@ local function creatureTargets(id)
     return out
 end
 
+-- Everything auto-target would try now, in order: { name, friendly? }.
+local function targetList(id)
+    local list = turnInTargets(id)
+    for _, c in ipairs(creatureTargets(id)) do list[#list + 1] = c end
+    return list
+end
+
 function ns.Focus_AutoTarget()
     if targetBlocked or not (ns.char and ns.char.autoTarget) or not ready or inCombat() then return false end
     if not (TargetByName and UnitExists) or UnitExists("target") then return false end
-    local id = ns.Focus_Quest()
-    local list = turnInTargets(id)
-    for _, c in ipairs(creatureTargets(id)) do list[#list + 1] = c end
-    for _, c in ipairs(list) do
+    for _, c in ipairs(targetList(ns.Focus_Quest())) do
         TargetByName(c.name)
         if UnitExists("target") then
             -- a corpse, or (for a creature) someone who isn't an enemy, is no use: let go of it and try the next
@@ -653,6 +657,25 @@ function ns.Focus_AutoTarget()
         end
     end
     return false
+end
+
+-- "/completao target": says why auto-target does or doesn't act, and tries once, whatever the setting.
+function ns.Focus_TargetReport()
+    local function say(...) ns.Print("[target] " .. table.concat({ ... }, " ")) end
+    local id = ns.Focus_Quest()
+    say("setting:", tostring(ns.char.autoTarget), "| blocked:", tostring(targetBlocked), "| log loaded:", tostring(ready),
+        "| combat:", tostring(inCombat()), "| focused quest:", tostring(id))
+    say("TargetByName:", type(TargetByName), "| UnitExists:", type(UnitExists), "| has a target:",
+        tostring(UnitExists and UnitExists("target")))
+    local list = targetList(id)
+    if #list == 0 then say("nothing to target: no creature known for the unfinished objectives, nobody to turn in to nearby") return end
+    local names = {}
+    for i, c in ipairs(list) do names[i] = c.name end
+    say("candidates:", table.concat(names, ", "))
+    if not TargetByName then return end
+    local ok, err = pcall(TargetByName, list[1].name)
+    say("TargetByName(" .. list[1].name .. ") ->", ok and "no error" or tostring(err), "| target now:",
+        tostring(UnitExists and UnitExists("target") and UnitName and UnitName("target")))
 end
 
 -- Preferences: the setting was switched.

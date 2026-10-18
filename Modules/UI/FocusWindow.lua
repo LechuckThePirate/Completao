@@ -13,8 +13,8 @@ local L = ns.L
 -- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
 -- distance; inside a dungeon, only the quests done in it). In combat the window stops taking the mouse, so clicks reach the world.
 -- Under the focused quest, "Also here:" lists the other tracked quests with something to do within a short
--- distance of the step being worked on (the miniboss's quest and the 10 critters beside it), each with its
--- objectives there; clicking one sets the waypoint on it.
+-- distance of the step being worked on (the miniboss's quest and the 10 critters beside it), each with all
+-- its objectives; clicking one sets the waypoint on it.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it
@@ -300,8 +300,9 @@ local function trackedIds()
 end
 
 -- "Also here": the other tracked quests with something to do by the spot `near` (within RELATED_RADIUS yards):
--- each unfinished objective there, or the turn-in when the quest is ready and who takes it is there. Returns a
--- list of { q, steps, indexes = { step indexes } }, in log order. Needs coordinates on both sides, so quests
+-- an unfinished objective there, or the turn-in when the quest is ready and who takes it is there. Returns a
+-- list of { q, steps, indexes = { step indexes } }, in log order: all the quest's objectives (done ones and
+-- the ones elsewhere too), or just the turn-in when it is ready. Needs coordinates on both sides, so quests
 -- done inside an instance (no coordinates) never match.
 local RELATED_RADIUS = 150
 local function relatedQuests(focusId, near)
@@ -321,6 +322,13 @@ local function relatedQuests(focusId, near)
             else
                 for i, s in ipairs(steps) do
                     if s.kind == "obj" and not s.done then check(i) end
+                end
+                -- the quest is here: it lists all its objectives, the ones elsewhere and the done ones too
+                if #indexes > 0 then
+                    indexes = {}
+                    for i, s in ipairs(steps) do
+                        if s.kind == "obj" then indexes[#indexes + 1] = i end
+                    end
                 end
             end
             if #indexes > 0 then out[#out + 1] = { q = q, steps = steps, indexes = indexes } end
@@ -368,8 +376,9 @@ local function buildLines(q, steps, isReady, related)
             for _, i in ipairs(e.indexes) do
                 local s = e.steps[i]
                 local tag = e.q.id .. ":" .. i
-                out[#out + 1] = { text = s.label .. (s.progress and (" " .. s.progress) or ""), kind = tag == focusTag and "target" or "todo", struck = false,
-                    loc = canShow(s.loc), label = s.label, tag = tag }
+                out[#out + 1] = { text = s.label .. (s.progress and (" " .. s.progress) or ""),
+                    kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
+                    loc = canShow(place(s)), label = s.label, tag = tag }
             end
         end
     end

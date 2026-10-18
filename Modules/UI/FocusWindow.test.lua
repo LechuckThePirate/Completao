@@ -1169,6 +1169,29 @@ describe("FocusWindow", function()
             assert.near(0.8, WowMock.userWaypoint.x, 1e-9)
         end)
 
+        it("lists all of such a quest's objectives, done and far ones too, and they work like the focused quest's", function()
+            local owl = ns.FindQuestDef(999004)
+            owl.steps = { { name = "Owls", area = 12, x = 80, y = 81 }, { name = "Bats", area = 12, x = 95, y = 96 },
+                { name = "Moths", area = 12, x = 81, y = 82 } }
+            WowMock.objectives[999004] = {
+                { text = "Owls: 2/10", finished = false, numFulfilled = 2, numRequired = 10 },
+                { text = "Bats: 0/4", finished = false, numFulfilled = 0, numRequired = 4 },
+                { text = "Moths: 6/6", finished = true, numFulfilled = 6, numRequired = 6 },
+            }
+            focus()
+            local texts = shownTexts()
+            assert.are.equal(7, #texts)
+            assert.matches("Owls 2/10", texts[5])
+            assert.matches("Bats 0/4", texts[6]) -- far from the wolves, but its quest is here
+            assert.matches("Moths 6/6", texts[7])
+            assert.matches("808080", texts[7]) -- done: grey...
+            assert.is_true(lineWith("Moths").step.struck) -- ...and struck through
+            lineWith("Bats"):Click()
+            assert.are.equal("999004:3", ns.FocusTag())
+            assert.near(0.95, WowMock.userWaypoint.x, 1e-9)
+            assert.matches("ffd100", shownTexts()[6]) -- and the gold follows
+        end)
+
         it("a quest ready to turn in shows its turn-in when who takes it is near", function()
             WowMock.readyForTurnIn[999004] = true
             focus()

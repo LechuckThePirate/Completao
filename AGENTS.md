@@ -90,7 +90,10 @@ pwsh tools\local\deploy.ps1                          # copy the addon into D:\Ga
 
 - Renaming the addon folder resets saved variables (new SV file name); don't rename casually.
 - Run PowerShell renames from a folder that is not the addon folder (it gets locked otherwise).
-- Forever throttles the web sources (403 beyond ~1 request / 3 s): local fetch tools must stay slow.
+- The web sources throttle (403 beyond ~1 request / 3 s) and, since mid-October 2026, refuse scripted requests to the Forever
+  pages altogether: local fetch tools stay slow and never try to get around a refusal. The server job probes once, and while
+  it is refused it writes the rewards from the cached listings plus open data (`tools/local/open_rows.mjs`) and publishes
+  `source.txt` (`open since <date>`); when the sources answer again the next run goes back to them by itself.
 - Forever moved the map coordinates of 4 zones (Mulgore, Eastern Plaguelands, Redridge, Stormwind) relative to Classic Era:
   anything sourced from Era coordinates needs converting (the git-ignored `tools/local/era_to_forever.mjs` does it).
 - Questie's data lives in a separate `QuestieDB` addon (baked CBOR in `QuestieDB_Forever.toc`). CBOR gotchas: half-float

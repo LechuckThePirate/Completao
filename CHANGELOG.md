@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2
+
+- Data: the rewards of a few more quests, as the public databases have them now.
+
 ## 1.4.1
 
 - New: each quest box in the chain view also shows, at its bottom left, the money the quest gives and small icons of the items it gives (up to five, as many as fit; hover one to see the item), without making the boxes any bigger.

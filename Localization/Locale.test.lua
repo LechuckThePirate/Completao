@@ -24,14 +24,15 @@ local function placeholders(text)
     return table.concat(found, " ")
 end
 
--- The code files (not the data nor the translations), as { file = text }. The instances' names are looked up
--- by their English text too.
+-- The code files (not the data nor the translations), as { file = text }. The names of the instances and of the
+-- events and miscellaneous entries are looked up by their English text too.
+local EXTRA = "Data/Generated/Extra.lua"
 local cachedCode
 local function codeFiles()
     if not cachedCode then
         cachedCode = {}
         for _, file in ipairs(TocFiles()) do
-            local instances = file == "Data/Dungeons.lua" or file == "Data/Raids.lua"
+            local instances = file == "Data/Dungeons.lua" or file == "Data/Raids.lua" or file == EXTRA
             if (instances or not file:match("^Data/")) and not file:match("^Localization/") then
                 local handle = assert(io.open(file))
                 cachedCode[file] = handle:read("*a")
@@ -105,6 +106,17 @@ describe("Locale", function()
                 for key in pairs(translationTable(TRANSLATIONS[1].file)) do
                     if not strings[key] and not used[key] then missing[#missing + 1] = key end
                 end
+                table.sort(missing)
+                assert.are.same({}, missing, "untranslated")
+            end)
+
+            it("translates the names of the events and miscellaneous entries", function()
+                local strings, missing, n = translationTable(t.file), {}, 0
+                for name in codeFiles()[EXTRA]:gmatch('RegisterEntry%({ id = "[^"]+", name = "(.-)", category = "') do
+                    n = n + 1
+                    if not strings[name] then missing[#missing + 1] = name end
+                end
+                assert.is_true(n > 5)
                 table.sort(missing)
                 assert.are.same({}, missing, "untranslated")
             end)

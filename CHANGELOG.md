@@ -3,6 +3,7 @@
 ## Unreleased
 
 - New: the quests of the books lying around the world (the ones you hand in to the librarians of Stormwind and Undercity) have a "Books" entry under Miscellaneous. They used to be in no entry at all.
+- Fixed: the names of the entries under Events and Miscellaneous (Seasonal, Lunar Festival, Epic...) are now translated.
 
 ## 1.4.2
 

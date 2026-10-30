@@ -99,6 +99,15 @@ describe("Data", function()
         assert.are.equal("misc", ns.entries.reputation.category)
     end)
 
+    it("the books have an entry of their own, with the library quests no zone files", function()
+        local books = {}
+        assert.are.equal("misc", ns.entries.books.category)
+        for _, q in ipairs(ns.entries.books.quests) do books[q.id] = true end
+        for _, id in ipairs({ 78124, 79091, 84396 }) do assert.is_true(books[id], id) end
+        -- a quest already filed by its sort is not repeated here
+        assert.is_nil(books[78148])
+    end)
+
     it("raid quests are marked as done inside their raid", function()
         local inside = 0
         for _, q in ipairs(ns.entries.naxx.quests) do if q.dungeon == "naxx" then inside = inside + 1 end end

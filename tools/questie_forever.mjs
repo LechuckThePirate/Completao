@@ -452,9 +452,11 @@ const write = (file, lines) => writeFileSync(join(GEN, file), lines.join("\n") +
 // Classic.lua: instances
 const classic = [...HEADER];
 const instSummary = [];
+const instanceQuests = new Set();
 for (const [entry, area] of Object.entries(INSTANCE_AREA)) {
     const set = collect(area);
     if (!set.size) continue;
+    for (const id of set) instanceQuests.add(id);
     const coreSet = core.get(area) ?? new Set();
     const n = emitEntry(classic, entry, null, set, false, (id) => (coreSet.has(id) ? "" : " -- chain"));
     instSummary.push(`${entry} ${n} (${coreSet.size} core)`);
@@ -476,6 +478,17 @@ for (const [id, q] of quests) {
         if (area && zoneName.has(area)) put(zoneSet, area, id);
     }
 }
+
+// books: a book lying in the world (an object starts the quest) is handed in to an NPC, and Questie files
+// none of them under a zone, so they would be in no entry at all. They go into one of their own, with the
+// other quests of the NPCs that take them (the library keeper's reward quest) that are in no entry either.
+const placed = new Set(instanceQuests);
+for (const map of [zoneSet, classSet, profSet]) for (const set of map.values()) for (const id of set) placed.add(id);
+for (const [id, q] of quests) if (SORT_ENTRIES.some((e) => e.sort === q[17])) placed.add(id);
+const isBook = (q) => group(q[2], 1).length > 0 && group(q[2], 2).length > 0 && group(q[3], 1).length > 0;
+const bookNpcs = new Set();
+for (const [id, q] of quests) if (!placed.has(id) && isBook(q)) for (const n of group(q[2], 1)) bookNpcs.add(n);
+const bookSet = new Set([...quests].filter(([id, q]) => !placed.has(id) && (isBook(q) || group(q[2], 1).some((n) => bookNpcs.has(n)))).map(([id]) => id));
 
 const zout = [...HEADER];
 const zones = [...zoneSet].map(([area, set]) => ({ area, name: zoneName.get(area), set, range: levelRange(set) }));
@@ -533,6 +546,7 @@ for (const e of SORT_ENTRIES) {
     if (!set.size) continue;
     totalE += emitEntry(eout, e.id, `ns.RegisterEntry({ id = ${lua(e.id)}, name = ${lua(e.name)}, category = ${lua(e.category)} })`, set);
 }
+if (bookSet.size) totalE += emitEntry(eout, "books", `ns.RegisterEntry({ id = "books", name = "Books", category = "misc" })`, bookSet);
 write("Extra.lua", eout);
 
 // entrances of the instances (parent zone + the portal's coordinates)

@@ -299,12 +299,18 @@ local function trackedIds()
     return ids
 end
 
--- "Also here": the other tracked quests with something to do by the spot `near` (within RELATED_RADIUS yards):
+-- "Also here": the other tracked quests with something to do by the spot `near` (within RELATED_RADIUS yards, see radiusFor):
 -- an unfinished objective there, or the turn-in when the quest is ready and who takes it is there. Returns a
 -- list of { q, steps, indexes = { step indexes } }, in log order: all the quest's objectives (done ones and
 -- the ones elsewhere too), or just the turn-in when it is ready. Needs coordinates on both sides, so quests
 -- done inside an instance (no coordinates) never match.
 local RELATED_RADIUS = 150
+-- The spot the game marks for a quest (loc.approx) is the middle of where it is done: the herbs of one quest may be
+-- 300 yards from the other quest's own middle. Either side being one of those widens the radius.
+local APPROX_RADIUS = 400
+local function radiusFor(a, b)
+    return (a.approx or b and b.approx) and APPROX_RADIUS or RELATED_RADIUS
+end
 local function relatedQuests(focusId, near)
     local out = {}
     if not near then return out end
@@ -315,7 +321,7 @@ local function relatedQuests(focusId, near)
             local indexes = {}
             local function check(i)
                 local d = steps[i].loc and ns.DistanceBetween(near, steps[i].loc)
-                if d and d <= RELATED_RADIUS then indexes[#indexes + 1] = i end
+                if d and d <= radiusFor(near, steps[i].loc) then indexes[#indexes + 1] = i end
             end
             if ns.IsReadyToTurnIn(id) then
                 check(#steps)
@@ -342,7 +348,7 @@ end
 local relatedSpot, relatedHere -- what the list under the quest was last worked out for, and whether it was "here"
 local function isNear(loc)
     local d = loc and ns.DistanceTo(loc)
-    return d ~= nil and d <= RELATED_RADIUS
+    return d ~= nil and d <= radiusFor(loc)
 end
 
 local function hexColor(r, g, b)

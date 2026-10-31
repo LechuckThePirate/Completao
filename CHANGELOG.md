@@ -4,7 +4,7 @@
 
 - New: Classic Era support (`Completao_Vanilla.toc`), with the quests of the public databases for that client. Not yet tested in the game.
 - New: TBC Anniversary support (`Completao_TBC.toc`): the Burning Crusade dungeons, raids and Eye of the Storm, Outland zones, Blood Elf and Draenei quests. Not yet tested in the game.
-- Fixed: on Classic Era and TBC the quests with objectives that have no place in the data (herbs, items) now take the spot the game marks for them, so they show under "Also here" with the other quests of the same area. `/completao here` says why each quest of the log does or doesn't.
+- Fixed: on Classic Era and TBC the quests with objectives that have no place in the data (herbs, items) now take the spot the game marks for them, so they show under "Also here" with the other quests of the same area (that spot is only the middle of the area, so it counts within 400 yards instead of 150). `/completao here` says why each quest of the log does or doesn't.
 - New: on Classic Era and TBC the addon keeps the list of tracked quests itself (a quest is tracked as you take it), in step with Questie's tracker when it is on. Track / Untrack in a quest's menu, and shift-click on a quest of the log does the same.
 - Changed: the addon is simply called Completao!! now (no longer "Completao!!: Forever"), ahead of support for other Classic clients.
 

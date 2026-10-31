@@ -1162,6 +1162,20 @@ describe("FocusWindow", function()
             assert.are.equal(2, #shownTexts())
         end)
 
+        it("takes a wider radius for the spot the game marks (approximate) than for an exact one", function()
+            ns.DistanceBetween = function() return 300 end
+            local owl = ns.FindQuestDef(999004)
+            owl.steps = { { name = "Owls", area = 12, x = 80, y = 81 } }
+            focus()
+            assert.are.equal(2, #shownTexts()) -- 300 yards from an exact spot: not by it
+            owl.steps = { { name = "Owls", area = 12, x = 80, y = 81, approx = true } }
+            ns.Focus_Refresh(true)
+            assert.matches("Owl Watch", table.concat(shownTexts(), "\n"))
+            ns.DistanceBetween = function() return 500 end
+            ns.Focus_Refresh(true)
+            assert.are.equal(2, #shownTexts())
+        end)
+
         it("clicking one of its objectives puts the waypoint on it", function()
             focus()
             lineWith("Owls"):Click()

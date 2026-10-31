@@ -32,7 +32,7 @@ local function codeFiles()
     if not cachedCode then
         cachedCode = {}
         for _, file in ipairs(TocFiles()) do
-            local instances = file == "Data/Forever/Dungeons.lua" or file == "Data/Forever/Raids.lua" or file == EXTRA
+            local instances = file:match("^Data/%a+/Dungeons%.lua$") or file:match("^Data/%a+/Raids%.lua$") or file == EXTRA
             if (instances or not file:match("^Data/")) and not file:match("^Localization/") then
                 local handle = assert(io.open(file))
                 cachedCode[file] = handle:read("*a")

@@ -1,0 +1,185 @@
+dofile("setupTests.lua")
+
+-- Data integrity (Data/ and Data/<Flavor>/Generated/): what the tools generate must have the shape the addon expects,
+-- for the data of every client.
+local FLAVORS = {
+    { id = "forever", toc = "Completao.toc", overrides = { "Data/Classic/Overrides.lua", "Data/Forever/Overrides.lua" } },
+    { id = "vanilla", toc = "Completao_Vanilla.toc", overrides = { "Data/Classic/Overrides.lua" } },
+}
+
+for _, flavor in ipairs(FLAVORS) do
+    describe("Data of " .. flavor.id, function()
+        local ns
+
+        setup(function()
+            WowMock.Reset()
+            ns = LoadAddon({ toc = flavor.toc })
+        end)
+
+        -- a location can be just the NPC (inside an instance there is no zone or coordinates)
+        local function isLoc(loc)
+            return type(loc) == "table" and (loc.area == nil or type(loc.area) == "number")
+                and (loc.x == nil or (type(loc.area) == "number" and type(loc.x) == "number" and type(loc.y) == "number"))
+        end
+
+        it("every entry has an id, a name and a known section", function()
+            local known = {}
+            for _, c in ipairs(ns.categories) do known[c.id] = true end
+            for _, d in ipairs(ns.entryList) do
+                assert.is_truthy(type(d.id) == "string" and d.id ~= "", "id")
+                assert.is_truthy(type(d.name) == "string" and d.name ~= "", d.id)
+                assert.is_true(known[d.category] == true, d.id .. ": section " .. tostring(d.category))
+            end
+        end)
+
+        it("every quest has the expected shape", function()
+            for _, d in ipairs(ns.entryList) do
+                local seen = {}
+                for _, q in ipairs(d.quests) do
+                    local where = d.id .. "/" .. tostring(q.id)
+                    assert.is_truthy(type(q.id) == "number" and q.id > 0, where)
+                    assert.is_nil(seen[q.id], where .. ": repeated in the entry")
+                    seen[q.id] = true
+                    assert.is_truthy(type(q.name) == "string" and q.name ~= "", where)
+                    for _, k in ipairs({ "level", "minLevel", "races", "classes" }) do
+                        assert.is_truthy(q[k] == nil or type(q[k]) == "number", where .. ": " .. k)
+                    end
+                    for _, k in ipairs({ "requires", "requiresAny" }) do
+                        for _, id in ipairs(q[k] or {}) do assert.are.equal("number", type(id), where .. ": " .. k) end
+                    end
+                    assert.is_truthy(q.faction == nil or q.faction == "Alliance" or q.faction == "Horde", where)
+                    if q.start then assert.is_true(isLoc(q.start), where .. ": start") end
+                    if q.finish then assert.is_true(isLoc(q.finish), where .. ": finish") end
+                    for _, s in ipairs(q.steps or {}) do
+                        assert.is_true(isLoc(s) and type(s.name) == "string", where .. ": steps")
+                    end
+                    if q.dungeon then assert.is_not_nil(ns.entries[q.dungeon], where .. ": dungeon " .. q.dungeon) end
+                end
+            end
+        end)
+
+        -- the rewards come from the web, for Forever only
+        if flavor.id == "forever" then it("rewards have the expected shape and belong to the addon's quests", function()
+            local function itemList(list, where)
+                for _, e in ipairs(list or {}) do
+                    if type(e) == "table" then
+                        assert.is_truthy(type(e[1]) == "number" and type(e[2]) == "number" and e[2] > 1, where)
+                    else
+                        assert.are.equal("number", type(e), where)
+                    end
+                end
+            end
+            local n, orphans = 0, {}
+            for id, r in pairs(ns.REWARDS) do
+                n = n + 1
+                local where = "rewards/" .. id
+                -- a quest the quest database dropped or re-filed since the last rewards refresh keeps its row until the
+                -- next refresh prunes it, so the daily quest-data job is not blocked by data it cannot regenerate
+                if not ns.FindQuestDef(id) then orphans[#orphans + 1] = id end
+                itemList(r.items, where); itemList(r.choice, where)
+                assert.is_truthy(r.money == nil or (type(r.money) == "number" and r.money > 0), where)
+                assert.is_truthy(r.xp == nil or (type(r.xp) == "number" and r.xp > 0), where)
+                for _, rep in ipairs(r.rep or {}) do assert.is_truthy(type(rep[1]) == "number" and type(rep[2]) == "number", where) end
+            end
+            assert.is_true(n > 1000)
+            table.sort(orphans)
+            -- many unknown ids would mean the rewards and the quests come from different builds, not a stray quest
+            assert.is_true(#orphans <= 25, "rewards of unknown quests: " .. table.concat(orphans, ", "))
+        end) end
+
+        it("the Classic raids, Deeprun Tram and the battlegrounds have quests and a known section", function()
+            for _, id in ipairs({ "zg", "aq20", "mc", "bwl", "aq40", "naxx" }) do
+                assert.are.equal("raids", ns.entries[id].category, id)
+                assert.is_true(#ns.entries[id].quests > 0, id)
+            end
+            for _, id in ipairs({ "av", "wsg", "ab" }) do
+                assert.are.equal("battlegrounds", ns.entries[id].category, id)
+                assert.is_true(#ns.entries[id].quests > 0, id)
+            end
+            assert.is_true(#ns.entries.dt.quests > 0)
+        end)
+
+        it("the events and miscellaneous entries exist and have quests", function()
+            for _, id in ipairs({ "lunar", "darkmoon", "seasonal", "aq_war", "invasion" }) do
+                assert.are.equal("events", ns.entries[id].category, id)
+                assert.is_true(#ns.entries[id].quests > 0, id)
+            end
+            assert.are.equal("misc", ns.entries.reputation.category)
+        end)
+
+        if flavor.id == "forever" then it("the books have an entry of their own, with the library quests no zone files", function()
+            local books = {}
+            assert.are.equal("misc", ns.entries.books.category)
+            for _, q in ipairs(ns.entries.books.quests) do books[q.id] = true end
+            for _, id in ipairs({ 78124, 79091, 84396 }) do assert.is_true(books[id], id) end
+            -- a quest already filed by its sort is not repeated here
+            assert.is_nil(books[78148])
+        end) end
+
+        it("raid quests are marked as done inside their raid", function()
+            local inside = 0
+            for _, q in ipairs(ns.entries.naxx.quests) do if q.dungeon == "naxx" then inside = inside + 1 end end
+            assert.is_true(inside > 10)
+        end)
+
+        -- Forever redrew the maps of four zones: Stormwind (1519) has Harry Burlguard at 74.3/37.2 in Era and 77.1/53.3 in
+        -- Forever, and no point of the data of a client may be in the other's
+        it("points are in the map coordinates of the client in the zones Forever redrew", function()
+            local x, y = 74.3, 37.2
+            if flavor.id == "forever" then x, y = 77.2, 53.2 end
+            local seen = 0
+            for _, d in ipairs(ns.entryList) do
+                for _, q in ipairs(d.quests) do
+                    if q.start and q.start.area == 1519 and q.start.npc == "Harry Burlguard" then
+                        seen = seen + 1
+                        assert.near(x, q.start.x, 0.3)
+                        assert.near(y, q.start.y, 0.3)
+                    end
+                end
+            end
+            assert.is_true(seen > 0)
+        end)
+
+        it("instance entries have their door", function()
+            for _, d in ipairs(ns.entryList) do
+                if d.entrance then assert.is_true(isLoc(d.entrance), d.id) end
+            end
+            assert.is_not_nil(ns.entries.vc.entrance)
+        end)
+
+        it("Altered Beings' step is at the Stagnant Oasis, not the other pond the Oasis Snapjaw spawns in", function()
+            local q = ns.FindQuestDef(880)
+            assert.near(55.6, q.steps[1].x, 0.5)
+            assert.near(42.6, q.steps[1].y, 0.5)
+        end)
+
+        it("hand fixes point at quests that exist", function()
+            local code = io.open("Data/Forever/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
+            for id in code:gmatch("PatchQuest%((%d+)") do
+                assert.is_not_nil(ns.FindQuestDef(tonumber(id)), "Overrides: quest " .. id)
+            end
+        end)
+
+        it("generated quest text carries no page script, markup or source name", function()
+            local function bad(text)
+                local t = text:lower()
+                return t:find("wow" .. "head", 1, true) or t:find("%f[%w]wh%.") or t:find("$(", 1, true)
+                    or t:find("<script", 1, true) or t:find("</", 1, true) or t:find("&nbsp;", 1, true)
+                    or t:find("isquestflagged", 1, true) or t:find("already completed this by typing", 1, true)
+                    or t:find("%f[%w_]const%s+[%w_]+%s*=") or t:find("%f[%w_]function%s*%(")
+            end
+            for _, d in ipairs(ns.entryList) do
+                for _, q in ipairs(d.quests) do
+                    local fields = { name = q.name, giver = q.giver, objective = q.objective, desc = q.desc }
+                    for i, s in ipairs(q.steps or {}) do fields["step " .. i] = s.name end
+                    for _, k in ipairs({ "start", "finish" }) do
+                        if q[k] then fields[k] = q[k].npc end
+                    end
+                    for k, text in pairs(fields) do
+                        assert.is_falsy(bad(text), d.id .. "/" .. q.id .. ": " .. k .. " has page residue")
+                    end
+                end
+            end
+        end)
+    end)
+end

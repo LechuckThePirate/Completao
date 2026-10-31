@@ -14,6 +14,27 @@ describe("Completao (startup)", function()
         assert.is_not_nil(ns.FindQuestDef(166))
     end)
 
+    it("loads the TOC of every client", function()
+        for _, toc in ipairs({ "Completao.toc", "Completao_Vanilla.toc" }) do
+            local other = LoadAddon({ toc = toc })
+            assert.is_true(#other.entryList > 100, toc)
+            assert.is_not_nil(other.entries.vc, toc)
+            assert.is_not_nil(other.FindQuestDef(166), toc)
+        end
+    end)
+
+    it("runs on the data of Classic Era, which has no rewards table, and opens the window on a chain", function()
+        WowMock.Reset()
+        local era = LoadAddon({ toc = "Completao_Vanilla.toc" })
+        assert.is_nil(era.REWARDS)
+        StartAddon(era, nil, { selected = "vc" })
+        era.UI_Toggle()
+        assert.is_true(era.UI:IsShown())
+        local _, shown = ShownNodes()
+        assert.is_true(shown > 0)
+        assert.matches("initialization complete %(%d+ quests%)", WowMock.printed[#WowMock.printed])
+    end)
+
     it("on entering, sets up the saved variables and announces in chat", function()
         StartAddon(ns)
         assert.is_not_nil(CompletaoDB)

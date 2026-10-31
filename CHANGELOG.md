@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: Classic Era support (`Completao_Vanilla.toc`), with the quests of the public databases for that client. Not yet tested in the game.
 - Changed: the addon is simply called Completao!! now (no longer "Completao!!: Forever"), ahead of support for other Classic clients.
 
 ## 1.4.3

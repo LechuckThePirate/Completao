@@ -1,0 +1,15 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- The quest data of Classic Era: the classic instances, then the quests generated from the public quest
+         database. The generated files are never edited by hand: the Overrides fix them. -->
+    <Script file="Data\Classic\Dungeons.lua"/>
+    <Script file="Data\Classic\Raids.lua"/>
+    <Script file="Data\Classic\Battlegrounds.lua"/>
+    <Script file="Data\Vanilla\Generated\Classic.lua"/>
+    <Script file="Data\Vanilla\Generated\Zones.lua"/>
+    <Script file="Data\Vanilla\Generated\Classes.lua"/>
+    <Script file="Data\Vanilla\Generated\Professions.lua"/>
+    <Script file="Data\Vanilla\Generated\Races.lua"/>
+    <Script file="Data\Vanilla\Generated\Extra.lua"/>
+    <Script file="Data\Vanilla\Generated\Entrances.lua"/>
+    <Script file="Data\Classic\Overrides.lua"/>
+</Ui>

@@ -1,6 +1,6 @@
 -- Loading the addon in tests: the files in TOC order (like the game), each with ("Completao", ns).
--- LoadAddon() loads everything; LoadAddon({ files = {...} }) only those files (with the Localization/
--- files in front if missing). StartAddon(ns) simulates entering the game.
+-- LoadAddon() loads everything (LoadAddon({ toc = "Completao_Vanilla.toc" }) for another client's toc);
+-- LoadAddon({ files = {...} }) only those files (with the Localization/ files in front if missing). StartAddon(ns) simulates entering the game.
 
 -- The .xml files of the toc (Load_*.xml: <Script file> and <Include file>, paths relative to the xml) are
 -- expanded in place, like the game does.
@@ -43,7 +43,7 @@ function LoadAddon(opts)
             files = withLocale
         end
     else
-        files = TocFiles()
+        files = TocFiles(opts.toc)
     end
     for _, f in ipairs(files) do
         local chunk = assert(loadfile(f))

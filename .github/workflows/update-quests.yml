@@ -1,7 +1,7 @@
 name: Update quest data
 
-# Once a day: take the latest QuestieDB release (Forever build), regenerate Data/Forever/Generated with
-# tools/questie_forever.mjs and, if anything changed, open a pull request with the result. Nothing is merged
+# Once a day: take the latest QuestieDB release (the Forever and Vanilla builds), regenerate Data/Forever/Generated
+# and Data/Vanilla/Generated with tools/questie_gen.mjs and, if anything changed, open a pull request with the result. Nothing is merged
 # here: the maintainer reviews the PR and merges it. Needs the repo setting "Allow GitHub Actions to create
 # and approve pull requests" (Settings > Actions > General).
 on:
@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Download QuestieDB (Forever)
+      - name: Download QuestieDB (Forever and Vanilla)
         id: questie
         env:
           INPUT_TAG: ${{ inputs.tag }}
@@ -46,23 +46,30 @@ jobs:
             tag=$(gh release view --repo Questie/QuestieDB --json tagName --jq .tagName)
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          gh release download "$tag" --repo Questie/QuestieDB --pattern QuestieDB-Forever.zip --dir "$RUNNER_TEMP"
-          unzip -q "$RUNNER_TEMP/QuestieDB-Forever.zip" -d "$RUNNER_TEMP/questie"
-          test -f "$RUNNER_TEMP/questie/QuestieDB/QuestieDB_Forever.toc"
+          for flavor in Forever Vanilla; do
+            gh release download "$tag" --repo Questie/QuestieDB --pattern "QuestieDB-$flavor.zip" --dir "$RUNNER_TEMP"
+            unzip -q "$RUNNER_TEMP/QuestieDB-$flavor.zip" -d "$RUNNER_TEMP/questie-$flavor"
+            test -f "$RUNNER_TEMP/questie-$flavor/QuestieDB/QuestieDB_$flavor.toc"
+          done
 
       - name: Regenerate Data/Forever/Generated
-        run: node tools/questie_forever.mjs
+        run: node tools/questie_gen.mjs --flavor forever
         env:
-          QUESTIEDB_TOC: ${{ runner.temp }}/questie/QuestieDB/QuestieDB_Forever.toc
+          QUESTIEDB_TOC: ${{ runner.temp }}/questie-Forever/QuestieDB/QuestieDB_Forever.toc
+
+      - name: Regenerate Data/Vanilla/Generated
+        run: node tools/questie_gen.mjs --flavor vanilla
+        env:
+          QUESTIEDB_TOC: ${{ runner.temp }}/questie-Vanilla/QuestieDB/QuestieDB_Vanilla.toc
 
       - name: Detect changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain Data/Forever/Generated)" ]; then
+          if [ -n "$(git status --porcelain Data/Forever/Generated Data/Vanilla/Generated)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Data/Forever/Generated is already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
+            echo "Data/Forever/Generated and Data/Vanilla/Generated are already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
           fi
 
       # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
@@ -90,12 +97,14 @@ jobs:
         with:
           branch: auto/quest-data
           base: master
-          add-paths: Data/Forever/Generated
+          add-paths: |
+            Data/Forever/Generated
+            Data/Vanilla/Generated
           commit-message: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           title: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           body: |
-            Automated daily refresh: `Data/Forever/Generated` regenerated with `tools/questie_forever.mjs` from the
-            QuestieDB (Forever) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
+            Automated daily refresh: `Data/Forever/Generated` and `Data/Vanilla/Generated` regenerated with
+            `tools/questie_gen.mjs` from the QuestieDB (Forever and Vanilla) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
 
             Review the diff, add a line under `## Unreleased` in `CHANGELOG.md` if it is worth telling players
             about, and merge. If this PR is closed without merging, the next run opens a new one.

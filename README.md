@@ -177,9 +177,9 @@ tools/         data generators (tools/local/ is git-ignored)
   One file per language (`esES.lua`, `frFR.lua`...) registers its translations for
   the client locales it covers; what a language doesn't translate falls back to
   English.
-- `Data/Forever/Dungeons.lua`, `Data/Forever/Raids.lua` -- the list of instances and where their
-  doors are. `Data/Forever/Generated/` -- quests, entrances and rewards written by the
-  tools. `Data/Forever/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
+- `Data/Classic/Dungeons.lua`, `Data/Classic/Raids.lua` -- the list of the classic instances (and
+  `Data/Forever/` the new ones of Forever). `Data/<Flavor>/Generated/` -- quests, entrances and rewards
+  written by the tools, one folder per client (Forever, Vanilla = Classic Era). `Data/Classic/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
   generator overwrites.
 
 ## Tests
@@ -210,7 +210,7 @@ Quest data is generated offline, not written by hand. The Forever-only content
 is fetched with local helpers that are not part of this repository
 (`tools/local/`, git-ignored):
 
-- `node tools/questie_forever.mjs` -- reads the Forever database that ships with
+- `node tools/questie_gen.mjs [--flavor forever|vanilla]` -- reads the database of that client that ships with
   [Questie](https://github.com/Questie/Questie) (`AddOns/QuestieDB/QuestieDB_Forever.toc`,
   base64 CBOR read by `tools/questie_db.mjs`; set `QUESTIEDB_TOC` if it is not
   in the default path) and writes everything under `Data/Forever/Generated/` except the
@@ -240,7 +240,7 @@ is fetched with local helpers that are not part of this repository
   databases. Only item ids and counts, money, experience and reputation are
   stored: names, icons and tooltips come from the client.
 - **Coordinates.** Everything in `Data/Forever/Generated/` is in Forever's map
-  coordinates. Forever redrew the maps of Mulgore, Eastern Plaguelands,
+  coordinates (`Data/Vanilla/Generated/` is in Classic Era's). Forever redrew the maps of Mulgore, Eastern Plaguelands,
   Redridge Mountains and Stormwind City (same world positions, new map
   bounds); Questie's data has them converted, and the local helpers that read
   web pages (which show the old coordinates) apply Questie's per-zone

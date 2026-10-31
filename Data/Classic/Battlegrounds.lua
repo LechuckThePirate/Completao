@@ -2,7 +2,7 @@ local _, ns = ...
 
 -- Classic battlegrounds. `area` is the battleground's AreaTable id, so the name follows the client's
 -- language; the level range is the lowest level that can enter. Their quests (honor and mark turn-ins,
--- supplies) come from Questie's Forever database (Data/Forever/Generated/Classic.lua).
+-- supplies) come from Questie's database (Data/<Flavor>/Generated/Classic.lua).
 local battlegrounds = {
     { id = "av",  name = "Alterac Valley", area = 2597, minLevel = 51, maxLevel = 60, size = 40 },
     { id = "wsg", name = "Warsong Gulch",  area = 3277, minLevel = 10, maxLevel = 60, size = 10 },

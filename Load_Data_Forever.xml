@@ -1,8 +1,11 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <!-- The quest data of the Forever client. The generated files are never edited by hand: Overrides.lua fixes them. -->
+    <!-- The quest data of the Forever client: its new instances, the classic ones, then the generated quests. The
+         generated files are never edited by hand: the Overrides fix them. -->
     <Script file="Data\Forever\Dungeons.lua"/>
+    <Script file="Data\Classic\Dungeons.lua"/>
     <Script file="Data\Forever\Raids.lua"/>
-    <Script file="Data\Forever\Battlegrounds.lua"/>
+    <Script file="Data\Classic\Raids.lua"/>
+    <Script file="Data\Classic\Battlegrounds.lua"/>
     <Script file="Data\Forever\Generated\Classic.lua"/>
     <Script file="Data\Forever\Generated\Zones.lua"/>
     <Script file="Data\Forever\Generated\Classes.lua"/>
@@ -13,5 +16,6 @@
     <Script file="Data\Forever\Generated\ForeverNew.lua"/>
     <Script file="Data\Forever\Generated\Rewards.lua"/>
     <Script file="Data\Forever\Generated\Entrances.lua"/>
+    <Script file="Data\Classic\Overrides.lua"/>
     <Script file="Data\Forever\Overrides.lua"/>
 </Ui>

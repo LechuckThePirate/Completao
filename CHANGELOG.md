@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Changed: the addon is simply called Completao!! now (no longer "Completao!!: Forever"), ahead of support for other Classic clients.
+
 ## 1.4.3
 
 - Data: the quests, as the public databases have them now.

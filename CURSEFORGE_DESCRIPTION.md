@@ -1,6 +1,6 @@
 # Completao!!
 
-**Every quest, in order.** Completao!! lays out the quests of WoW Forever as
+**Every quest, in order.** Completao!! lays out the quests of Classic WoW as
 chain trees: what each quest needs before you can take it, where it starts, what
 it asks of you, and which ones you have already done. Pick a section on the
 left, read the tree on the right, click a quest for everything about it -- and

@@ -1,6 +1,6 @@
 # Completao!!
 
-World of Warcraft addon for the Classic "Forever" beta that shows quests as a
+World of Warcraft addon for Classic that shows quests as a
 **chain tree**: which quests exist, what each one requires, where it starts, and
 which ones you have already done. Pick a dungeon, raid, zone or class on the
 left, read the tree on the right, click a quest for the details.
@@ -12,8 +12,8 @@ Inspired by BtWQuests.
 - **Dungeons, Raids, Battlegrounds, Zones, Class Quests, Professions, Races,
   Events and Miscellaneous** sections in a collapsible side panel, each one
   sorted alphabetically (dungeons and raids by level). Each entry lists its
-  level range, progress (`done/total`) and a NEW tag for the content Forever
-  adds. Everything but dungeons and raids only lists what you can do: entries
+  level range, progress (`done/total`) and a NEW tag for the content a client
+  adds on top of Classic (today, Forever's). Everything but dungeons and raids only lists what you can do: entries
   with no quest for your faction and race are hidden. Zone, class, race and
   profession names follow the client's language. Events holds the holiday and
   world events (Lunar Festival, Darkmoon Faire, the Ahn'Qiraj war effort,

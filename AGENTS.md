@@ -1,7 +1,8 @@
 # Completao!! — agent guide
 
-World of Warcraft addon for the Classic "Forever" beta (interface 16001): quest chain trees per dungeon, raid, zone, class... in
-the spirit of BtWQuests. Public repo `LechuckThePirate/Completao` (branch `master`), GPLv3, CurseForge project id 1716061.
+World of Warcraft Classic addon: quest chain trees per dungeon, raid, zone, class... in the spirit of BtWQuests. The data is
+per game client (`Data/<Flavor>/`, one `Load_Data_<Flavor>.xml` each): today only Forever (interface 16001; its beta has ended),
+with Classic Era, TBC Anniversary and Retail planned. Public repo `LechuckThePirate/Completao` (branch `master`), GPLv3, CurseForge project id 1716061.
 Sibling addons with the same conventions: `Embolsao` and `Aggreao` (both under `D:\Source\WowAddons\`).
 
 ## How to work with the maintainer

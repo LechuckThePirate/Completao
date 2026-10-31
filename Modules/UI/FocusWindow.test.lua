@@ -1162,11 +1162,11 @@ describe("FocusWindow", function()
             assert.are.equal(2, #shownTexts())
         end)
 
-        it("counts a quest 300 yards off as in the same area, and one 500 yards off as not", function()
+        it("counts a quest 300 yards off as in the same area, and one 340 yards off as not", function()
             ns.DistanceBetween = function() return 300 end
             focus()
             assert.matches("Owl Watch", table.concat(shownTexts(), "\n"))
-            ns.DistanceBetween = function() return 500 end
+            ns.DistanceBetween = function() return 340 end
             ns.Focus_Refresh(true)
             assert.are.equal(2, #shownTexts())
         end)

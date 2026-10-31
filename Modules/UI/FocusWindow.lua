@@ -306,7 +306,7 @@ end
 -- done inside an instance (no coordinates) never match.
 -- Wide enough for one area: a kill objective's spot is the middle of where its creatures roam, and a herb of another
 -- quest can be 300 yards off it.
-local RELATED_RADIUS = 400
+local RELATED_RADIUS = 320
 local function relatedQuests(focusId, near)
     local out = {}
     if not near then return out end

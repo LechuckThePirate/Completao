@@ -715,6 +715,38 @@ function ns.Focus_TargetReport()
     say("macro:", targetButton and tostring(targetButton:GetAttribute("macrotext")):gsub("\n", " / ") or "(no button yet)")
 end
 
+-- "/completao here": why each quest does or doesn't join the focused one under "Also here".
+function ns.Focus_HereReport()
+    local function say(...) ns.Print("[here] " .. table.concat({ ... }, " ")) end
+    local id = ns.Focus_Quest()
+    local steps = id and ns.QuestSteps(questDef(id))
+    local target = steps and ns.Focus_PickStep(steps, ns.IsReadyToTurnIn(id))
+    local spot = target and steps[target].loc
+    say("focused quest:", tostring(id), "| step:", tostring(target), "| spot:", spot and "yes" or "none",
+        "| own tracking:", tostring(ns.UsesOwnTracking()), "| player map:", tostring(C_Map.GetBestMapForUnit("player")))
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local qid = info and not info.isHeader and info.questID
+        if qid and qid > 0 then
+            local mine = questDef(qid)
+            local list = ns.QuestSteps(mine)
+            local objs, located, dists = 0, 0, {}
+            for _, s in ipairs(list) do
+                if s.kind == "obj" and not s.done then
+                    objs = objs + 1
+                    if s.loc then
+                        located = located + 1
+                        local d = spot and ns.DistanceBetween(spot, s.loc)
+                        dists[#dists + 1] = d and math.floor(d) or "?"
+                    end
+                end
+            end
+            say(qid, mine.name or "?", "| tracked:", tostring(ns.IsQuestTracked(qid)), "| ready:", tostring(ns.IsReadyToTurnIn(qid)),
+                "| open objectives:", objs, "| with a spot:", located, "| yards:", #dists > 0 and table.concat(dists, ",") or "-")
+        end
+    end
+end
+
 -- Preferences: the setting was switched.
 function ns.Focus_SetAuto(on)
     ns.char.focusAuto = on and true or nil

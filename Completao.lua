@@ -110,6 +110,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Minimap_Toggle()
     elseif msg == "target" then
         ns.Focus_TargetReport()
+    elseif msg == "here" then
+        ns.Focus_HereReport()
     elseif msg == "changelog" or msg == "whatsnew" then
         ns.Welcome_Show()
     elseif msg:match("^fade") then

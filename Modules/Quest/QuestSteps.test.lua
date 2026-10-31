@@ -94,6 +94,35 @@ describe("QuestSteps", function()
             for _, s in ipairs(list) do if s.kind == "obj" then assert.is_nil(s.loc) end end
         end)
 
+        describe("on a client without GetQuestsOnMap", function()
+            local saved
+            before_each(function()
+                saved = C_QuestLog.GetQuestsOnMap
+                C_QuestLog.GetQuestsOnMap = nil
+            end)
+            after_each(function()
+                C_QuestLog.GetQuestsOnMap = saved
+                _G.QuestPOIGetIconInfo = nil
+            end)
+
+            it("takes the point of the old global, on the player's map", function()
+                _G.QuestPOIGetIconInfo = function(id) if id == 901 then return false, 0.4, 0.6 end end
+                local list, current = ns.QuestSteps(q)
+                local loc = list[current].loc
+                assert.are.equal(1411, loc.map)
+                assert.is_true(math.abs(loc.x - 40) < 1e-6 and math.abs(loc.y - 60) < 1e-6)
+            end)
+
+            it("ignores a point that isn't on the map", function()
+                _G.QuestPOIGetIconInfo = function() return false, nil, nil end
+                local list, current = ns.QuestSteps(q)
+                assert.is_nil(list[current].loc)
+                _G.QuestPOIGetIconInfo = function() return false, 40, 60 end
+                list, current = ns.QuestSteps(q)
+                assert.is_nil(list[current].loc)
+            end)
+        end)
+
         it("never replaces a place the data has", function()
             q.steps = { { name = "Raider's Shield", area = 12, x = 30, y = 31 } }
             local list, current = ns.QuestSteps(q)

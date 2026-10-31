@@ -1405,6 +1405,13 @@ describe("FocusWindow", function()
             assert.matches("candidates: Wolf, Boar", all)
             assert.matches("macro: /targetenemy", all)
         end)
+
+        it("/completao here says what the focused quest's spot is and how the tracking works", function()
+            local said = {}
+            ns.Print = function(text) said[#said + 1] = text end
+            ns.Focus_HereReport()
+            assert.matches("%[here%] focused quest: 999001 | step: %d+ | spot: yes | own tracking: false", table.concat(said, "\n"))
+        end)
     end)
 
 end)

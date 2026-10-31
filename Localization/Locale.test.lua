@@ -25,18 +25,21 @@ local function placeholders(text)
 end
 
 -- The code files (not the data nor the translations), as { file = text }. The names of the instances and of the
--- events and miscellaneous entries are looked up by their English text too.
-local EXTRA = "Data/Forever/Generated/Extra.lua"
+-- events and miscellaneous entries (the generated Extra.lua of every client) are looked up by their English text too.
+local TOCS = { "Completao.toc", "Completao_Vanilla.toc", "Completao_TBC.toc" }
+local function isExtra(file) return file:match("^Data/%a+/Generated/Extra%.lua$") ~= nil end
 local cachedCode
 local function codeFiles()
     if not cachedCode then
         cachedCode = {}
-        for _, file in ipairs(TocFiles()) do
-            local instances = file:match("^Data/%a+/Dungeons%.lua$") or file:match("^Data/%a+/Raids%.lua$") or file == EXTRA
-            if (instances or not file:match("^Data/")) and not file:match("^Localization/") then
-                local handle = assert(io.open(file))
-                cachedCode[file] = handle:read("*a")
-                handle:close()
+        for _, toc in ipairs(TOCS) do
+            for _, file in ipairs(TocFiles(toc)) do
+                local instances = file:match("^Data/%a+/Dungeons%.lua$") or file:match("^Data/%a+/Raids%.lua$") or isExtra(file)
+                if (instances or not file:match("^Data/")) and not file:match("^Localization/") and not cachedCode[file] then
+                    local handle = assert(io.open(file))
+                    cachedCode[file] = handle:read("*a")
+                    handle:close()
+                end
             end
         end
     end
@@ -112,9 +115,13 @@ describe("Locale", function()
 
             it("translates the names of the events and miscellaneous entries", function()
                 local strings, missing, n = translationTable(t.file), {}, 0
-                for name in codeFiles()[EXTRA]:gmatch('RegisterEntry%({ id = "[^"]+", name = "(.-)", category = "') do
-                    n = n + 1
-                    if not strings[name] then missing[#missing + 1] = name end
+                for file, text in pairs(codeFiles()) do
+                    if isExtra(file) then
+                        for name in text:gmatch('RegisterEntry%({ id = "[^"]+", name = "(.-)", category = "') do
+                            n = n + 1
+                            if not strings[name] then missing[#missing + 1] = name end
+                        end
+                    end
                 end
                 assert.is_true(n > 5)
                 table.sort(missing)

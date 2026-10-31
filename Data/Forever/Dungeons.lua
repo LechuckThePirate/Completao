@@ -52,7 +52,7 @@ for _, d in ipairs(dungeons) do
 end
 
 -- Zone of the entrance of Forever's new dungeons (no exact coordinates yet;
--- source: classicwow.gg/forever/dungeons). Classic's are generated in Data/Generated/Entrances.lua.
+-- source: classicwow.gg/forever/dungeons). Classic's are generated in Data/Forever/Generated/Entrances.lua.
 -- Area ids: Ironforge 1537, Tirisfal 85, Wetlands 11, Alterac 36, Stranglethorn 33,
 -- Riverglades 16591 (a new Forever zone), Dustwallow 15, Azshara 16, Un'Goro 490.
 for entry, area in pairs({ hot = 1537, rol = 85, exw = 11, dal = 36, dc = 33, kds = 16591, alc = 15, bmh = 16, sht = 490 }) do

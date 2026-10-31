@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- Hand fixes over the generated data (Data/Generated/*). No generator overwrites this file. Examples:
+-- Hand fixes over the generated data (Data/Forever/Generated/*). No generator overwrites this file. Examples:
 --   ns.PatchQuest(92401, { requires = { 92422 } })   -- add/change a requirement
 --   ns.PatchQuest(12345, { faction = false })         -- false removes the field
 

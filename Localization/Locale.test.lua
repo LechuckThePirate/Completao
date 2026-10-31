@@ -26,13 +26,13 @@ end
 
 -- The code files (not the data nor the translations), as { file = text }. The names of the instances and of the
 -- events and miscellaneous entries are looked up by their English text too.
-local EXTRA = "Data/Generated/Extra.lua"
+local EXTRA = "Data/Forever/Generated/Extra.lua"
 local cachedCode
 local function codeFiles()
     if not cachedCode then
         cachedCode = {}
         for _, file in ipairs(TocFiles()) do
-            local instances = file == "Data/Dungeons.lua" or file == "Data/Raids.lua" or file == EXTRA
+            local instances = file == "Data/Forever/Dungeons.lua" or file == "Data/Forever/Raids.lua" or file == EXTRA
             if (instances or not file:match("^Data/")) and not file:match("^Localization/") then
                 local handle = assert(io.open(file))
                 cachedCode[file] = handle:read("*a")

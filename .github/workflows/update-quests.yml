@@ -1,6 +1,6 @@
 name: Update quest data
 
-# Once a day: take the latest QuestieDB release (Forever build), regenerate Data/Generated with
+# Once a day: take the latest QuestieDB release (Forever build), regenerate Data/Forever/Generated with
 # tools/questie_forever.mjs and, if anything changed, open a pull request with the result. Nothing is merged
 # here: the maintainer reviews the PR and merges it. Needs the repo setting "Allow GitHub Actions to create
 # and approve pull requests" (Settings > Actions > General).
@@ -50,7 +50,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/QuestieDB-Forever.zip" -d "$RUNNER_TEMP/questie"
           test -f "$RUNNER_TEMP/questie/QuestieDB/QuestieDB_Forever.toc"
 
-      - name: Regenerate Data/Generated
+      - name: Regenerate Data/Forever/Generated
         run: node tools/questie_forever.mjs
         env:
           QUESTIEDB_TOC: ${{ runner.temp }}/questie/QuestieDB/QuestieDB_Forever.toc
@@ -58,11 +58,11 @@ jobs:
       - name: Detect changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain Data/Generated)" ]; then
+          if [ -n "$(git status --porcelain Data/Forever/Generated)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Data/Generated is already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
+            echo "Data/Forever/Generated is already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
           fi
 
       # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
@@ -90,11 +90,11 @@ jobs:
         with:
           branch: auto/quest-data
           base: master
-          add-paths: Data/Generated
+          add-paths: Data/Forever/Generated
           commit-message: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           title: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           body: |
-            Automated daily refresh: `Data/Generated` regenerated with `tools/questie_forever.mjs` from the
+            Automated daily refresh: `Data/Forever/Generated` regenerated with `tools/questie_forever.mjs` from the
             QuestieDB (Forever) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
 
             Review the diff, add a line under `## Unreleased` in `CHANGELOG.md` if it is worth telling players

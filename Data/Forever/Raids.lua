@@ -7,7 +7,7 @@ local raids = {
     { id = "bd",   name = "Barrow Deeps",     minLevel = 60, maxLevel = 60, size = 10, new = true },
     { id = "hs",   name = "Hyjal Summit",     minLevel = 60, maxLevel = 60, size = 20, new = true },
     { id = "ony",  name = "Onyxia's Lair", nameArea = 2159,    minLevel = 60, maxLevel = 60, size = 40 },
-    -- Classic raids: their quests and entrances come from Questie's Forever database (Data/Generated/).
+    -- Classic raids: their quests and entrances come from Questie's Forever database (Data/Forever/Generated/).
     { id = "zg",   name = "Zul'Gurub", nameArea = 1977,        minLevel = 60, maxLevel = 60, size = 20 },
     { id = "aq20", name = "Ruins of Ahn'Qiraj", nameArea = 3429, minLevel = 60, maxLevel = 60, size = 20 },
     { id = "mc",   name = "Molten Core", nameArea = 2717,      minLevel = 60, maxLevel = 60, size = 40 },
@@ -26,5 +26,5 @@ for _, r in ipairs(raids) do
 end
 
 -- Hyjal Summit: Mount Hyjal (area 616). Barrow Deeps has several entrances and none is marked.
--- Onyxia's Lair's is generated in Data/Generated/Entrances.lua.
+-- Onyxia's Lair's is generated in Data/Forever/Generated/Entrances.lua.
 ns.SetEntrance("hs", { area = 616 })

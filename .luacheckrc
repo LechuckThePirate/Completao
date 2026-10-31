@@ -1,11 +1,11 @@
 -- luacheck (as in Questie): Lua 5.1, the game's version. Runs in CI; locally:
---   luacheck Completao.lua Localization Modules Data/Dungeons.lua Data/Raids.lua Data/Overrides.lua test setupTests.lua
+--   luacheck Completao.lua Localization Modules Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua test setupTests.lua
 std = "lua51"
 max_line_length = 160
 codes = true
 
 exclude_files = {
-    "Data/Generated/",
+    "Data/*/Generated/",
     "tools/",
     ".github/",
     "images/",
@@ -25,7 +25,7 @@ read_globals = {
     "C_AddOns", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
     "C_Texture", "C_Timer", "C_TradeSkillUI",
     "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
-    "GetCoinTextureString",
+    "GetCoinTextureString", "GetBuildInfo",
     "GetCursorPosition", "GetFactionInfoByID", "GetInstanceInfo", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
     "IsMouseButtonDown", "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "UnitOnTaxi", "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "HandleModifiedItemClick",
     "BreakUpLargeNumbers", "IsControlKeyDown", "IsShiftKeyDown", "ITEM_QUALITY_COLORS", "LOCALIZED_CLASS_NAMES_MALE",

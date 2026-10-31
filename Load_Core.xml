@@ -1,0 +1,15 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- Shared by every client: the base the data files register their entries on. -->
+    <Script file="Modules\Core\Flavor.lua"/>
+    <Script file="Localization\Locale.lua"/>
+    <Script file="Localization\esES.lua"/>
+    <Script file="Localization\frFR.lua"/>
+    <Script file="Localization\deDE.lua"/>
+    <Script file="Localization\itIT.lua"/>
+    <Script file="Localization\ptBR.lua"/>
+    <Script file="Modules\Database\Entries.lua"/>
+    <Script file="Modules\Quest\QuestState.lua"/>
+    <Script file="Modules\Quest\QuestSteps.lua"/>
+    <Script file="Modules\Settings\Settings.lua"/>
+    <Script file="Modules\UI\Layout.lua"/>
+</Ui>

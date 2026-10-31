@@ -1,6 +1,6 @@
 dofile("setupTests.lua")
 
--- Data integrity (Data/ and Data/Generated/): what the tools generate must have the shape the addon expects.
+-- Data integrity (Data/Forever/ and Data/Forever/Generated/): what the tools generate must have the shape the addon expects.
 describe("Data", function()
     local ns
 
@@ -140,7 +140,7 @@ describe("Data", function()
     end)
 
     it("hand fixes point at quests that exist", function()
-        local code = io.open("Data/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
+        local code = io.open("Data/Forever/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
         for id in code:gmatch("PatchQuest%((%d+)") do
             assert.is_not_nil(ns.FindQuestDef(tonumber(id)), "Overrides: quest " .. id)
         end

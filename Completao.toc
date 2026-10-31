@@ -22,42 +22,6 @@
 ## SavedVariablesPerCharacter: CompletaoCharDB
 ## X-Curse-Project-ID: 1716061
 
-Localization\Locale.lua
-Localization\esES.lua
-Localization\frFR.lua
-Localization\deDE.lua
-Localization\itIT.lua
-Localization\ptBR.lua
-Modules\Database\Entries.lua
-Modules\Quest\QuestState.lua
-Modules\Quest\QuestSteps.lua
-Modules\Settings\Settings.lua
-Modules\UI\Layout.lua
-Data\Dungeons.lua
-Data\Raids.lua
-Data\Battlegrounds.lua
-Data\Generated\Classic.lua
-Data\Generated\Zones.lua
-Data\Generated\Classes.lua
-Data\Generated\Professions.lua
-Data\Generated\Races.lua
-Data\Generated\Extra.lua
-Data\Generated\Forever.lua
-Data\Generated\ForeverNew.lua
-Data\Generated\Rewards.lua
-Data\Generated\Entrances.lua
-Data\Overrides.lua
-Modules\Graph\Graph.lua
-Modules\Map\Waypoints.lua
-Modules\UI\Menu.lua
-Modules\UI\QuestPanel.lua
-Modules\UI\QuestMenu.lua
-Modules\UI\Search.lua
-Modules\UI\FocusWindow.lua
-Modules\UI\BlizzardTracker.lua
-Modules\UI\MainWindow.lua
-Modules\UI\Preferences.lua
-Modules\UI\Welcome.lua
-Modules\UI\MinimapButton.lua
-Modules\API\API.lua
-Completao.lua
+Load_Core.xml
+Load_Data_Forever.xml
+Load_Modules.xml

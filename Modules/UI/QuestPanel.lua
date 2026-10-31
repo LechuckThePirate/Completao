@@ -119,7 +119,7 @@ local function buildText(q)
     return table.concat(parts, "\n\n")
 end
 
--- Rewards (Data/Generated/Rewards.lua, ns.REWARDS): under the text, a block of text lines and item
+-- Rewards (Data/Forever/Generated/Rewards.lua, ns.REWARDS): under the text, a block of text lines and item
 -- buttons (icon, count, name in its quality color and the game's tooltip). Names and colors come from the
 -- client by item id; if it doesn't have them yet, they are requested and redrawn when they arrive.
 local ITEM_W, ITEM_H = 210, 30

@@ -69,3 +69,17 @@ describe("QuestLogCompat", function()
         assert.are.equal("function", type(C_QuestLog.GetLogIndexForQuestID))
     end)
 end)
+
+describe("QuestLogCompat in the toc", function()
+    it("is loaded by every client's toc, before the modules that use C_QuestLog", function()
+        for _, toc in ipairs({ "Completao.toc", "Completao_Vanilla.toc", "Completao_TBC.toc" }) do
+            local at, first
+            for i, f in ipairs(TocFiles(toc)) do
+                if f == "Modules/Core/QuestLogCompat.lua" then at = i end
+                if not first and f:match("^Modules/") and f ~= "Modules/Core/Flavor.lua" and f ~= "Modules/Core/QuestLogCompat.lua" then first = i end
+            end
+            assert.is_not_nil(at, toc)
+            assert.is_true(at < first, toc)
+        end
+    end)
+end)

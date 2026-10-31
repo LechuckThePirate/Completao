@@ -1,6 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
     <!-- Shared by every client: the base the data files register their entries on. -->
     <Script file="Modules\Core\Flavor.lua"/>
+    <Script file="Modules\Core\QuestLogCompat.lua"/>
     <Script file="Localization\Locale.lua"/>
     <Script file="Localization\esES.lua"/>
     <Script file="Localization\frFR.lua"/>

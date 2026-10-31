@@ -155,6 +155,8 @@ ns.AddLocale({ "deDE" }, {
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab anvisiert zuerst Quest-Kreaturen und Abgabe-NPCs",
     ["Target quest creatures and turn-in NPCs"] = "Quest-Kreaturen und Abgabe-NPCs anvisieren",
     ["Stop focus"] = "Fokus beenden",
+    ["Track"] = "Verfolgen",
+    ["Shift-click to track or untrack it."] = "Umschalt+Klick: verfolgen oder nicht mehr verfolgen.",
     ["Untrack"] = "Nicht mehr verfolgen",
     ["Right-click for options."] = "Rechtsklick für Optionen.",
     ["Turn in %s (%s)"] = "%s abgeben (%s)",

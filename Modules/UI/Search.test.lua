@@ -259,31 +259,31 @@ describe("Search", function()
             assert.is_false(ns.IsQuestTracked(166)) -- not in the log
         end)
 
-        it("on a client with a watch list, follows it, unless it is empty (a third-party tracker): then the log is", function()
+        it("on the clients that keep their own list, follows it", function()
             C_QuestLog.GetQuestWatchType = nil
             WowMock.onQuest[166] = true
-            local watched = { [166] = true }
-            C_QuestLog.IsQuestWatched = function(id) return watched[id] == true end
+            ns.flavor = "tbc"
             assert.is_true(ns.IsQuestTracked(166))
-            assert.is_false(ns.IsQuestTracked(999999)) -- something is watched, and not this
-            watched = {}
-            assert.is_true(ns.IsQuestTracked(999999)) -- nothing is: every quest of the log is
-            assert.is_true(ns.IsQuestTracked(166))
-            C_QuestLog.IsQuestWatched = nil
+            ns.UntrackQuest(166)
+            assert.is_false(ns.IsQuestTracked(166))
+            assert.is_true(ns.IsQuestTracked(999999))
+            ns.flavor = nil
         end)
 
-        it("counts a quest with no objectives as tracked, since the game can't track it", function()
+        it("shift-click on a quest of the log tracks or untracks it, without opening its details", function()
             C_QuestLog.GetQuestWatchType = nil
-            WowMock.onQuest[166] = true
-            local objectives = { [2] = 0, [4] = 2 } -- log lines 2 (quest 166) and 4 (999999)
-            _G.GetNumQuestLeaderBoards = function(index) return objectives[index] end
-            C_QuestLog.IsQuestWatched = function() return false end
-            C_QuestLog.IsQuestWatched = function(id) return id == 999999 end -- the only one in the watch list
-            assert.is_true(ns.IsQuestTracked(166))
-            WowMock.log[2].questID = 166
-            objectives[2] = 1
-            assert.is_false(ns.IsQuestTracked(166))
-            C_QuestLog.IsQuestWatched, _G.GetNumQuestLeaderBoards = nil, nil
+            ns.flavor = "tbc"
+            ns.UI_SetSearchMode(true, "log")
+            local function rowOf(id)
+                for _, r in ipairs(ShownRows()) do if r.quest.id == id then return r end end
+            end
+            WowMock.shift = true
+            rowOf(999999):GetScript("OnClick")(rowOf(999999), "LeftButton")
+            assert.is_false(ns.IsQuestTracked(999999))
+            rowOf(999999):GetScript("OnClick")(rowOf(999999), "LeftButton")
+            assert.is_true(ns.IsQuestTracked(999999))
+            WowMock.shift = false
+            ns.flavor = nil
         end)
 
         it("the search table has no status icons", function()

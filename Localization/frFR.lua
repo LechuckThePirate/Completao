@@ -156,6 +156,8 @@ ns.AddLocale({ "frFR" }, {
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab cible d'abord les créatures de quête et les PNJ de remise",
     ["Target quest creatures and turn-in NPCs"] = "Cibler les créatures de quête et les PNJ de remise",
     ["Stop focus"] = "Arrêter la focalisation",
+    ["Track"] = "Suivre",
+    ["Shift-click to track or untrack it."] = "Maj+clic pour la suivre ou ne plus la suivre.",
     ["Untrack"] = "Ne plus suivre",
     ["Right-click for options."] = "Clic droit pour les options.",
     ["Turn in %s (%s)"] = "Rendre %s (%s)",

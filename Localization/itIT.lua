@@ -155,6 +155,8 @@ ns.AddLocale({ "itIT" }, {
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab bersaglia prima creature di quest e PNG di consegna",
     ["Target quest creatures and turn-in NPCs"] = "Bersaglia creature di quest e PNG di consegna",
     ["Stop focus"] = "Interrompi il focus",
+    ["Track"] = "Segui",
+    ["Shift-click to track or untrack it."] = "Maiusc+clic per seguirla o smettere di seguirla.",
     ["Untrack"] = "Smetti di seguire",
     ["Right-click for options."] = "Clic destro per le opzioni.",
     ["Turn in %s (%s)"] = "Consegna %s (%s)",

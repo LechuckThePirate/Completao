@@ -10,6 +10,7 @@
     <Script file="Localization\ptBR.lua"/>
     <Script file="Modules\Database\Entries.lua"/>
     <Script file="Modules\Quest\QuestState.lua"/>
+    <Script file="Modules\Quest\QuestTracking.lua"/>
     <Script file="Modules\Quest\QuestSteps.lua"/>
     <Script file="Modules\Settings\Settings.lua"/>
     <Script file="Modules\UI\Layout.lua"/>

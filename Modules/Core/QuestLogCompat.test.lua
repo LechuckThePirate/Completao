@@ -51,16 +51,6 @@ describe("QuestLogCompat", function()
         assert.has_no.errors(function() C_QuestLog.RequestLoadQuestByID(1) end)
     end)
 
-    it("tells whether a quest is in the tracker through the old watch list", function()
-        local watched = { [3] = true }
-        _G.IsQuestWatched = function(index) return watched[index] end
-        LoadAddon({ files = { "Modules/Core/QuestLogCompat.lua" } })
-        assert.is_true(C_QuestLog.IsQuestWatched(33)) -- log line 3
-        assert.is_false(C_QuestLog.IsQuestWatched(62))
-        assert.is_false(C_QuestLog.IsQuestWatched(999))
-        _G.IsQuestWatched = nil
-    end)
-
     it("selects quests through the old selection", function()
         LoadAddon({ files = { "Modules/Core/QuestLogCompat.lua" } })
         C_QuestLog.SetSelectedQuest(33)

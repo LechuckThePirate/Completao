@@ -4,6 +4,7 @@
 
 - New: Classic Era support (`Completao_Vanilla.toc`), with the quests of the public databases for that client. Not yet tested in the game.
 - New: TBC Anniversary support (`Completao_TBC.toc`): the Burning Crusade dungeons, raids and Eye of the Storm, Outland zones, Blood Elf and Draenei quests. Not yet tested in the game.
+- New: on Classic Era and TBC the addon keeps the list of tracked quests itself (a quest is tracked as you take it), in step with Questie's tracker when it is on. Track / Untrack in a quest's menu, and shift-click on a quest of the log does the same.
 - Changed: the addon is simply called Completao!! now (no longer "Completao!!: Forever"), ahead of support for other Classic clients.
 
 ## 1.4.3

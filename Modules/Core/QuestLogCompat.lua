@@ -37,12 +37,6 @@ if GetQuestLogTitle and GetNumQuestLogEntries then
         local _, info = indexOf(questID)
         return info and info.title or nil
     end)
-    if IsQuestWatched then
-        define("IsQuestWatched", function(questID)
-            local index = indexOf(questID)
-            return index ~= nil and IsQuestWatched(index) and true or false
-        end)
-    end
     define("IsComplete", function(questID)
         local _, info = indexOf(questID)
         return info ~= nil and (info.isComplete == 1 or info.isComplete == true)

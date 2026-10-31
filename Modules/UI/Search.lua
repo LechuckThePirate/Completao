@@ -121,34 +121,11 @@ end
 -- of them in the objective tracker).
 local mode = "search"
 
--- Whether the game's watch list has any quest of the log in it.
-local function anyWatched()
-    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
-        local info = C_QuestLog.GetInfo(i)
-        if info and not info.isHeader and info.questID and info.questID > 0 and C_QuestLog.IsQuestWatched(info.questID) then
-            return true
-        end
-    end
-    return false
-end
-
--- A quest with nothing to do but turn it in can't be put in the game's tracker ("This quest has no objectives
--- to track"): it is never in the watch list, whatever else is.
-local function hasNoObjectives(id)
-    if not (GetNumQuestLeaderBoards and C_QuestLog.GetLogIndexForQuestID) then return false end
-    local index = C_QuestLog.GetLogIndexForQuestID(id)
-    return index ~= nil and GetNumQuestLeaderBoards(index) == 0
-end
-
 local function isTracked(id)
+    -- the clients with no list of their own to read: the one the addon keeps (QuestTracking.lua)
+    if ns.UsesOwnTracking() then return ns.IsOwnTracked(id) end
     if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
-    -- The Classic clients take quests into the tracker as they are taken. When the game's own list is empty the
-    -- tracker in use is a third party's (Questie's, with a list of its own) and the quests of the log are the
-    -- tracked ones; with something in the list, that list is.
-    if C_QuestLog.IsQuestWatched then
-        if C_QuestLog.IsQuestWatched(id) then return true end
-        if anyWatched() and not hasNoObjectives(id) then return false end
-    end
+    if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
     return C_QuestLog.IsOnQuest(id) and true or false
 end
 ns.IsQuestTracked = isTracked -- the focus window's too
@@ -318,6 +295,12 @@ local function getRow(i)
             ns.QuestMenu(self, self.quest)
             return
         end
+        -- shift-click on a quest of the log: track it or not, as in the game's log
+        if IsShiftKeyDown() and C_QuestLog.IsOnQuest(self.quest.id) then
+            ns.ToggleTrackedQuest(self.quest.id)
+            ns.UI_Refresh()
+            return
+        end
         -- the quest's details open below the table; "View chain" there goes to its tree
         ns.Detail_Show(self.quest)
     end)
@@ -328,6 +311,9 @@ local function getRow(i)
         if not self.entry then GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6) end
         GameTooltip:AddLine(L["Click to see its details."], 0.5, 0.8, 1)
         GameTooltip:AddLine(L["Right-click for options."], 0.5, 0.8, 1)
+        if C_QuestLog.IsOnQuest(self.quest.id) then
+            GameTooltip:AddLine(L["Shift-click to track or untrack it."], 0.5, 0.8, 1)
+        end
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)

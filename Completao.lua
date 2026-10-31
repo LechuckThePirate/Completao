@@ -74,6 +74,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
             if ns.Welcome_ShowIfNew then ns.Welcome_ShowIfNew() end
         end
     else
+        if event == "QUEST_REMOVED" or event == "QUEST_TURNED_IN" then ns.ForgetTrackedQuest(arg1) end
         ns.RequestRefresh()
         if LEVEL_EVENTS[event] then C_Timer.After(1, ns.RequestRefresh) end
     end

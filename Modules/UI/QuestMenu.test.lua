@@ -65,7 +65,7 @@ describe("QuestMenu", function()
         C_QuestLog.GetQuestWatchType = nil
         local names = labels()
         table.sort(names)
-        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "View chain" }, names)
+        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "Track", "View chain" }, names)
         ns.Detail_Show(q)
         for _, text in ipairs({ "Focus", "Open quest", "Show entrance", "View chain", "Abandon quest", "Waypoint" }) do
             assert.is_not_nil(WowMock.FindButton(text), text)

@@ -12,6 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
+    "- New: the quests of the books lying around the world have a \"Books\" entry under Miscellaneous.",
+    "- Fixed: the names of the entries under Events and Miscellaneous are now translated.",
     "- Fixed: the quests of another class no longer show up as available in the search.",
     "- New: each quest box in the chain view shows the money and the items the quest gives, with the item's tooltip on hover.",
     "- New: each quest box in the chain view shows the experience the quest gives.",

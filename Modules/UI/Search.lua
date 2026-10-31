@@ -132,6 +132,14 @@ local function anyWatched()
     return false
 end
 
+-- A quest with nothing to do but turn it in can't be put in the game's tracker ("This quest has no objectives
+-- to track"): it is never in the watch list, whatever else is.
+local function hasNoObjectives(id)
+    if not (GetNumQuestLeaderBoards and C_QuestLog.GetLogIndexForQuestID) then return false end
+    local index = C_QuestLog.GetLogIndexForQuestID(id)
+    return index ~= nil and GetNumQuestLeaderBoards(index) == 0
+end
+
 local function isTracked(id)
     if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
     -- The Classic clients take quests into the tracker as they are taken. When the game's own list is empty the
@@ -139,7 +147,7 @@ local function isTracked(id)
     -- tracked ones; with something in the list, that list is.
     if C_QuestLog.IsQuestWatched then
         if C_QuestLog.IsQuestWatched(id) then return true end
-        if anyWatched() then return false end
+        if anyWatched() and not hasNoObjectives(id) then return false end
     end
     return C_QuestLog.IsOnQuest(id) and true or false
 end

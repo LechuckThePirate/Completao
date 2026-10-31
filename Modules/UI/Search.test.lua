@@ -272,6 +272,20 @@ describe("Search", function()
             C_QuestLog.IsQuestWatched = nil
         end)
 
+        it("counts a quest with no objectives as tracked, since the game can't track it", function()
+            C_QuestLog.GetQuestWatchType = nil
+            WowMock.onQuest[166] = true
+            local objectives = { [2] = 0, [4] = 2 } -- log lines 2 (quest 166) and 4 (999999)
+            _G.GetNumQuestLeaderBoards = function(index) return objectives[index] end
+            C_QuestLog.IsQuestWatched = function() return false end
+            C_QuestLog.IsQuestWatched = function(id) return id == 999999 end -- the only one in the watch list
+            assert.is_true(ns.IsQuestTracked(166))
+            WowMock.log[2].questID = 166
+            objectives[2] = 1
+            assert.is_false(ns.IsQuestTracked(166))
+            C_QuestLog.IsQuestWatched, _G.GetNumQuestLeaderBoards = nil, nil
+        end)
+
         it("the search table has no status icons", function()
             ns.UI_SetSearchMode(true, "search")
             assert.is_false(ShownRows()[1].status:IsShown())

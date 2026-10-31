@@ -7,12 +7,6 @@ ns.RegisterEntry({ id = "z16593", name = "Zephras Isle", category = "zones", are
 ns.RegisterEntry({ id = "p_crafting", name = "Crafting", category = "professions", minLevel = 1, maxLevel = 60, new = true })
 ns.RegisterEntry({ id = "p_camping", name = "Camping", category = "professions", minLevel = 4, maxLevel = 6, new = true })
 
-ns.AddQuests("p_356", {
-    { id = 97065, name = "Tip the Scales - Keefer's Angelfish", level = 60, minLevel = 1 },
-    { id = 97066, name = "Tip the Scales - Brownell's Blue Striped Racer", level = 60, minLevel = 1 },
-    { id = 97067, name = "Tip the Scales - Dezian Queenfish", level = 60, minLevel = 1 },
-})
-
 ns.AddQuests("p_camping", {
     { id = 95998, name = "The Great Outdoors", level = 6, minLevel = 4, faction = "Alliance", giver = "Sam Sarsaparilla", start = { npc = "Sam Sarsaparilla", area = 12, x = 44.8, y = 63.2 }, finish = { npc = "Sam Sarsaparilla", area = 12, x = 44.8, y = 63.2 }, objective = "Sit near Sam's Basic Campfire by typing /sit in the chat window and wait until you receive the Boosted Rest buff.", desc = "Well howdy there, <class>. I can see you've got the look of an adventurer about you. Good for you. The world needs more of us restless souls, seeking fortune and glory.\n\nIt's a big wide world out there and you'll need to learn to thrive in the wilds to be successful. Not sure how your outdoorsman skills are but I reckon I could teach you a thing or two, if you'd be apt to learn.\n\nHave a seat near the fire, get comfy. I'll walk you through it." },
     { id = 96101, name = "The Great Outdoors", level = 6, minLevel = 4, requires = { 96638 }, giver = "Raan Wildwind", start = { npc = "Raan Wildwind", area = 16593, x = 41.6, y = 44.8 }, finish = { npc = "Raan Wildwind", area = 16593, x = 41.6, y = 44.8 }, objective = "Sit near Raan's Basic Campfire by typing /sit in the chat window and wait until you receive the Boosted Rest buff.", desc = "Greetings, <class>. I can see you've got the look of an adventurer about you. This is good. The world needs more of us restless souls, seeking fortune and glory.\n\nYou'll need to learn to thrive in the wilds to be successful in this line of work. Not sure how your outdoor skills are but I can probably teach you a thing or two, if you'd be apt to learn.\n\nHave a seat near the fire and get comfortable. I'll walk you through it." },

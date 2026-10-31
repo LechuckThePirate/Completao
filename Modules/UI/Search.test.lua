@@ -252,6 +252,13 @@ describe("Search", function()
         end)
         after_each(function() C_QuestLog.GetQuestWatchType = saved end)
 
+        it("on a client with no way to ask what is tracked, counts the quests in the log (they are tracked as taken)", function()
+            C_QuestLog.GetQuestWatchType = nil
+            WowMock.onQuest[166] = nil
+            assert.is_true(ns.IsQuestTracked(999999))
+            assert.is_false(ns.IsQuestTracked(166)) -- not in the log
+        end)
+
         it("the search table has no status icons", function()
             ns.UI_SetSearchMode(true, "search")
             assert.is_false(ShownRows()[1].status:IsShown())

@@ -25,7 +25,7 @@ read_globals = {
     "C_AddOns", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
     "C_Texture", "C_Timer", "C_TradeSkillUI",
     "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
-    "GetCoinTextureString", "GetBuildInfo", "IsQuestFlaggedCompleted", "GetQuestLogTitle", "GetNumQuestLogEntries", "GetQuestLogSelection", "SelectQuestLogEntry",
+    "GetCoinTextureString", "GetBuildInfo", "IsQuestWatched", "IsQuestFlaggedCompleted", "GetQuestLogTitle", "GetNumQuestLogEntries", "GetQuestLogSelection", "SelectQuestLogEntry",
     "GetCursorPosition", "GetFactionInfoByID", "GetInstanceInfo", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
     "IsMouseButtonDown", "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "UnitOnTaxi", "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "HandleModifiedItemClick",
     "BreakUpLargeNumbers", "IsControlKeyDown", "IsShiftKeyDown", "ITEM_QUALITY_COLORS", "LOCALIZED_CLASS_NAMES_MALE",

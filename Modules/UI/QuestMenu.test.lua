@@ -58,9 +58,11 @@ describe("QuestMenu", function()
     it("lists the options of the quest details that apply to the quest", function()
         local q = ns.FindQuestDef(166) -- inside an instance: its entrance instead of the map
         WowMock.onQuest[166] = true
+        C_QuestLog.GetQuestWatchType = function() return nil end -- not in the tracker
         ns.CanWaypoint = function(loc) return loc ~= nil end
         ns.CanShowMap = ns.CanWaypoint
         ns.QuestMenu(WowMock.NewFrame("Button"), q)
+        C_QuestLog.GetQuestWatchType = nil
         local names = labels()
         table.sort(names)
         assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "View chain" }, names)

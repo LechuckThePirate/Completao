@@ -124,7 +124,8 @@ local mode = "search"
 local function isTracked(id)
     if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
     if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
-    return false
+    -- a client with no way to ask: its quests are tracked as they are taken, so the ones in the log are
+    return C_QuestLog.IsOnQuest(id) and true or false
 end
 ns.IsQuestTracked = isTracked -- the focus window's too
 

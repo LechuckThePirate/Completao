@@ -259,6 +259,19 @@ describe("Search", function()
             assert.is_false(ns.IsQuestTracked(166)) -- not in the log
         end)
 
+        it("on a client with a watch list, follows it, unless it is empty (a third-party tracker): then the log is", function()
+            C_QuestLog.GetQuestWatchType = nil
+            WowMock.onQuest[166] = true
+            local watched = { [166] = true }
+            C_QuestLog.IsQuestWatched = function(id) return watched[id] == true end
+            assert.is_true(ns.IsQuestTracked(166))
+            assert.is_false(ns.IsQuestTracked(999999)) -- something is watched, and not this
+            watched = {}
+            assert.is_true(ns.IsQuestTracked(999999)) -- nothing is: every quest of the log is
+            assert.is_true(ns.IsQuestTracked(166))
+            C_QuestLog.IsQuestWatched = nil
+        end)
+
         it("the search table has no status icons", function()
             ns.UI_SetSearchMode(true, "search")
             assert.is_false(ShownRows()[1].status:IsShown())

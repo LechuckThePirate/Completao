@@ -121,10 +121,26 @@ end
 -- of them in the objective tracker).
 local mode = "search"
 
+-- Whether the game's watch list has any quest of the log in it.
+local function anyWatched()
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        if info and not info.isHeader and info.questID and info.questID > 0 and C_QuestLog.IsQuestWatched(info.questID) then
+            return true
+        end
+    end
+    return false
+end
+
 local function isTracked(id)
     if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
-    if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
-    -- a client with no way to ask: its quests are tracked as they are taken, so the ones in the log are
+    -- The Classic clients take quests into the tracker as they are taken. When the game's own list is empty the
+    -- tracker in use is a third party's (Questie's, with a list of its own) and the quests of the log are the
+    -- tracked ones; with something in the list, that list is.
+    if C_QuestLog.IsQuestWatched then
+        if C_QuestLog.IsQuestWatched(id) then return true end
+        if anyWatched() then return false end
+    end
     return C_QuestLog.IsOnQuest(id) and true or false
 end
 ns.IsQuestTracked = isTracked -- the focus window's too

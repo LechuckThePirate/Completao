@@ -455,8 +455,7 @@ end
 -- Autofocus (Preferences): the focus picks its quest by itself, by how near each tracked quest's next step is
 -- (its nearest objective left, or the turn-in once it is ready: the step the waypoint goes to). Only quests
 -- whose distance can be told count.
---  * Nothing focused: the quest with the nearest objective; with no quest that has an objective to do, the
---    nearest turn-in.
+--  * Nothing focused: the tracked quest with the nearest objective or turn-in.
 --  * The focused quest is ready to turn in: the tracked quest with the nearest objective or turn-in (its own
 --    turn-in too, so it stays when that is the nearest). A quest that was ready when the player focused it by
 --    hand is left alone.
@@ -495,11 +494,11 @@ local function trackedCandidates()
     return list
 end
 
--- The nearest of the list; `wantReady` true / false keeps only the ones ready to turn in / with objectives left.
-local function nearest(list, wantReady)
+-- The nearest of the list.
+local function nearest(list)
     local best
     for _, e in ipairs(list) do
-        if (wantReady == nil or e.ready == wantReady) and (not best or e.dist < best.dist) then best = e end
+        if not best or e.dist < best.dist then best = e end
     end
     return best
 end
@@ -534,8 +533,7 @@ function ns.Focus_AutoPick()
         local best = nearest(trackedCandidates())
         return best and best.id ~= cur and best.id or nil
     end
-    local list = trackedCandidates()
-    local best = nearest(list, false) or nearest(list, true)
+    local best = nearest(trackedCandidates())
     return best and best.id
 end
 

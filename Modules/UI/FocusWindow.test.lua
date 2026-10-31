@@ -460,9 +460,16 @@ describe("FocusWindow", function()
                 assert.are.equal(0, WowMock.superTrackCalls)
             end)
 
-            it("prefers objectives to turn-ins, even nearer ones", function()
+            it("takes a turn-in that is nearer than any objective", function()
                 ready(999003)
                 distance[31] = 1
+                update()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("takes an objective that is nearer than any turn-in", function()
+                ready(999003)
+                distance[31] = 500
                 update()
                 assert.are.equal(999001, ns.Focus_Quest())
             end)

@@ -5,6 +5,7 @@ dofile("setupTests.lua")
 local FLAVORS = {
     { id = "forever", toc = "Completao.toc", overrides = { "Data/Classic/Overrides.lua", "Data/Forever/Overrides.lua" } },
     { id = "vanilla", toc = "Completao_Vanilla.toc", overrides = { "Data/Classic/Overrides.lua" } },
+    { id = "tbc", toc = "Completao_TBC.toc", overrides = { "Data/Classic/Overrides.lua" } },
 }
 
 for _, flavor in ipairs(FLAVORS) do
@@ -98,6 +99,28 @@ for _, flavor in ipairs(FLAVORS) do
             end
             assert.is_true(#ns.entries.dt.quests > 0)
         end)
+
+        if flavor.id == "tbc" then it("the Burning Crusade dungeons, raids and battleground have quests and a known section", function()
+            for _, id in ipairs({ "sp", "mt", "seth", "sl", "arc", "mgt" }) do
+                assert.are.equal("dungeons", ns.entries[id].category, id)
+                assert.is_true(#ns.entries[id].quests > 0, id)
+            end
+            for _, id in ipairs({ "kara", "mag", "ssc", "tk", "bt", "za" }) do
+                assert.are.equal("raids", ns.entries[id].category, id)
+                assert.is_true(#ns.entries[id].quests > 0, id)
+            end
+            assert.are.equal("battlegrounds", ns.entries.eots.category)
+            assert.is_true(#ns.entries.eots.quests > 0)
+        end) end
+
+        if flavor.id == "tbc" then it("has the Blood Elf and Draenei races, each of its own faction", function()
+            assert.are.equal(10, ns.entries.r_10.raceId)
+            assert.are.equal(11, ns.entries.r_11.raceId)
+            assert.is_true(#ns.entries.r_10.quests > 0)
+            assert.is_true(#ns.entries.r_11.quests > 0)
+            for _, q in ipairs(ns.entries.r_10.quests) do assert.are_not.equal("Alliance", ns.QuestFaction(q), q.id) end
+            for _, q in ipairs(ns.entries.r_11.quests) do assert.are_not.equal("Horde", ns.QuestFaction(q), q.id) end
+        end) end
 
         it("the events and miscellaneous entries exist and have quests", function()
             for _, id in ipairs({ "lunar", "darkmoon", "seasonal", "aq_war", "invasion" }) do

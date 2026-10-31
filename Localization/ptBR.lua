@@ -30,6 +30,7 @@ ns.AddLocale({ "ptBR" }, {
     ["Seasonal"] = "Sazonais",
     ["Lunar Festival"] = "Festival da Lua",
     ["Darkmoon Faire"] = "Feira de Negraluna",
+    ["Brewfest"] = "Cervejada",
     ["Midsummer Fire Festival"] = "Festival do Fogo do Solstício de Verão",
     ["Special"] = "Especiais",
     ["Scourge Invasion"] = "Invasão do Flagelo",

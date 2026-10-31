@@ -15,7 +15,7 @@ describe("Completao (startup)", function()
     end)
 
     it("loads the TOC of every client", function()
-        for _, toc in ipairs({ "Completao.toc", "Completao_Vanilla.toc" }) do
+        for _, toc in ipairs({ "Completao.toc", "Completao_Vanilla.toc", "Completao_TBC.toc" }) do
             local other = LoadAddon({ toc = toc })
             assert.is_true(#other.entryList > 100, toc)
             assert.is_not_nil(other.entries.vc, toc)

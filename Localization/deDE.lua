@@ -30,6 +30,7 @@ ns.AddLocale({ "deDE" }, {
     ["Seasonal"] = "Saisonal",
     ["Lunar Festival"] = "Mondfest",
     ["Darkmoon Faire"] = "Dunkelmond-Jahrmarkt",
+    ["Brewfest"] = "Braufest",
     ["Midsummer Fire Festival"] = "Sonnenwendfest",
     ["Special"] = "Besonderes",
     ["Scourge Invasion"] = "Invasion der Geißel",

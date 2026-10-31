@@ -30,6 +30,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Seasonal"] = "De temporada",
     ["Lunar Festival"] = "Festival Lunar",
     ["Darkmoon Faire"] = "Feria de la Luna Negra",
+    ["Brewfest"] = "Festival de la Cerveza",
     ["Midsummer Fire Festival"] = "Festival del Fuego del Solsticio de Verano",
     ["Special"] = "Especiales",
     ["Scourge Invasion"] = "Invasión de la Plaga",

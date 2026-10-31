@@ -179,7 +179,7 @@ tools/         data generators (tools/local/ is git-ignored)
   English.
 - `Data/Classic/Dungeons.lua`, `Data/Classic/Raids.lua` -- the list of the classic instances (and
   `Data/Forever/` the new ones of Forever). `Data/<Flavor>/Generated/` -- quests, entrances and rewards
-  written by the tools, one folder per client (Forever, Vanilla = Classic Era). `Data/Classic/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
+  written by the tools, one folder per client (Forever, Vanilla = Classic Era, TBC = TBC Anniversary). `Data/Classic/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
   generator overwrites.
 
 ## Tests
@@ -210,7 +210,7 @@ Quest data is generated offline, not written by hand. The Forever-only content
 is fetched with local helpers that are not part of this repository
 (`tools/local/`, git-ignored):
 
-- `node tools/questie_gen.mjs [--flavor forever|vanilla]` -- reads the database of that client that ships with
+- `node tools/questie_gen.mjs [--flavor forever|vanilla|tbc]` -- reads the database of that client that ships with
   [Questie](https://github.com/Questie/Questie) (`AddOns/QuestieDB/QuestieDB_Forever.toc`,
   base64 CBOR read by `tools/questie_db.mjs`; set `QUESTIEDB_TOC` if it is not
   in the default path) and writes everything under `Data/Forever/Generated/` except the

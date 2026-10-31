@@ -1,7 +1,7 @@
 name: Update quest data
 
-# Once a day: take the latest QuestieDB release (the Forever and Vanilla builds), regenerate Data/Forever/Generated
-# and Data/Vanilla/Generated with tools/questie_gen.mjs and, if anything changed, open a pull request with the result. Nothing is merged
+# Once a day: take the latest QuestieDB release (the Forever, Vanilla and TBC builds), regenerate Data/Forever/Generated
+# Data/Vanilla/Generated and Data/TBC/Generated with tools/questie_gen.mjs and, if anything changed, open a pull request with the result. Nothing is merged
 # here: the maintainer reviews the PR and merges it. Needs the repo setting "Allow GitHub Actions to create
 # and approve pull requests" (Settings > Actions > General).
 on:
@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Download QuestieDB (Forever and Vanilla)
+      - name: Download QuestieDB (Forever, Vanilla and TBC)
         id: questie
         env:
           INPUT_TAG: ${{ inputs.tag }}
@@ -46,7 +46,7 @@ jobs:
             tag=$(gh release view --repo Questie/QuestieDB --json tagName --jq .tagName)
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          for flavor in Forever Vanilla; do
+          for flavor in Forever Vanilla TBC; do
             gh release download "$tag" --repo Questie/QuestieDB --pattern "QuestieDB-$flavor.zip" --dir "$RUNNER_TEMP"
             unzip -q "$RUNNER_TEMP/QuestieDB-$flavor.zip" -d "$RUNNER_TEMP/questie-$flavor"
             test -f "$RUNNER_TEMP/questie-$flavor/QuestieDB/QuestieDB_$flavor.toc"
@@ -62,14 +62,19 @@ jobs:
         env:
           QUESTIEDB_TOC: ${{ runner.temp }}/questie-Vanilla/QuestieDB/QuestieDB_Vanilla.toc
 
+      - name: Regenerate Data/TBC/Generated
+        run: node tools/questie_gen.mjs --flavor tbc
+        env:
+          QUESTIEDB_TOC: ${{ runner.temp }}/questie-TBC/QuestieDB/QuestieDB_TBC.toc
+
       - name: Detect changes
         id: changes
         run: |
-          if [ -n "$(git status --porcelain Data/Forever/Generated Data/Vanilla/Generated)" ]; then
+          if [ -n "$(git status --porcelain Data/Forever/Generated Data/Vanilla/Generated Data/TBC/Generated)" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Data/Forever/Generated and Data/Vanilla/Generated are already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
+            echo "Data/Forever/Generated, Data/Vanilla/Generated and Data/TBC/Generated are already up to date with QuestieDB ${{ steps.questie.outputs.tag }}."
           fi
 
       # Pull requests opened with the default token do not trigger ci.yml, so the tests run here.
@@ -100,11 +105,12 @@ jobs:
           add-paths: |
             Data/Forever/Generated
             Data/Vanilla/Generated
+            Data/TBC/Generated
           commit-message: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           title: "data: refresh quests from QuestieDB ${{ steps.questie.outputs.tag }}"
           body: |
-            Automated daily refresh: `Data/Forever/Generated` and `Data/Vanilla/Generated` regenerated with
-            `tools/questie_gen.mjs` from the QuestieDB (Forever and Vanilla) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
+            Automated daily refresh: `Data/Forever/Generated`, `Data/Vanilla/Generated` and `Data/TBC/Generated` regenerated with
+            `tools/questie_gen.mjs` from the QuestieDB (Forever, Vanilla and TBC) release `${{ steps.questie.outputs.tag }}`. Busted passed on this branch.
 
             Review the diff, add a line under `## Unreleased` in `CHANGELOG.md` if it is worth telling players
             about, and merge. If this PR is closed without merging, the next run opens a new one.

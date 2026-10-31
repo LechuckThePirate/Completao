@@ -156,20 +156,21 @@ function ns.IsTooHigh(q)
 end
 
 -- Race and class masks: one bit per race/class (races: 1 human, 2 orc, 4 dwarf, 8 night elf, 16 undead,
--- 32 tauren, 64 gnome, 128 troll; classes: 1 warrior, 2 paladin, 4 hunter, 8 rogue, 16 priest, 64 shaman,
+-- 32 tauren, 64 gnome, 128 troll, 512 blood elf, 1024 draenei; classes: 1 warrior, 2 paladin, 4 hunter, 8 rogue, 16 priest, 64 shaman,
 -- 128 mage, 256 warlock, 1024 druid). The client's race or class id is the bit number + 1.
 local function hasBit(mask, id)
     return math.floor(mask / 2 ^ (id - 1)) % 2 == 1
 end
 
-local ALLIANCE_RACE_BITS = { [1] = true, [3] = true, [4] = true, [7] = true } -- race ids: human, dwarf, night elf, gnome
+-- race ids: human, dwarf, night elf, gnome, draenei
+local ALLIANCE_RACE_BITS = { [1] = true, [3] = true, [4] = true, [7] = true, [11] = true }
 
 -- A quest's faction: the one set, or the one its races imply (all of one faction).
 function ns.QuestFaction(q)
     if q.faction then return q.faction end
     if not q.races then return nil end
     local alliance, horde = false, false
-    for id = 1, 8 do
+    for id = 1, 11 do
         if hasBit(q.races, id) then
             if ALLIANCE_RACE_BITS[id] then alliance = true else horde = true end
         end

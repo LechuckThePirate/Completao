@@ -1,4 +1,4 @@
-// Usage: node tools/questie_gen.mjs [--flavor forever|vanilla]   (default: forever)
+// Usage: node tools/questie_gen.mjs [--flavor forever|vanilla|tbc]   (default: forever)
 // Generates the quest data of Data/<Flavor>/Generated/ from Questie's database of that client (see questie_db.mjs;
 // set QUESTIEDB_TOC to the QuestieDB_<Flavor>.toc if Questie is somewhere else): Classic.lua (dungeons, raids and battlegrounds), Zones.lua,
 // Classes.lua, Races.lua, Professions.lua, Extra.lua (events and miscellaneous) and Entrances.lua.
@@ -17,10 +17,33 @@ import { quest, npc, item, object, allIds, tocDir, keyed } from "./questie_db.mj
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 // the client whose data is generated: its name in Questie's files, where its zone tables are in the database
-// package, and the hand fixes that go over the result
+// package, and the hand fixes that go over the result. The rest is what differs between the expansions:
+//  * maps: the uiMapId ranges of the zones that have a map there
+//  * races: the playable races (client race id, name); raceMasks: the bits of Questie's race mask (all the
+//    races, and each faction's)
+//  * instances / insideAll / areas: the instances and battlegrounds on top of the classic ones (entry id -> area
+//    id), those whose quests are all done inside, and areas Questie's dungeons.lua does not list
+//  * sorts: quest sorts on top of the common ones
+const CLASSIC_RACES = [[1, "Human"], [2, "Orc"], [3, "Dwarf"], [4, "Night Elf"], [5, "Undead"], [6, "Tauren"], [7, "Gnome"], [8, "Troll"]];
+const CLASSIC_MASKS = { all: 255, alliance: 77, horde: 178, bits: 8 };
 const FLAVORS = {
-    forever: { name: "Forever", zones: ["support", "Forever", "Zones"], overrides: "Data/Forever/Overrides.lua" },
-    vanilla: { name: "Vanilla", zones: ["support", "Zones"], overrides: "Data/Vanilla/Overrides.lua" },
+    forever: { name: "Forever", zones: ["support", "Forever", "Zones"], overrides: "Data/Forever/Overrides.lua",
+        maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
+    vanilla: { name: "Vanilla", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
+        maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
+    tbc: { name: "TBC", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
+        maps: [[1411, 1459], [1941, 1957]],
+        races: [...CLASSIC_RACES, [10, "Blood Elf"], [11, "Draenei"]],
+        raceMasks: { all: 1791, alliance: 1101, horde: 690, bits: 11 },
+        instances: {
+            hfr: 3562, bf: 3713, sp: 3717, ub: 3716, mt: 3792, ac: 3790, oh: 2367, seth: 3791, sl: 3789,
+            bm: 2366, mech: 3849, bot: 3847, arc: 3848, sh: 3714, sv: 3715, mgt: 4131,
+            kara: 3457, gruul: 3923, mag: 3836, ssc: 3607, tk: 3845, hyjal: 3606, bt: 3959, za: 3805, swp: 4075,
+            eots: 3820,
+        },
+        insideAll: ["kara", "gruul", "mag", "ssc", "tk", "hyjal", "bt", "za", "swp", "eots"],
+        areas: [3820],
+        sorts: [{ sort: -370, id: "brewfest", name: "Brewfest", category: "events" }] },
 };
 const flagAt = process.argv.indexOf("--flavor");
 const flavorId = flagAt > 0 ? process.argv[flagAt + 1] : "forever";
@@ -40,6 +63,7 @@ const INSTANCE_AREA = {
     ony: 2159, mc: 2717, bwl: 2677, aq20: 3429, aq40: 3428, naxx: 3456, zg: 1977,
     av: 2597, wsg: 3277, ab: 3358,
 };
+Object.assign(INSTANCE_AREA, FLAVOR.instances);
 const CLASS_SORT = { [-61]: "WARLOCK", [-81]: "WARRIOR", [-82]: "SHAMAN", [-141]: "PALADIN", [-161]: "MAGE",
     [-162]: "ROGUE", [-261]: "HUNTER", [-262]: "PRIEST", [-263]: "DRUID" };
 const CLASS_MASK = { 1: "WARRIOR", 2: "PALADIN", 4: "HUNTER", 8: "ROGUE", 16: "PRIEST", 64: "SHAMAN", 128: "MAGE", 256: "WARLOCK", 1024: "DRUID" };
@@ -48,9 +72,9 @@ const CLASS_NAME = { WARRIOR: "Warrior", PALADIN: "Paladin", HUNTER: "Hunter", R
 const CLASS_ORDER = ["WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID"];
 // professions: by Questie's sort (negative) or by the skill the quest requires; key = the game's skill line id
 const PROF_SORT = { [-24]: 182, [-101]: 356, [-121]: 164, [-181]: 171, [-182]: 165, [-201]: 202, [-264]: 197, [-304]: 185, [-324]: 129 };
-const PROF_NAME = { 164: "Blacksmithing", 165: "Leatherworking", 171: "Alchemy", 182: "Herbalism", 185: "Cooking", 186: "Mining",
+const PROF_NAME = { 755: "Jewelcrafting", 164: "Blacksmithing", 165: "Leatherworking", 171: "Alchemy", 182: "Herbalism", 185: "Cooking", 186: "Mining",
     197: "Tailoring", 202: "Engineering", 333: "Enchanting", 356: "Fishing", 129: "First Aid", 393: "Skinning" };
-const RACES = ["Human", "Orc", "Dwarf", "Night Elf", "Undead", "Tauren", "Gnome", "Troll"];
+const RACES = FLAVOR.races;
 // the rest of Questie's quest sorts: entries of the Events and Miscellaneous sections
 const SORT_ENTRIES = [
     { sort: -365, id: "aq_war", name: "Ahn'Qiraj War Effort", category: "events" },
@@ -63,10 +87,11 @@ const SORT_ENTRIES = [
     { sort: -367, id: "reputation", name: "Reputation", category: "misc" },
     { sort: -344, id: "legendary", name: "Legendary", category: "misc" },
     { sort: -1, id: "epic", name: "Epic", category: "misc" },
+    ...(FLAVOR.sorts ?? []),
 ];
 const UP_HOPS = 6 * 2, DOWN_HOPS = 3;
 const MAX_SOURCES = 40, MAX_STEPS = 6, MAX_MOBS = 4;
-const ALLIANCE = 77, HORDE = 178, ALL_RACES = 255;
+const { alliance: ALLIANCE, horde: HORDE, all: ALL_RACES, bits: RACE_BITS } = FLAVOR.raceMasks;
 
 const lua = (s) => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`;
 const f1 = (v) => (Math.round(v * 10) / 10).toFixed(1);
@@ -76,11 +101,11 @@ const group = (x, i) => (Array.isArray(x) ? x[i - 1] : x?.[i]) ?? [];
 // ----------------------------------------------------------------------------------------------------
 // data
 // Questie's race mask carries two faction flags above the race bits (2^32 Alliance, 2^33 Horde; both = no
-// restriction): fold them back into the plain masks used here (ALLIANCE 77, HORDE 178, none).
+// restriction): fold them back into the plain masks used here (a faction's whole mask, or none).
 const FLAG_ALLIANCE = 2 ** 32, FLAG_HORDE = 2 ** 33;
 function plainRaces(m) {
     if (!m) return m;
-    const races = m % 256, alliance = Math.floor(m / FLAG_ALLIANCE) % 2 === 1, horde = Math.floor(m / FLAG_HORDE) % 2 === 1;
+    const races = m % 2 ** RACE_BITS, alliance = Math.floor(m / FLAG_ALLIANCE) % 2 === 1, horde = Math.floor(m / FLAG_HORDE) % 2 === 1;
     if (races) return races;
     if (alliance && !horde) return ALLIANCE;
     if (horde && !alliance) return HORDE;
@@ -106,13 +131,14 @@ for (const line of readFileSync(join(ZONES, "dungeons.lua"), "utf8").split(/\r?\
     const e = m[3].match(/,\s*\d+,\s*\{\s*\{\s*(\d+),\s*([\d.]+),\s*([\d.]+)/);
     if (e) entranceOf.set(id, { area: Number(e[1]), x: Number(e[2]), y: Number(e[3]) });
 }
-// zones with a map in Classic (uiMapId 1411..1459) and their names; subzones -> their zone
+// zones with a map (the flavor's uiMapId ranges) and their names; subzones -> their zone
 const zoneName = new Map();
 for (const line of readFileSync(join(ZONES, "uiMapIdToAreaId.lua"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),\s*--\s*(.*?)\s*$/);
-    if (m && Number(m[1]) >= 1411 && Number(m[1]) <= 1459 && Number(m[2]) > 0 && Number(m[2]) < 10000) zoneName.set(Number(m[2]), m[3]);
+    if (m && FLAVOR.maps.some(([lo, hi]) => Number(m[1]) >= lo && Number(m[1]) <= hi) && Number(m[2]) > 0 && Number(m[2]) < 10000) zoneName.set(Number(m[2]), m[3]);
 }
-zoneName.delete(2597); // Alterac Valley: a battleground
+for (const bg of [2597, 3820]) zoneName.delete(bg); // Alterac Valley, Eye of the Storm: battlegrounds
+for (const a of FLAVOR.areas ?? []) areaOf.set(a, a); // instances that Questie's dungeons.lua does not list
 const parent = new Map([[9, 12], [132, 1], [188, 141], [154, 85], [363, 14], [220, 215]]);
 for (const line of readFileSync(join(ZONES, "subZoneToParentZone.lua"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),/);
@@ -207,7 +233,7 @@ const classMask = inheritedMask(7), raceMask = inheritedMask(6);
 // nothing but talking, or whose targets are all known to be outside, is not. When the data can't say where
 // an objective is (an item with no known dropper, e.g. the Egg of Hakkar), it is kept marked. Raids and
 // battlegrounds are done inside by definition: every quest of theirs is marked.
-const INSIDE_ALL = new Set(["ony", "mc", "bwl", "aq20", "aq40", "naxx", "zg", "av", "wsg", "ab", "dt"]);
+const INSIDE_ALL = new Set(["ony", "mc", "bwl", "aq20", "aq40", "naxx", "zg", "av", "wsg", "ab", "dt", ...(FLAVOR.insideAll ?? [])]);
 const inInstance = (zone, area) => areaOf.get(zone) === area || areaOf.get(parent.get(zone)) === area;
 // where some spawns are: "inside", "outside" or "unknown" (no spawn data)
 function spawnClass(spawns, area) {
@@ -536,16 +562,16 @@ for (const set of zoneSet.values()) {
         const m = raceMask(id);
         if (!m || m === ALLIANCE || m === HORDE) continue;
         const bits = [];
-        for (let bit = 0; bit < 8; bit++) if ((m >> bit) & 1) bits.push(bit + 1);
+        for (let bit = 0; bit < RACE_BITS; bit++) if ((m >> bit) & 1) bits.push(bit + 1);
         if (bits.length <= 3) for (const r of bits) put(raceSet, r, id);
     }
 }
 const rout = [...HEADER];
 let totalR = 0;
-RACES.forEach((name, i) => {
-    if (raceSet.has(i + 1)) totalR += emitEntry(rout, `r_${i + 1}`,
-        `ns.RegisterEntry({ id = ${lua("r_" + (i + 1))}, name = ${lua(name)}, category = "races", raceId = ${i + 1} })`, raceSet.get(i + 1));
-});
+for (const [raceId, name] of RACES) {
+    if (raceSet.has(raceId)) totalR += emitEntry(rout, `r_${raceId}`,
+        `ns.RegisterEntry({ id = ${lua("r_" + raceId)}, name = ${lua(name)}, category = "races", raceId = ${raceId} })`, raceSet.get(raceId));
+}
 write("Races.lua", rout);
 
 // events and miscellaneous: the other quest sorts

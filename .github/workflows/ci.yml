@@ -19,7 +19,7 @@ jobs:
       - name: Run luacheck
         uses: nebularg/actions-luacheck@d4137dd840545b28521ed21931e06913d93c0bc1 # v1
         with:
-          files: Completao.lua Localization Modules Data/Classic Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua Data/Data.test.lua Completao.test.lua test setupTests.lua
+          files: Completao.lua Localization Modules Data/Classic Data/TBC Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua Data/Data.test.lua Completao.test.lua test setupTests.lua
           args: -q
 
   unit-tests:

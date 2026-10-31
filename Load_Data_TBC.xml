@@ -1,0 +1,18 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- The quest data of The Burning Crusade: the classic and TBC instances, then the quests generated from the
+         public quest database. The generated files are never edited by hand: the Overrides fix them. -->
+    <Script file="Data\Classic\Dungeons.lua"/>
+    <Script file="Data\TBC\Dungeons.lua"/>
+    <Script file="Data\Classic\Raids.lua"/>
+    <Script file="Data\TBC\Raids.lua"/>
+    <Script file="Data\Classic\Battlegrounds.lua"/>
+    <Script file="Data\TBC\Battlegrounds.lua"/>
+    <Script file="Data\TBC\Generated\Classic.lua"/>
+    <Script file="Data\TBC\Generated\Zones.lua"/>
+    <Script file="Data\TBC\Generated\Classes.lua"/>
+    <Script file="Data\TBC\Generated\Professions.lua"/>
+    <Script file="Data\TBC\Generated\Races.lua"/>
+    <Script file="Data\TBC\Generated\Extra.lua"/>
+    <Script file="Data\TBC\Generated\Entrances.lua"/>
+    <Script file="Data\Classic\Overrides.lua"/>
+</Ui>

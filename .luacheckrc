@@ -1,5 +1,5 @@
 -- luacheck (as in Questie): Lua 5.1, the game's version. Runs in CI; locally:
---   luacheck Completao.lua Localization Modules Data/Classic Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua test setupTests.lua
+--   luacheck Completao.lua Localization Modules Data/Classic Data/TBC Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua test setupTests.lua
 std = "lua51"
 max_line_length = 160
 codes = true

@@ -3,16 +3,8 @@ local _, ns = ...
 -- Where the game itself says a quest in the log is worked on (the spot of its quest POI): one point per quest,
 -- the same one the minimap shows. It stands in for the places the data doesn't have (the new Forever quests have
 -- no objective coordinates). Tries the player's map, then the maps of the quest's own start and turn-in.
--- Returns { map, x, y, approx = true } (coordinates 0-100; approx: it is the middle of where the quest is done,
--- not an exact place) or nil.
-local findSpot
+-- Returns { map, x, y } (coordinates 0-100) or nil.
 local function liveSpot(q)
-    local spot = findSpot(q)
-    if spot then spot.approx = true end
-    return spot
-end
-
-function findSpot(q)
     if not C_Map.GetBestMapForUnit then return nil end
     -- the Classic clients lack GetQuestsOnMap: their old global gives the quest's point on the player's map
     if not C_QuestLog.GetQuestsOnMap then
@@ -136,7 +128,7 @@ function ns.QuestSteps(q)
     local finish = q.finish
     if onQuest and not (finish and finish.x and finish.x > 0) and ns.IsReadyToTurnIn(q.id) then
         local spot = liveSpot(q)
-        if spot then finish = { npc = finish and finish.npc, map = spot.map, x = spot.x, y = spot.y, approx = true } end
+        if spot then finish = { npc = finish and finish.npc, map = spot.map, x = spot.x, y = spot.y } end
     end
     list[#list + 1] = { kind = "finish", loc = finish, done = completed,
         label = L["Turn in: %s"]:format(finish and finish.npc or "?") }

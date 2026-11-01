@@ -33,6 +33,7 @@ Addon files live at the repo root and are packaged as the folder `Completao` (`.
 - `Data/<Flavor>/` — one folder per client (`Forever/`, `Vanilla/`, `TBC/`): `Generated/` (**never hand-edit; regenerate**) and, if the client
   has its own content, its `Dungeons.lua`, `Raids.lua` and `Overrides.lua`
 - `tools/` — `questie_gen.mjs` + `questie_db.mjs` generate `Data/<Flavor>/Generated` from Questie's database of each client (Forever, Vanilla, TBC);
+  `tbc_rewards.mjs` generates `Data/TBC/Generated/Rewards.lua` from the open cmangos TBC database (Classic Era has no rewards yet);
   `tools/local/` is git-ignored (deploy script, web-sourced data helpers, caches)
 - `test/` (WoW API mock + local runner), `setupTests.lua`, `images/screencaps/` (CurseForge description images)
 
@@ -43,6 +44,7 @@ lua test/busted.lua                                  # all tests, no busted inst
 lua test/busted.lua (git ls-files '*.test.lua')      # same, but ignores tests inside nested .claude\worktrees (use on master)
 luacheck Completao.lua Localization Modules Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua test setupTests.lua   # if installed
 node tools/questie_gen.mjs [--flavor vanilla|tbc]    # regenerate Data/Forever/Generated (or Vanilla, TBC) from Questie's data (QUESTIEDB_TOC = the .toc)
+node tools/tbc_rewards.mjs <TBCDB.sql>               # regenerate TBC's rewards from the gunzipped dump in Full_DB of cmangos/tbc-db (QUESTIEDB_TOC = QuestieDB_TBC.toc)
 pwsh tools\local\deploy.ps1                          # copy the addon into D:\Games\World of Warcraft\_classic_beta_\Interface\AddOns\Completao, then /reload
 ```
 

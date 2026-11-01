@@ -21,6 +21,17 @@ describe("QuestPanel", function()
         ns.CanShowMap = ns.CanWaypoint
     end)
 
+    it("shows the reward items of the TBC data", function()
+        WowMock.Reset()
+        ns = LoadAddon({ toc = "Completao_TBC.toc" })
+        StartAddon(ns, nil, { selected = "vc" })
+        ns.UI_Toggle()
+        ns.Detail_Show(ns.FindQuestDef(166))
+        local shown = {}
+        for _, f in ipairs(WowMock.frames) do if f.itemID and f._shown and f.count then shown[f.itemID] = true end end
+        assert.are.same({ [6087] = true, [2041] = true, [2042] = true }, shown)
+    end)
+
     describe("rewards", function()
         before_each(function()
             WowMock.items[159] = { name = "Refreshing Spring Water", quality = 1 }

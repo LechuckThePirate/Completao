@@ -13,6 +13,7 @@
     <Script file="Data\TBC\Generated\Professions.lua"/>
     <Script file="Data\TBC\Generated\Races.lua"/>
     <Script file="Data\TBC\Generated\Extra.lua"/>
+    <Script file="Data\TBC\Generated\Rewards.lua"/>
     <Script file="Data\TBC\Generated\Entrances.lua"/>
     <Script file="Data\Classic\Overrides.lua"/>
 </Ui>

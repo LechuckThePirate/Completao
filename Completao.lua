@@ -74,6 +74,7 @@ events:SetScript("OnEvent", function(_, event, arg1)
             if ns.Welcome_ShowIfNew then ns.Welcome_ShowIfNew() end
         end
     else
+        if event == "QUEST_REMOVED" or event == "QUEST_TURNED_IN" then ns.ForgetTrackedQuest(arg1) end
         ns.RequestRefresh()
         if LEVEL_EVENTS[event] then C_Timer.After(1, ns.RequestRefresh) end
     end
@@ -109,6 +110,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Minimap_Toggle()
     elseif msg == "target" then
         ns.Focus_TargetReport()
+    elseif msg == "here" then
+        ns.Focus_HereReport()
     elseif msg == "changelog" or msg == "whatsnew" then
         ns.Welcome_Show()
     elseif msg:match("^fade") then

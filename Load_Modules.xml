@@ -1,0 +1,17 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- Shared by every client: loaded once the data is in. -->
+    <Script file="Modules\Graph\Graph.lua"/>
+    <Script file="Modules\Map\Waypoints.lua"/>
+    <Script file="Modules\UI\Menu.lua"/>
+    <Script file="Modules\UI\QuestPanel.lua"/>
+    <Script file="Modules\UI\QuestMenu.lua"/>
+    <Script file="Modules\UI\Search.lua"/>
+    <Script file="Modules\UI\FocusWindow.lua"/>
+    <Script file="Modules\UI\BlizzardTracker.lua"/>
+    <Script file="Modules\UI\MainWindow.lua"/>
+    <Script file="Modules\UI\Preferences.lua"/>
+    <Script file="Modules\UI\Welcome.lua"/>
+    <Script file="Modules\UI\MinimapButton.lua"/>
+    <Script file="Modules\API\API.lua"/>
+    <Script file="Completao.lua"/>
+</Ui>

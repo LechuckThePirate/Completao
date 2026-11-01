@@ -1,6 +1,7 @@
 local _, ns = ...
 
--- Hand fixes over the generated data (Data/Generated/*). No generator overwrites this file. Examples:
+-- Hand fixes over the generated data (Data/<Flavor>/Generated/*), shared by the clients that have these quests. No
+-- generator overwrites this file; Data/<Flavor>/Overrides.lua has the ones of a single client. Examples:
 --   ns.PatchQuest(92401, { requires = { 92422 } })   -- add/change a requirement
 --   ns.PatchQuest(12345, { faction = false })         -- false removes the field
 
@@ -11,12 +12,11 @@ local _, ns = ...
 ns.PatchQuest(880, { steps = { { name = "Altered Snapjaw Shell", area = 17, x = 55.6, y = 42.6 } } })
 -- Holiday and event quests that are filed under zones, professions or reputation but are not in the events
 -- section (they are level 60 and open from level 1, so "hide empty or completed categories" would count them as
--- work for anyone): Darkmoon Faire, the Gurubashi arena, the Ahn'Qiraj war effort, the Commendation Signets and
--- some of Forever's new seasonal quests ("Sign Me Up!", "A Sealed Crate", "Shipping Label", "An Unfortunate End").
+-- work for anyone): Darkmoon Faire, the Gurubashi arena, the Ahn'Qiraj war effort and the Commendation Signets.
 for _, id in ipairs({
     7810, 7838, 7905, 7926, 8811, 8812, 8813, 8814, 8815, 8816, 8817, 8818, 8819, 8820, 8821, 8822, 8823,
     8824, 8825, 8826, 8830, 8831, 8832, 8833, 8834, 8835, 8836, 8837, 8838, 8839, 8840, 8841, 8842, 8843,
-    8844, 8845, 9415, 9416, 9419, 9422, 91899, 91900, 91904, 91905, 95816, 95819, 98247, 98248, 98372,
+    8844, 8845, 9415, 9416, 9419, 9422,
 }) do
     ns.PatchQuest(id, { holiday = true })
 end

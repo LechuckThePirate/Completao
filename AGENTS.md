@@ -1,7 +1,8 @@
 # Completao!! — agent guide
 
-World of Warcraft addon for the Classic "Forever" beta (interface 16001): quest chain trees per dungeon, raid, zone, class... in
-the spirit of BtWQuests. Public repo `LechuckThePirate/Completao` (branch `master`), GPLv3, CurseForge project id 1716061.
+World of Warcraft Classic addon: quest chain trees per dungeon, raid, zone, class... in the spirit of BtWQuests. The data is
+per game client (`Data/<Flavor>/`, one `Load_Data_<Flavor>.xml` each): today only Forever (interface 16001; its beta has ended),
+with Classic Era, TBC Anniversary and Retail planned. Public repo `LechuckThePirate/Completao` (branch `master`), GPLv3, CurseForge project id 1716061.
 Sibling addons with the same conventions: `Embolsao` and `Aggreao` (both under `D:\Source\WowAddons\`).
 
 ## How to work with the maintainer
@@ -21,13 +22,18 @@ Sibling addons with the same conventions: `Embolsao` and `Aggreao` (both under `
 
 Addon files live at the repo root and are packaged as the folder `Completao` (`.pkgmeta`), like Questie:
 
-- `Completao.toc` (load order), `Completao.lua` (entry), `Bindings.xml`
+- `Completao.toc` (the Forever client's; it lists three load files, `Load_Core.xml` -> `Load_Data_<Flavor>.xml` -> `Load_Modules.xml`, which hold the
+  load order), `Completao.lua` (entry), `Bindings.xml`. `Completao_Vanilla.toc` is Classic Era's (`Load_Data_Vanilla.xml`), `Completao_TBC.toc` TBC Anniversary's (`Load_Data_TBC.xml`); the other clients get their own `Completao_<Suffix>.toc` and data file
+- `Modules/Core/Flavor.lua` -- `ns.flavor` (`forever`, `vanilla`, `tbc`, `mainline`) from the interface number
 - `Localization/` — `Locale.lua` (English text is the key; `ns.AddLocale`) + `esES, deDE, frFR, itIT, ptBR`
 - `Modules/API/API.lua` -- the public global `CompletaoAPI` for other addons (Fabrikao reads it: keep it stable, bump `version` on a breaking change)
 - `Modules/{Database,Quest,Settings,Graph,Map,UI}/` — every `X.lua` has `X.test.lua` next to it
-- `Data/` — `Dungeons.lua`, `Raids.lua`, `Battlegrounds.lua` (hand-registered), `Overrides.lua` (manual fixes),
-  `Generated/` (**never hand-edit; regenerate**)
-- `tools/` — `questie_forever.mjs` + `questie_db.mjs` generate `Data/Generated` from Questie's Forever database;
+- `Data/Classic/` — what the clients with the classic content share, hand-registered: `Dungeons.lua`, `Raids.lua`, `Battlegrounds.lua` and
+  `Overrides.lua` (manual fixes)
+- `Data/<Flavor>/` — one folder per client (`Forever/`, `Vanilla/`, `TBC/`): `Generated/` (**never hand-edit; regenerate**) and, if the client
+  has its own content, its `Dungeons.lua`, `Raids.lua` and `Overrides.lua`
+- `tools/` — `questie_gen.mjs` + `questie_db.mjs` generate `Data/<Flavor>/Generated` from Questie's database of each client (Forever, Vanilla, TBC);
+  `cmangos_rewards.mjs` generates the `Rewards.lua` of Vanilla and TBC from the open cmangos databases;
   `tools/local/` is git-ignored (deploy script, web-sourced data helpers, caches)
 - `test/` (WoW API mock + local runner), `setupTests.lua`, `images/screencaps/` (CurseForge description images)
 
@@ -36,8 +42,9 @@ Addon files live at the repo root and are packaged as the folder `Completao` (`.
 ```powershell
 lua test/busted.lua                                  # all tests, no busted install needed (Lua 5.1+)
 lua test/busted.lua (git ls-files '*.test.lua')      # same, but ignores tests inside nested .claude\worktrees (use on master)
-luacheck Completao.lua Localization Modules Data/Dungeons.lua Data/Raids.lua Data/Overrides.lua test setupTests.lua   # if installed
-node tools/questie_forever.mjs                       # regenerate Data/Generated from Questie's Forever data
+luacheck Completao.lua Localization Modules Data/Forever/Dungeons.lua Data/Forever/Raids.lua Data/Forever/Overrides.lua test setupTests.lua   # if installed
+node tools/questie_gen.mjs [--flavor vanilla|tbc]    # regenerate Data/Forever/Generated (or Vanilla, TBC) from Questie's data (QUESTIEDB_TOC = the .toc)
+node tools/cmangos_rewards.mjs --flavor vanilla|tbc <dump.sql>   # regenerate the rewards from the gunzipped dump in Full_DB of cmangos/classic-db or tbc-db (QUESTIEDB_TOC = the .toc)
 pwsh tools\local\deploy.ps1                          # copy the addon into D:\Games\World of Warcraft\_classic_beta_\Interface\AddOns\Completao, then /reload
 ```
 
@@ -51,15 +58,15 @@ pwsh tools\local\deploy.ps1                          # copy the addon into D:\Ga
 - Comments explain *why*, are short, and match the surrounding density. Match surrounding naming and idiom.
 - Every module gets a `*.test.lua` next to it, starting with `dofile("setupTests.lua")`; tests set globals through `_G.X`.
   New behavior ships with tests. CI runs busted on Lua 5.1 and luacheck (`.github/workflows/ci.yml`).
-- Quest data in `Data/` is already in Forever map coordinates (the generators convert whatever they read); manual fixes go
-  in `Data/Overrides.lua`, never in `Data/Generated/`.
+- Quest data in `Data/Forever/` is already in Forever map coordinates (the generators convert whatever they read); manual fixes go
+  in `Data/Classic/Overrides.lua` (or the client's own `Overrides.lua`), never in `Data/<Flavor>/Generated/`.
 - User-visible changes go in `CHANGELOG.md` under `## Unreleased` (style: `New:` / `Fixed:` bullets, plain sentences).
 
 ## Infra and release
 
 - **CI:** `.github/workflows/ci.yml` (luacheck + busted on every push).
 - **Daily data refresh** (two jobs, both end as a pull request that the maintainer merges, never automatically):
-  `.github/workflows/update-quests.yml` (cron) regenerates `Data/Generated` from the latest QuestieDB Forever release and opens
+  `.github/workflows/update-quests.yml` (cron) regenerates `Data/Forever/Generated`, `Data/Vanilla/Generated` and `Data/TBC/Generated` from the latest QuestieDB release and opens
   `auto/quest-data`; the rewards and new quests (`Rewards.lua`, `ForeverNew.lua`) are generated by a cron job on the
   maintainer's server that publishes both files at the media host, and `update-web-data.yml` fetches them and opens
   `auto/web-data`. The server holds no credentials for this repo. Both workflows need the repo setting "Allow GitHub Actions to

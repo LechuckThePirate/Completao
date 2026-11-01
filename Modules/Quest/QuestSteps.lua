@@ -5,7 +5,17 @@ local _, ns = ...
 -- no objective coordinates). Tries the player's map, then the maps of the quest's own start and turn-in.
 -- Returns { map, x, y } (coordinates 0-100) or nil.
 local function liveSpot(q)
-    if not (C_QuestLog.GetQuestsOnMap and C_Map.GetBestMapForUnit) then return nil end
+    if not C_Map.GetBestMapForUnit then return nil end
+    -- the Classic clients lack GetQuestsOnMap: their old global gives the quest's point on the player's map
+    if not C_QuestLog.GetQuestsOnMap then
+        local map = QuestPOIGetIconInfo and C_Map.GetBestMapForUnit("player")
+        if not map then return nil end
+        local _, x, y = QuestPOIGetIconInfo(q.id)
+        if type(x) == "number" and type(y) == "number" and x > 0 and x <= 1 and y > 0 and y <= 1 then
+            return { map = map, x = x * 100, y = y * 100 }
+        end
+        return nil
+    end
     local maps, seen = {}, {}
     local function add(map)
         if map and not seen[map] then seen[map] = true maps[#maps + 1] = map end

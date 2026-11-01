@@ -122,9 +122,11 @@ end
 local mode = "search"
 
 local function isTracked(id)
+    -- the clients with no list of their own to read: the one the addon keeps (QuestTracking.lua)
+    if ns.UsesOwnTracking() then return ns.IsOwnTracked(id) end
     if C_QuestLog.GetQuestWatchType then return C_QuestLog.GetQuestWatchType(id) ~= nil end
     if C_QuestLog.IsQuestWatched then return C_QuestLog.IsQuestWatched(id) and true or false end
-    return false
+    return C_QuestLog.IsOnQuest(id) and true or false
 end
 ns.IsQuestTracked = isTracked -- the focus window's too
 
@@ -293,6 +295,12 @@ local function getRow(i)
             ns.QuestMenu(self, self.quest)
             return
         end
+        -- shift-click on a quest of the log: track it or not, as in the game's log
+        if IsShiftKeyDown() and C_QuestLog.IsOnQuest(self.quest.id) then
+            ns.ToggleTrackedQuest(self.quest.id)
+            ns.UI_Refresh()
+            return
+        end
         -- the quest's details open below the table; "View chain" there goes to its tree
         ns.Detail_Show(self.quest)
     end)
@@ -303,6 +311,9 @@ local function getRow(i)
         if not self.entry then GameTooltip:AddLine(L["Not in Completao!!'s data."], 0.6, 0.6, 0.6) end
         GameTooltip:AddLine(L["Click to see its details."], 0.5, 0.8, 1)
         GameTooltip:AddLine(L["Right-click for options."], 0.5, 0.8, 1)
+        if C_QuestLog.IsOnQuest(self.quest.id) then
+            GameTooltip:AddLine(L["Shift-click to track or untrack it."], 0.5, 0.8, 1)
+        end
         GameTooltip:Show()
     end)
     row:SetScript("OnLeave", GameTooltip_Hide)

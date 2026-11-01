@@ -1,6 +1,6 @@
 # Completao!!
 
-World of Warcraft addon for the Classic "Forever" beta that shows quests as a
+World of Warcraft addon for Classic that shows quests as a
 **chain tree**: which quests exist, what each one requires, where it starts, and
 which ones you have already done. Pick a dungeon, raid, zone or class on the
 left, read the tree on the right, click a quest for the details.
@@ -12,8 +12,8 @@ Inspired by BtWQuests.
 - **Dungeons, Raids, Battlegrounds, Zones, Class Quests, Professions, Races,
   Events and Miscellaneous** sections in a collapsible side panel, each one
   sorted alphabetically (dungeons and raids by level). Each entry lists its
-  level range, progress (`done/total`) and a NEW tag for the content Forever
-  adds. Everything but dungeons and raids only lists what you can do: entries
+  level range, progress (`done/total`) and a NEW tag for the content a client
+  adds on top of Classic (today, Forever's). Everything but dungeons and raids only lists what you can do: entries
   with no quest for your faction and race are hidden. Zone, class, race and
   profession names follow the client's language. Events holds the holiday and
   world events (Lunar Festival, Darkmoon Faire, the Ahn'Qiraj war effort,
@@ -141,6 +141,8 @@ every module:
 
 ```
 Completao.toc  Completao.lua  Bindings.xml     entry point: events, chat, /completao, key bindings
+Load_Core.xml  Load_Data_Forever.xml  Load_Modules.xml   what the toc loads, in order
+Modules/Core/Flavor.lua                         which client this is (ns.flavor)
 Localization/Locale.lua                         ns.L
 Modules/Database/Entries.lua                    sections, entries and their quests, hand fixes
 Modules/Quest/QuestState.lua                    status, low/too high, who sees it, titles, description
@@ -175,9 +177,9 @@ tools/         data generators (tools/local/ is git-ignored)
   One file per language (`esES.lua`, `frFR.lua`...) registers its translations for
   the client locales it covers; what a language doesn't translate falls back to
   English.
-- `Data/Dungeons.lua`, `Data/Raids.lua` -- the list of instances and where their
-  doors are. `Data/Generated/` -- quests, entrances and rewards written by the
-  tools. `Data/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
+- `Data/Classic/Dungeons.lua`, `Data/Classic/Raids.lua` -- the list of the classic instances (and
+  `Data/Forever/` the new ones of Forever). `Data/<Flavor>/Generated/` -- quests, entrances and rewards
+  written by the tools, one folder per client (Forever, Vanilla = Classic Era, TBC = TBC Anniversary). `Data/Classic/Overrides.lua` -- hand corrections (`ns.PatchQuest`) that no
   generator overwrites.
 
 ## Tests
@@ -208,10 +210,10 @@ Quest data is generated offline, not written by hand. The Forever-only content
 is fetched with local helpers that are not part of this repository
 (`tools/local/`, git-ignored):
 
-- `node tools/questie_forever.mjs` -- reads the Forever database that ships with
+- `node tools/questie_gen.mjs [--flavor forever|vanilla|tbc]` -- reads the database of that client that ships with
   [Questie](https://github.com/Questie/Questie) (`AddOns/QuestieDB/QuestieDB_Forever.toc`,
   base64 CBOR read by `tools/questie_db.mjs`; set `QUESTIEDB_TOC` if it is not
-  in the default path) and writes everything under `Data/Generated/` except the
+  in the default path) and writes everything under `Data/Forever/Generated/` except the
   rewards and Forever-only quests:
   - `Classic.lua` and `Entrances.lua`: dungeons, raids and battlegrounds. A
     quest belongs to an instance when its zone is the instance, or when an NPC
@@ -233,17 +235,22 @@ is fetched with local helpers that are not part of this repository
   are numbered ("Unending Torment (2/5)"). Each quest also gets one **step**
   per objective (kill, world object, item from its droppers), with the zone
   where it is most common and the densest spot in it.
-- `Data/Generated/Rewards.lua` (`ns.REWARDS`) -- the rewards of every quest in
+- `Data/Forever/Generated/Rewards.lua` (`ns.REWARDS`) -- the rewards of every quest in
   the other generated files, written by a local helper from public quest
   databases. Only item ids and counts, money, experience and reputation are
   stored: names, icons and tooltips come from the client.
-- **Coordinates.** Everything in `Data/Generated/` is in Forever's map
-  coordinates. Forever redrew the maps of Mulgore, Eastern Plaguelands,
+- `Data/Vanilla/Generated/Rewards.lua`, `Data/TBC/Generated/Rewards.lua` -- the same for
+  Classic Era and TBC Anniversary, written by `tools/cmangos_rewards.mjs` from the open cmangos
+  databases, [classic-db](https://github.com/cmangos/classic-db) and
+  [tbc-db](https://github.com/cmangos/tbc-db) (items, money, and the experience the server
+  derives from the money at the top level) and Questie's database of the client (reputation).
+- **Coordinates.** Everything in `Data/Forever/Generated/` is in Forever's map
+  coordinates (`Data/Vanilla/Generated/` is in Classic Era's). Forever redrew the maps of Mulgore, Eastern Plaguelands,
   Redridge Mountains and Stormwind City (same world positions, new map
   bounds); Questie's data has them converted, and the local helpers that read
   web pages (which show the old coordinates) apply Questie's per-zone
   transform (`tools/local/era_to_forever.mjs`).
-- Fix anything wrong in `Data/Overrides.lua`, never in `Data/Generated/`.
+- Fix anything wrong in `Data/Forever/Overrides.lua`, never in `Data/Forever/Generated/`.
 
 ## Installing (development)
 
@@ -259,7 +266,7 @@ World of Warcraft/_classic_beta_/Interface/AddOns/Completao/
 See `CHANGELOG.md`.
 
 - Every Classic dungeon, zone, class and profession has generated quests.
-  Forever's new quests are in too (`Data/Generated/ForeverNew.lua`, ~700): in
+  Forever's new quests are in too (`Data/Forever/Generated/ForeverNew.lua`, ~700): in
   their Classic zones and classes, and in the new entries Zephras Isle,
   Camping and Crafting. Of Forever's new instances only The Hall of Thanes and
   Ruins of Lordaeron have quests so far; the rest are listed (level range,
@@ -285,13 +292,17 @@ FITNESS FOR A PARTICULAR PURPOSE.
 
 - **Questie.** The generated quest data (`Classic.lua`, `Zones.lua`,
   `Classes.lua`, `Professions.lua`, `Races.lua`, `Extra.lua` and `Entrances.lua`
-  in `Data/Generated/`) derives from the Forever database that ships with
+  in `Data/Forever/Generated/`) derives from the Forever database that ships with
   [Questie](https://github.com/Questie/Questie). Questie declares GPLv3 on its
   CurseForge page (its GitHub repository carries no license file); thanks to
   the Questie team and its contributors.
 - **Public quest databases.** The names, text and locations of the quests
-  Forever adds, and the rewards of every quest, are compiled from public quest
+  Forever adds, and the rewards of Forever's quests, are compiled from public quest
   databases and are not covered by this license.
+- **cmangos.** The item, money and experience rewards of Classic Era and TBC
+  Anniversary (`Rewards.lua` in `Data/Vanilla/Generated/` and `Data/TBC/Generated/`)
+  derive from the cmangos databases, [classic-db](https://github.com/cmangos/classic-db)
+  and [tbc-db](https://github.com/cmangos/tbc-db), GPLv3.
 - **Blizzard Entertainment.** The quests, their names and text, and every game
   asset are Blizzard's. At runtime the addon uses textures and widgets the game
   client already ships (quest icon, frame and button templates, maximize/restore

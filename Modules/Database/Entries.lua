@@ -1,7 +1,7 @@
 local ADDON, ns = ...
 
 -- Entries (a dungeon, a zone, a class...) and their quests. The Data/ files register them while loading:
--- ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Overrides.lua fixes them with ns.PatchQuest.
+-- ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Forever/Overrides.lua fixes them with ns.PatchQuest.
 ns.entries = {}
 ns.entryList = {}
 
@@ -93,7 +93,7 @@ function ns.SetEntrance(entryId, loc)
     if e then e.entrance = loc end
 end
 
--- Hand fixes over generated data (Data/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
+-- Hand fixes over generated data (Data/Forever/Overrides.lua): ns.PatchQuest(id, { requires = {...} }).
 -- A false value removes the field.
 function ns.PatchQuest(id, fields)
     for _, q in ipairs(copies[id] or {}) do
@@ -207,7 +207,7 @@ end
 -- Whether an entry has anything left to do for the character: a quest they can see that is in their log or
 -- available now (not done, not locked by level or by quests they lack). Stops at the first one. Out of it:
 --  * holiday quests outside the events section: the ones also listed there (the Lunar Festival elders stand in
---    instances: level 60, but from level 1) and the ones marked `holiday` in Data/Overrides.lua;
+--    instances: level 60, but from level 1) and the ones marked `holiday` in Data/Forever/Overrides.lua;
 --  * the quests of an instance far above the character's level;
 --  * a profession's quests, without that profession;
 --  * the class and race entries of the others: the side panel lists every class and race so they can be looked

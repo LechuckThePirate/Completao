@@ -1,0 +1,27 @@
+## Interface: 20506
+## Title: Completao!!
+## Notes: Quest chain trees for TBC Anniversary: requirements, where each quest starts, map markers and TomTom waypoints.
+## Notes-esES: Árboles de cadenas de quests para TBC Anniversary: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
+## Notes-esMX: Árboles de cadenas de quests para TBC Anniversary: requisitos, dónde se coge cada quest, marcadores en el mapa y waypoints de TomTom.
+## Notes-frFR: Arbres de chaînes de quêtes pour TBC Anniversary : prérequis, où commence chaque quête, marqueurs sur la carte et waypoints TomTom.
+## Notes-deDE: Questreihen-Bäume für TBC Anniversary: Voraussetzungen, wo jede Quest beginnt, Kartenmarkierungen und TomTom-Wegpunkte.
+## Notes-itIT: Alberi delle catene di missioni per TBC Anniversary: requisiti, dove inizia ogni missione, segnalini sulla mappa e waypoint di TomTom.
+## Notes-ptBR: Árvores de cadeias de missões para o TBC Anniversary: requisitos, onde cada missão começa, marcadores no mapa e waypoints do TomTom.
+## Category: Quests
+## Category-esES: Misiones
+## Category-esMX: Misiones
+## Category-frFR: Quêtes
+## Category-deDE: Quests
+## Category-itIT: Missioni
+## Category-ptBR: Missões
+## Author: LechuckThePirate
+## Version: 1.4.3
+## X-License: GPL-3.0
+## IconTexture: Interface\AddOns\Completao\Icons\Completao.png
+## SavedVariables: CompletaoDB
+## SavedVariablesPerCharacter: CompletaoCharDB
+## X-Curse-Project-ID: 1716061
+
+Load_Core.xml
+Load_Data_TBC.xml
+Load_Modules.xml

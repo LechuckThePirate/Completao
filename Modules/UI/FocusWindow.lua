@@ -304,7 +304,9 @@ end
 -- list of { q, steps, indexes = { step indexes } }, in log order: all the quest's objectives (done ones and
 -- the ones elsewhere too), or just the turn-in when it is ready. Needs coordinates on both sides, so quests
 -- done inside an instance (no coordinates) never match.
-local RELATED_RADIUS = 150
+-- Wide enough for one area: a kill objective's spot is the middle of where its creatures roam, and a herb of another
+-- quest can be 300 yards off it.
+local RELATED_RADIUS = 320
 local function relatedQuests(focusId, near)
     local out = {}
     if not near then return out end
@@ -453,8 +455,7 @@ end
 -- Autofocus (Preferences): the focus picks its quest by itself, by how near each tracked quest's next step is
 -- (its nearest objective left, or the turn-in once it is ready: the step the waypoint goes to). Only quests
 -- whose distance can be told count.
---  * Nothing focused: the quest with the nearest objective; with no quest that has an objective to do, the
---    nearest turn-in.
+--  * Nothing focused: the tracked quest with the nearest objective or turn-in.
 --  * The focused quest is ready to turn in: the tracked quest with the nearest objective or turn-in (its own
 --    turn-in too, so it stays when that is the nearest). A quest that was ready when the player focused it by
 --    hand is left alone.
@@ -493,11 +494,11 @@ local function trackedCandidates()
     return list
 end
 
--- The nearest of the list; `wantReady` true / false keeps only the ones ready to turn in / with objectives left.
-local function nearest(list, wantReady)
+-- The nearest of the list.
+local function nearest(list)
     local best
     for _, e in ipairs(list) do
-        if (wantReady == nil or e.ready == wantReady) and (not best or e.dist < best.dist) then best = e end
+        if not best or e.dist < best.dist then best = e end
     end
     return best
 end
@@ -532,8 +533,7 @@ function ns.Focus_AutoPick()
         local best = nearest(trackedCandidates())
         return best and best.id ~= cur and best.id or nil
     end
-    local list = trackedCandidates()
-    local best = nearest(list, false) or nearest(list, true)
+    local best = nearest(trackedCandidates())
     return best and best.id
 end
 
@@ -713,6 +713,38 @@ function ns.Focus_TargetReport()
     say("candidates:", #names > 0 and table.concat(names, ", ") or "(none: no creature known for the unfinished objectives, nobody to turn in to nearby)")
     ns.Focus_UpdateTargeting()
     say("macro:", targetButton and tostring(targetButton:GetAttribute("macrotext")):gsub("\n", " / ") or "(no button yet)")
+end
+
+-- "/completao here": why each quest does or doesn't join the focused one under "Also here".
+function ns.Focus_HereReport()
+    local function say(...) ns.Print("[here] " .. table.concat({ ... }, " ")) end
+    local id = ns.Focus_Quest()
+    local steps = id and ns.QuestSteps(questDef(id))
+    local target = steps and ns.Focus_PickStep(steps, ns.IsReadyToTurnIn(id))
+    local spot = target and steps[target].loc
+    say("focused quest:", tostring(id), "| step:", tostring(target), "| spot:", spot and "yes" or "none",
+        "| own tracking:", tostring(ns.UsesOwnTracking()), "| player map:", tostring(C_Map.GetBestMapForUnit("player")))
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local qid = info and not info.isHeader and info.questID
+        if qid and qid > 0 then
+            local mine = questDef(qid)
+            local list = ns.QuestSteps(mine)
+            local objs, located, dists = 0, 0, {}
+            for _, s in ipairs(list) do
+                if s.kind == "obj" and not s.done then
+                    objs = objs + 1
+                    if s.loc then
+                        located = located + 1
+                        local d = spot and ns.DistanceBetween(spot, s.loc)
+                        dists[#dists + 1] = d and math.floor(d) or "?"
+                    end
+                end
+            end
+            say(qid, mine.name or "?", "| tracked:", tostring(ns.IsQuestTracked(qid)), "| ready:", tostring(ns.IsReadyToTurnIn(qid)),
+                "| open objectives:", objs, "| with a spot:", located, "| yards:", #dists > 0 and table.concat(dists, ",") or "-")
+        end
+    end
 end
 
 -- Preferences: the setting was switched.

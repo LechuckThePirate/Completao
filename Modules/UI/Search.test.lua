@@ -252,6 +252,40 @@ describe("Search", function()
         end)
         after_each(function() C_QuestLog.GetQuestWatchType = saved end)
 
+        it("on a client with no way to ask what is tracked, counts the quests in the log (they are tracked as taken)", function()
+            C_QuestLog.GetQuestWatchType = nil
+            WowMock.onQuest[166] = nil
+            assert.is_true(ns.IsQuestTracked(999999))
+            assert.is_false(ns.IsQuestTracked(166)) -- not in the log
+        end)
+
+        it("on the clients that keep their own list, follows it", function()
+            C_QuestLog.GetQuestWatchType = nil
+            WowMock.onQuest[166] = true
+            ns.flavor = "tbc"
+            assert.is_true(ns.IsQuestTracked(166))
+            ns.UntrackQuest(166)
+            assert.is_false(ns.IsQuestTracked(166))
+            assert.is_true(ns.IsQuestTracked(999999))
+            ns.flavor = nil
+        end)
+
+        it("shift-click on a quest of the log tracks or untracks it, without opening its details", function()
+            C_QuestLog.GetQuestWatchType = nil
+            ns.flavor = "tbc"
+            ns.UI_SetSearchMode(true, "log")
+            local function rowOf(id)
+                for _, r in ipairs(ShownRows()) do if r.quest.id == id then return r end end
+            end
+            WowMock.shift = true
+            rowOf(999999):GetScript("OnClick")(rowOf(999999), "LeftButton")
+            assert.is_false(ns.IsQuestTracked(999999))
+            rowOf(999999):GetScript("OnClick")(rowOf(999999), "LeftButton")
+            assert.is_true(ns.IsQuestTracked(999999))
+            WowMock.shift = false
+            ns.flavor = nil
+        end)
+
         it("the search table has no status icons", function()
             ns.UI_SetSearchMode(true, "search")
             assert.is_false(ShownRows()[1].status:IsShown())
@@ -362,4 +396,46 @@ describe("Search", function()
             assert.is_true(panel.empty:IsShown())
         end)
     end)
+
+    -- nothing here sets ns.REWARDS: the types, the filter and the icons work with what the client's toc loads
+    for _, toc in ipairs({ "Completao_TBC.toc", "Completao_Vanilla.toc" }) do describe("with the data of " .. toc, function()
+        before_each(function()
+            WowMock.Reset()
+            WowMock.items[2042] = { typeName = "Weapon", subName = "Staves", classID = 2, subclassID = 10 }
+            WowMock.items[2041] = { typeName = "Armor", subName = "Leather", classID = 4, subclassID = 2 }
+            ns = LoadAddon({ toc = toc })
+            StartAddon(ns, nil, { selected = "vc" })
+            ns.UI_Toggle()
+            ns.UI_SetSearchMode(true)
+            panel = ns.UI.searchPanel
+        end)
+
+        local function pick(button, name)
+            button:Click()
+            WowMock.Find(function(f) return f.text and f.text._text == name and f._scripts.OnClick end):Click()
+        end
+
+        it("lists the reward types and finds a quest by type and subtype", function()
+            pick(panel.typeButton, "Armor")
+            assert.is_true(ids(ShownRows())[166])
+            pick(panel.subButton, "Leather")
+            assert.is_true(ids(ShownRows())[166])
+        end)
+
+        it("shows the quest's reward items in its row", function()
+            typeText("defias brother")
+            local row
+            for _, r in ipairs(ShownRows()) do if r.quest.id == 166 then row = r end end
+            assert.are.equal(6087, row.icons[1].itemID)
+            assert.are.equal(2041, row.icons[2].itemID)
+            assert.are.equal(2042, row.icons[3].itemID)
+        end)
+
+        it("only with items keeps the quests that give one", function()
+            panel.itemsOnly:SetChecked(true); panel.itemsOnly:Click()
+            local rows = ShownRows()
+            assert.is_true(#rows > 0)
+            for _, r in ipairs(rows) do assert.is_true(#ns.RewardItemIds(ns.REWARDS[r.quest.id]) > 0) end
+        end)
+    end) end
 end)

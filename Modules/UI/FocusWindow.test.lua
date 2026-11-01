@@ -460,9 +460,16 @@ describe("FocusWindow", function()
                 assert.are.equal(0, WowMock.superTrackCalls)
             end)
 
-            it("prefers objectives to turn-ins, even nearer ones", function()
+            it("takes a turn-in that is nearer than any objective", function()
                 ready(999003)
                 distance[31] = 1
+                update()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("takes an objective that is nearer than any turn-in", function()
+                ready(999003)
+                distance[31] = 500
                 update()
                 assert.are.equal(999001, ns.Focus_Quest())
             end)
@@ -1162,6 +1169,15 @@ describe("FocusWindow", function()
             assert.are.equal(2, #shownTexts())
         end)
 
+        it("counts a quest 300 yards off as in the same area, and one 340 yards off as not", function()
+            ns.DistanceBetween = function() return 300 end
+            focus()
+            assert.matches("Owl Watch", table.concat(shownTexts(), "\n"))
+            ns.DistanceBetween = function() return 340 end
+            ns.Focus_Refresh(true)
+            assert.are.equal(2, #shownTexts())
+        end)
+
         it("clicking one of its objectives puts the waypoint on it", function()
             focus()
             lineWith("Owls"):Click()
@@ -1404,6 +1420,13 @@ describe("FocusWindow", function()
             assert.matches("focused quest: 999001", all)
             assert.matches("candidates: Wolf, Boar", all)
             assert.matches("macro: /targetenemy", all)
+        end)
+
+        it("/completao here says what the focused quest's spot is and how the tracking works", function()
+            local said = {}
+            ns.Print = function(text) said[#said + 1] = text end
+            ns.Focus_HereReport()
+            assert.matches("%[here%] focused quest: 999001 | step: %d+ | spot: yes | own tracking: false", table.concat(said, "\n"))
         end)
     end)
 

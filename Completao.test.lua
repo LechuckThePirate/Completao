@@ -23,16 +23,26 @@ describe("Completao (startup)", function()
         end
     end)
 
-    it("runs on the data of Classic Era, which has no rewards table, and opens the window on a chain", function()
+    it("runs on the data of Classic Era and opens the window on a chain", function()
         WowMock.Reset()
         local era = LoadAddon({ toc = "Completao_Vanilla.toc" })
-        assert.is_nil(era.REWARDS)
+        assert.is_not_nil(era.REWARDS)
         StartAddon(era, nil, { selected = "vc" })
         era.UI_Toggle()
         assert.is_true(era.UI:IsShown())
         local _, shown = ShownNodes()
         assert.is_true(shown > 0)
         assert.matches("initialization complete %(%d+ quests%)", WowMock.printed[#WowMock.printed])
+    end)
+
+    it("still runs with no rewards table", function()
+        WowMock.Reset()
+        local era = LoadAddon({ toc = "Completao_Vanilla.toc" })
+        era.REWARDS = nil
+        StartAddon(era, nil, { selected = "vc" })
+        era.UI_Toggle()
+        local _, shown = ShownNodes()
+        assert.is_true(shown > 0)
     end)
 
     it("on entering, sets up the saved variables and announces in chat", function()

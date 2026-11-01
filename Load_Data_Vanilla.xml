@@ -10,6 +10,7 @@
     <Script file="Data\Vanilla\Generated\Professions.lua"/>
     <Script file="Data\Vanilla\Generated\Races.lua"/>
     <Script file="Data\Vanilla\Generated\Extra.lua"/>
+    <Script file="Data\Vanilla\Generated\Rewards.lua"/>
     <Script file="Data\Vanilla\Generated\Entrances.lua"/>
     <Script file="Data\Classic\Overrides.lua"/>
 </Ui>

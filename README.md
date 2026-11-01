@@ -239,10 +239,11 @@ is fetched with local helpers that are not part of this repository
   the other generated files, written by a local helper from public quest
   databases. Only item ids and counts, money, experience and reputation are
   stored: names, icons and tooltips come from the client.
-- `Data/TBC/Generated/Rewards.lua` -- the same for TBC Anniversary, written by
-  `tools/tbc_rewards.mjs` from the open [cmangos TBC database](https://github.com/cmangos/tbc-db)
-  (items, money, and the experience the server derives from the money at the top
-  level) and Questie's TBC database (reputation). Classic Era has no rewards yet.
+- `Data/Vanilla/Generated/Rewards.lua`, `Data/TBC/Generated/Rewards.lua` -- the same for
+  Classic Era and TBC Anniversary, written by `tools/cmangos_rewards.mjs` from the open cmangos
+  databases, [classic-db](https://github.com/cmangos/classic-db) and
+  [tbc-db](https://github.com/cmangos/tbc-db) (items, money, and the experience the server
+  derives from the money at the top level) and Questie's database of the client (reputation).
 - **Coordinates.** Everything in `Data/Forever/Generated/` is in Forever's map
   coordinates (`Data/Vanilla/Generated/` is in Classic Era's). Forever redrew the maps of Mulgore, Eastern Plaguelands,
   Redridge Mountains and Stormwind City (same world positions, new map
@@ -298,9 +299,10 @@ FITNESS FOR A PARTICULAR PURPOSE.
 - **Public quest databases.** The names, text and locations of the quests
   Forever adds, and the rewards of Forever's quests, are compiled from public quest
   databases and are not covered by this license.
-- **cmangos.** The item, money and experience rewards of TBC Anniversary (in
-  `Data/TBC/Generated/Rewards.lua`) derive from the
-  [cmangos TBC database](https://github.com/cmangos/tbc-db), GPLv3.
+- **cmangos.** The item, money and experience rewards of Classic Era and TBC
+  Anniversary (`Rewards.lua` in `Data/Vanilla/Generated/` and `Data/TBC/Generated/`)
+  derive from the cmangos databases, [classic-db](https://github.com/cmangos/classic-db)
+  and [tbc-db](https://github.com/cmangos/tbc-db), GPLv3.
 - **Blizzard Entertainment.** The quests, their names and text, and every game
   asset are Blizzard's. At runtime the addon uses textures and widgets the game
   client already ships (quest icon, frame and button templates, maximize/restore

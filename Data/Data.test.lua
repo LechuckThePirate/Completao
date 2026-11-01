@@ -59,8 +59,8 @@ for _, flavor in ipairs(FLAVORS) do
             end
         end)
 
-        -- Forever's rewards come from the web, TBC's from an open database; Classic Era has none yet
-        if flavor.id ~= "vanilla" then it("rewards have the expected shape and belong to the addon's quests", function()
+        -- Forever's rewards come from the web, the others' from open databases
+        it("rewards have the expected shape and belong to the addon's quests", function()
             local function itemList(list, where)
                 for _, e in ipairs(list or {}) do
                     if type(e) == "table" then
@@ -86,7 +86,7 @@ for _, flavor in ipairs(FLAVORS) do
             table.sort(orphans)
             -- many unknown ids would mean the rewards and the quests come from different builds, not a stray quest
             assert.is_true(#orphans <= 25, "rewards of unknown quests: " .. table.concat(orphans, ", "))
-        end) end
+        end)
 
         it("the Classic raids, Deeprun Tram and the battlegrounds have quests and a known section", function()
             for _, id in ipairs({ "zg", "aq20", "mc", "bwl", "aq40", "naxx" }) do
@@ -113,15 +113,18 @@ for _, flavor in ipairs(FLAVORS) do
             assert.is_true(#ns.entries.eots.quests > 0)
         end) end
 
-        if flavor.id == "tbc" then it("has the rewards of the classic and of the Outland quests", function()
-            assert.are.same({ 6087, 2041, 2042 }, ns.REWARDS[166].choice)
+        if flavor.id == "tbc" then it("has the rewards of the Outland quests", function()
             assert.are.same({ 29942, 29937, 29929, 29944 }, ns.REWARDS[10129].choice)
+        end) end
+
+        it("has the rewards of the classic quests", function()
+            assert.are.same({ 6087, 2041, 2042 }, ns.REWARDS[166].choice)
             local withItems = 0
             for _, r in pairs(ns.REWARDS) do
                 if #ns.RewardItemIds(r) > 0 then withItems = withItems + 1 end
             end
-            assert.is_true(withItems > 2000)
-        end) end
+            assert.is_true(withItems > 1500)
+        end)
 
         if flavor.id == "tbc" then it("has the Blood Elf and Draenei races, each of its own faction", function()
             assert.are.equal(10, ns.entries.r_10.raceId)

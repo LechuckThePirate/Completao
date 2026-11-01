@@ -398,12 +398,12 @@ describe("Search", function()
     end)
 
     -- nothing here sets ns.REWARDS: the types, the filter and the icons work with what the client's toc loads
-    describe("with the data of TBC Anniversary", function()
+    for _, toc in ipairs({ "Completao_TBC.toc", "Completao_Vanilla.toc" }) do describe("with the data of " .. toc, function()
         before_each(function()
             WowMock.Reset()
             WowMock.items[2042] = { typeName = "Weapon", subName = "Staves", classID = 2, subclassID = 10 }
             WowMock.items[2041] = { typeName = "Armor", subName = "Leather", classID = 4, subclassID = 2 }
-            ns = LoadAddon({ toc = "Completao_TBC.toc" })
+            ns = LoadAddon({ toc = toc })
             StartAddon(ns, nil, { selected = "vc" })
             ns.UI_Toggle()
             ns.UI_SetSearchMode(true)
@@ -437,5 +437,5 @@ describe("Search", function()
             assert.is_true(#rows > 0)
             for _, r in ipairs(rows) do assert.is_true(#ns.RewardItemIds(ns.REWARDS[r.quest.id]) > 0) end
         end)
-    end)
+    end) end
 end)

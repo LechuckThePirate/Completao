@@ -204,6 +204,20 @@ describe("FocusWindow", function()
         assert.near(0.2, WowMock.userWaypoint.x, 1e-9)
     end)
 
+    it("a quest with no objectives (deliver, speak to) shows the turn-in, with the waypoint on who takes it", function()
+        ns.AddQuests("z", { { id = 999005, name = "Letter", level = 10,
+            finish = { npc = "Mennet Carkad", area = 12, x = 40, y = 41 } } })
+        WowMock.onQuest[999005] = true
+        WowMock.objectives[999005] = {}
+        assert.is_true(ns.Focus_Set(999005))
+        frame = CompletaoFocusFrame
+        local texts = shownTexts()
+        assert.are.equal(1, #texts)
+        assert.matches("Turn in Letter %(Mennet Carkad%)", texts[1])
+        assert.matches("ActiveQuestIcon", frame.icon._set.SetTexture[1])
+        assert.near(0.4, WowMock.userWaypoint.x, 1e-9)
+    end)
+
     it("turning the quest in forgets the focus, and the window says no quest is focused", function()
         focus()
         WowMock.onQuest[999001], WowMock.done[999001] = nil, true

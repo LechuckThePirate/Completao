@@ -307,7 +307,7 @@ C_QuestLog = {
     IsOnQuest = function(id) return WowMock.onQuest[id] == true end,
     GetTitleForQuestID = function(id) return WowMock.titles[id] end,
     RequestLoadQuestByID = function() end,
-    GetQuestObjectives = function(id) return WowMock.objectives[id] or {} end,
+    GetQuestObjectives = function(id) return WowMock.objectives[id] end,
     GetQuestsOnMap = function(map) return WowMock.questsOnMap[map] end,
     ReadyForTurnIn = function(id) return WowMock.readyForTurnIn[id] == true end,
     GetNumQuestLogEntries = function() return #WowMock.log end,

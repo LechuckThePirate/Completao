@@ -63,6 +63,15 @@ describe("QuestState", function()
             WowMock.done[10] = true
             assert.is_false(ns.IsReadyToTurnIn(10))
         end)
+
+        it("a quest with no objectives is ready as soon as it is in the log", function()
+            WowMock.objectives[10] = {}
+            assert.is_false(ns.IsReadyToTurnIn(10))
+            WowMock.onQuest[10] = true
+            assert.is_true(ns.IsReadyToTurnIn(10))
+            WowMock.objectives[10] = { { text = "Boars: 0/5", finished = false } }
+            assert.is_false(ns.IsReadyToTurnIn(10))
+        end)
     end)
 
     describe("IsEliteQuest", function()

@@ -12,6 +12,12 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
+    "- New: Classic Era and TBC Anniversary support, with their quests, dungeons and raids (beta: not yet tested much in the game).",
+    "- New: on Classic Era and TBC the addon keeps the list of tracked quests itself, in step with Questie's tracker.",
+    "- Fixed: a quest with no objectives (deliver a letter, speak to someone) is ready as soon as it is taken: the focus " ..
+        "window points the waypoint at who takes it.",
+    "- Changed: with nothing focused, autofocus picks the nearest tracked quest, whether its next step is an objective or the hand-in.",
+    "- Changed: the addon is simply called Completao!! now.",
     "- New: the quests of the books lying around the world have a \"Books\" entry under Miscellaneous.",
     "- Fixed: the names of the entries under Events and Miscellaneous are now translated.",
     "- Fixed: the quests of another class no longer show up as available in the search.",

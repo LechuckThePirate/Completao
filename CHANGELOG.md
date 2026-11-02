@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.5.0-beta
 
 - New: Classic Era support (`Completao_Vanilla.toc`), with the quests of the public databases for that client. Not yet tested in the game.
 - New: TBC Anniversary support (`Completao_TBC.toc`): the Burning Crusade dungeons, raids and Eye of the Storm, Outland zones, Blood Elf and Draenei quests. Not yet tested in the game.

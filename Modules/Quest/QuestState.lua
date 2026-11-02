@@ -28,9 +28,12 @@ function ns.QuestTitle(id, fallback)
     return fallback or ("Quest " .. id)
 end
 
--- In the log with every objective done and not turned in yet.
+-- In the log with every objective done and not turned in yet. A quest with no objectives at all (deliver a
+-- letter, speak to someone) is ready as soon as it is taken, though the client never marks it complete.
 function ns.IsReadyToTurnIn(id)
     if not C_QuestLog.IsOnQuest(id) or C_QuestLog.IsQuestFlaggedCompleted(id) then return false end
+    local objectives = C_QuestLog.GetQuestObjectives and C_QuestLog.GetQuestObjectives(id)
+    if objectives and #objectives == 0 then return true end
     if C_QuestLog.ReadyForTurnIn then return C_QuestLog.ReadyForTurnIn(id) and true or false end
     if C_QuestLog.IsComplete then return C_QuestLog.IsComplete(id) and true or false end
     return false

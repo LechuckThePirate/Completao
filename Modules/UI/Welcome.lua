@@ -12,22 +12,13 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: Classic Era and TBC Anniversary support, with their quests, dungeons and raids (beta: not yet tested much in the game).",
+    "- New: Classic Era and TBC Anniversary support, with their quests, dungeons, raids and rewards (not yet tested much in the game).",
     "- New: on Classic Era and TBC the addon keeps the list of tracked quests itself, in step with Questie's tracker.",
     "- Fixed: a quest with no objectives (deliver a letter, speak to someone) is ready as soon as it is taken: the focus " ..
         "window points the waypoint at who takes it.",
     "- Changed: with nothing focused, autofocus picks the nearest tracked quest, whether its next step is an objective or the hand-in.",
     "- Changed: the addon is simply called Completao!! now.",
-    "- New: the quests of the books lying around the world have a \"Books\" entry under Miscellaneous.",
-    "- Fixed: the names of the entries under Events and Miscellaneous are now translated.",
-    "- Fixed: the quests of another class no longer show up as available in the search.",
-    "- New: each quest box in the chain view shows the money and the items the quest gives, with the item's tooltip on hover.",
-    "- New: each quest box in the chain view shows the experience the quest gives.",
-    "- New: the focus window lists, under \"Also here:\" (\"Also there:\" when you are away), the other tracked quests " ..
-        "with something to do near the step you are working on.",
-    "- New: a key to target the quest's creatures and the NPC who takes a ready quest, and an option to make Tab do it first.",
-    "- The preferences window is wider and shorter, in two columns with headings.",
-    "- Data: new quests and the rewards of more quests, as the public databases have them now.",
+    "- Data: the quests, as the public databases have them now.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

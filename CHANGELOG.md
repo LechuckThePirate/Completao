@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.5.1
 
 - Data: the quests, as the public databases have them now.
 

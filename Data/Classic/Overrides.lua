@@ -10,6 +10,11 @@ local _, ns = ...
 -- isn't the Stagnant Oasis the quest chain is about -- the other one (14 points) is, matching the
 -- previous step's "Test the Dried Seeds" at 55.6, 42.8.
 ns.PatchQuest(880, { steps = { { name = "Altered Snapjaw Shell", area = 17, x = 55.6, y = 42.6 } } })
+-- Since QuestieDB v1.0.10 some steps take the name of the invisible NPC that counts the objective instead of the
+-- objective's text, and one title has a double space.
+ns.PatchQuest(273, { steps = { { name = "Find Huldar, Miran, and Saean", area = 38, x = 51.2, y = 69.0 } } })
+ns.PatchQuest(1657, { steps = { { name = "Toss Stink Bomb into Southshore", area = 267, x = 50.3, y = 57.6 } } })
+ns.PatchQuest(5713, { name = "One Shot. One Kill." })
 -- Holiday and event quests that are filed under zones, professions or reputation but are not in the events
 -- section (they are level 60 and open from level 1, so "hide empty or completed categories" would count them as
 -- work for anyone): Darkmoon Faire, the Gurubashi arena, the Ahn'Qiraj war effort and the Commendation Signets.

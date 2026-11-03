@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Data: the quests, as the public databases have them now.
+
 ## 1.5.0-beta
 
 - New: Classic Era support (`Completao_Vanilla.toc`), with the quests of the public databases for that client. Not yet tested in the game.

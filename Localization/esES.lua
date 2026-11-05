@@ -142,6 +142,8 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Right-click to choose the quest to focus."] = "Clic derecho para elegir la quest a enfocar.",
     ["No tracked quest to go to."] = "No hay ninguna quest seguida a la que ir.",
     ["Auto"] = "Auto",
+    ["Focus the nearest quest"] = "Enfocar la quest más cercana",
+    ["Live focus: switch to the nearest quest as you go"] = "Enfoque en vivo: cambia a la quest más cercana sobre la marcha",
     ["Hide empty or completed categories"] = "Ocultar categorías vacías o completadas",
     ["Hide Blizzard's objective tracker"] = "Ocultar el rastreador de objetivos de Blizzard",
     ["Lock position"] = "Bloquear posición",

@@ -7,7 +7,7 @@ local _, ns = ...
 local SWITCHABLE = {
     windowAlpha = true, fadeAlpha = true, fadeAlphaCombat = true, quiet = true, minimap = true, filters = true, zoom = true, window = true,
     openWithQuestLog = true, openOnQuestLog = true, clickThroughCombat = true, clickThroughMoving = true,
-    sideCollapsed = true, focusWindow = true, focusLocked = true, focusAuto = true, followBlizzardFocus = true,
+    sideCollapsed = true, focusWindow = true, focusLocked = true, focusAuto = true, focusLive = true, followBlizzardFocus = true,
     setBlizzardFocus = true, hideDone = true, hideBlizzardTracker = true, tabTarget = true,
 }
 

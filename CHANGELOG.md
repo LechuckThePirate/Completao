@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New: a button in the focus window's title bar, beside the padlock, puts the focus back on the nearest tracked quest, as Auto in its right-click menu does.
+- New: "Live focus" (Preferences, off by default): the focused quest changes by itself as you play, to whichever tracked quest has its next step nearest (the quests by the same spot stay listed under "Also here"). Another quest has to be clearly nearer to take the focus, nothing changes in combat, and a quest you focus by hand stays until you get to it.
+
 ## 1.5.2
 
 - Fixed: on WoW Forever, "Completao has been blocked from an action only available to the Blizzard UI" when entering the game, followed by errors on the nameplates and action bars. The addon no longer writes to the game's quest log API, which tainted the game's own interface.

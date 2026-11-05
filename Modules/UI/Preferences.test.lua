@@ -19,10 +19,16 @@ describe("Preferences", function()
     it("the checkboxes reflect and change the settings", function()
         local checks = WowMock.FindAll(function(f) return f._kind == "CheckButton" and f._parent == prefs end)
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
-        -- click-through in combat, click-through while moving, autofocus tracked quests, follow Blizzard's tracker,
-        -- focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide Blizzard's tracker,
-        -- Tab targets quest creatures first
-        assert.are.equal(13, #checks)
+        -- click-through in combat, click-through while moving, autofocus tracked quests, live focus, follow
+        -- Blizzard's tracker, focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide
+        -- Blizzard's tracker, Tab targets quest creatures first
+        assert.are.equal(14, #checks)
+        assert.is_false(checks[9]:GetChecked()) -- live focus is off by default
+        checks[9]:SetChecked(true); checks[9]:Click()
+        assert.is_true(ns.char.focusLive)
+        checks[9]:SetChecked(false); checks[9]:Click()
+        assert.is_nil(ns.char.focusLive)
+        table.remove(checks, 9) -- the rest as before
         assert.is_true(checks[1]:GetChecked())
         checks[3]:SetChecked(false); checks[3]:Click()
         assert.is_true(ns.char.quiet)
@@ -72,7 +78,7 @@ describe("Preferences", function()
         local labels = WowMock.FindAll(function(f)
             return f._kind == "FontString" and f._parent == prefs and f._set.SetWordWrap and f._w ~= nil
         end)
-        assert.is_true(#labels >= 13)
+        assert.is_true(#labels >= 14)
         for _, label in ipairs(labels) do
             assert.is_true(label._w <= 340 - 48 - 16, label._text)
             assert.is_true(label._set.SetWordWrap[1])

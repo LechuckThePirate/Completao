@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- Where the game itself says a quest in the log is worked on (the spot of its quest POI): one point per quest,
 -- the same one the minimap shows. It stands in for the places the data doesn't have (the new Forever quests have

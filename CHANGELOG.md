@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: on WoW Forever, "Completao has been blocked from an action only available to the Blizzard UI" when entering the game, followed by errors on the nameplates and action bars. The addon no longer writes to the game's quest log API, which tainted the game's own interface.
+
 ## 1.5.1
 
 - Data: the quests, as the public databases have them now.

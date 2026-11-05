@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
 
 -- Right click on a quest (a node of a tree, a row of a table): a menu with what is usually done with a quest.

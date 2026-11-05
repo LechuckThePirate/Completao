@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- A quest's state for the character: title, done / in progress / available / locked, low or too high
 -- level, whether it is meant for them (class, race, faction) and its long description.

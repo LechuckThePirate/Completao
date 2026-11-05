@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
 
 local DETAIL_H = 210

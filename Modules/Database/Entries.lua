@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- Entries (a dungeon, a zone, a class...) and their quests. The Data/ files register them while loading:
 -- ns.RegisterEntry, ns.AddQuests, ns.SetEntrance; Data/Forever/Overrides.lua fixes them with ns.PatchQuest.

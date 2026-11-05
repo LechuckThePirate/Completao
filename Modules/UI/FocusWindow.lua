@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
 
 -- Focus window: a small floating window for the one quest being focused on (right click on a quest in Tracked Quests,

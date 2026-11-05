@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- Addon entry point: events, chat messages, /completao and key bindings. Loaded last, once the modules
 -- (Modules/) and the data (Data/) are in.

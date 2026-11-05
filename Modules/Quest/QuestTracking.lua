@@ -1,4 +1,5 @@
 local _, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- Which quests are tracked, on the clients that aren't Forever (Classic Era, TBC): their game has no usable
 -- list (the tracker of Blizzard, when there is one, can't take a quest with no objectives, and Questie's has a list

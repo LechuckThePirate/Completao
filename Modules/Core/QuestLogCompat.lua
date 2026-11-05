@@ -1,9 +1,25 @@
 local _, ns = ...
 
 -- The Classic clients don't all have the whole of C_QuestLog (TBC Anniversary has no GetInfo, for one): what is
--- missing is filled in from the old quest log API, which they do have. Nothing that exists is replaced.
-_G.C_QuestLog = _G.C_QuestLog or {}
-local Q = _G.C_QuestLog
+-- missing is filled in from the old quest log API, which they do have.
+-- The game's C_QuestLog is never written to, not even reassigned: a global or a field written by an addon taints
+-- every Blizzard function that reads it, and with Forever's secret values that breaks the nameplates, the action
+-- bars and the rest of the UI ("Completao has been blocked from an action"). The modules read ns.QuestLog instead
+-- (`local C_QuestLog = ns.QuestLog or C_QuestLog` at the top of each file): the game's function when there is
+-- one, else the one from here.
+local shims = {}
+
+-- Looked up on every read, so a client (or a test) that has the function always wins.
+ns.QuestLog = setmetatable({}, {
+    __index = function(_, name)
+        local game = _G.C_QuestLog
+        local f = game and game[name]
+        if f ~= nil then return f end
+        return shims[name]
+    end,
+    __newindex = function() error("ns.QuestLog is read-only", 2) end,
+})
+local Q = ns.QuestLog
 
 -- A line of the old quest log, as C_QuestLog.GetInfo gives it.
 local function line(index)
@@ -23,38 +39,34 @@ local function indexOf(questID)
     end
 end
 
-local function define(name, f)
-    if Q[name] == nil then Q[name] = f end
-end
-
 if GetQuestLogTitle and GetNumQuestLogEntries then
-    define("GetNumQuestLogEntries", function() return (GetNumQuestLogEntries()) end)
-    define("GetInfo", line)
-    define("GetLogIndexForQuestID", function(questID) return (indexOf(questID)) end)
-    define("IsOnQuest", function(questID) return indexOf(questID) ~= nil end)
-    define("GetTitleForQuestID", function(questID)
+    shims.GetNumQuestLogEntries = function() return (GetNumQuestLogEntries()) end
+    shims.GetInfo = line
+    shims.GetLogIndexForQuestID = function(questID) return (indexOf(questID)) end
+    shims.IsOnQuest = function(questID) return indexOf(questID) ~= nil end
+    shims.GetTitleForQuestID = function(questID)
         if Q.GetQuestInfo then return Q.GetQuestInfo(questID) end
         local _, info = indexOf(questID)
         return info and info.title or nil
-    end)
-    define("IsComplete", function(questID)
+    end
+    shims.IsComplete = function(questID)
         local _, info = indexOf(questID)
         return info ~= nil and (info.isComplete == 1 or info.isComplete == true)
-    end)
+    end
 end
-define("RequestLoadQuestByID", function() end)
+shims.RequestLoadQuestByID = function() end
 if IsQuestFlaggedCompleted then
-    define("IsQuestFlaggedCompleted", function(questID) return IsQuestFlaggedCompleted(questID) and true or false end)
+    shims.IsQuestFlaggedCompleted = function(questID) return IsQuestFlaggedCompleted(questID) and true or false end
 end
 if GetQuestLogSelection and SelectQuestLogEntry and GetQuestLogTitle then
-    define("GetSelectedQuest", function()
+    shims.GetSelectedQuest = function()
         local info = line(GetQuestLogSelection())
         return info and info.questID or 0
-    end)
-    define("SetSelectedQuest", function(questID)
+    end
+    shims.SetSelectedQuest = function(questID)
         local index = indexOf(questID)
         if index then SelectQuestLogEntry(index) end
-    end)
+    end
 end
 
 ns.QuestLogCompat = true -- tests look for it

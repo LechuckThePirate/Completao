@@ -1,4 +1,5 @@
 local ADDON, ns = ...
+local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 52, 60, 20, 20
 local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
@@ -1397,8 +1398,9 @@ end
 ns.UI_QuestSelected = onQuestSelected
 if QuestMapFrame_ShowQuestDetails then hooksecurefunc("QuestMapFrame_ShowQuestDetails", onQuestSelected) end
 -- Whatever the log's UI is, clicking a quest ends up selecting it here (our own selections are flagged).
-if C_QuestLog.SetSelectedQuest then
-    hooksecurefunc(C_QuestLog, "SetSelectedQuest", function(questID)
+-- The game's own table: a hook on ns.QuestLog would only see the addon's calls.
+if _G.C_QuestLog and _G.C_QuestLog.SetSelectedQuest then
+    hooksecurefunc(_G.C_QuestLog, "SetSelectedQuest", function(questID)
         if not ns.quietSelect and questID and questID > 0 then onQuestSelected(questID) end
     end)
 end

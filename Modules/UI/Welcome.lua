@@ -12,8 +12,7 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: a button in the focus window's title bar puts the focus back on the nearest tracked quest.",
-    "- New: \"Live focus\" (Preferences): the focused quest changes by itself to the nearest one as you play.",
+    "- Fixed: the quest search no longer slows the game down or freezes it, also while moving with it open.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

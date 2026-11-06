@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.6.1
 
-- Fixed: the quest search and the quest log and tracked lists slowed the game down, up to freezing it, above all while moving with the table open or sorting it by distance. The search table now only draws the rows in view (filled again as you scroll), walking only updates the distances, and the search no longer asks the game for the data of every quest it lists.
+- Fixed: the quest search slowed the game down, up to freezing it, above all while moving with the table open or sorting it by distance. The search table now only draws the rows in view (filled again as you scroll), walking only updates the distances, and the search no longer asks the game for the data of every quest it lists.
 
 ## 1.6.0
 

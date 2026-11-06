@@ -23,6 +23,23 @@ describe("Search", function()
         ns.UI_Toggle()
         ns.UI_SetSearchMode(true)
         panel = ns.UI.searchPanel
+        panel.scroll._h = 100000 -- tall enough for every row to be in view
+        ns.Search_Refresh()
+    end)
+
+    it("only makes rows for the results in view, and fills them again on scrolling", function()
+        panel.scroll._h = 10 * 22
+        ns.Search_Refresh()
+        local rows = ShownRows()
+        assert.is_true(#rows <= 12)
+        assert.is_true(panel.content:GetHeight() > 50 * 22) -- the table is as tall as all the results
+        local firstQuest = rows[1].quest.id
+        panel.scroll:SetVerticalScroll(30 * 22)
+        for _, h in ipairs(panel.scroll._hooks.OnVerticalScroll or {}) do h(panel.scroll, 30 * 22) end
+        rows = ShownRows()
+        assert.is_true(#rows <= 12)
+        assert.are_not.equal(firstQuest, rows[1].quest.id)
+        assert.are.equal(-30 * 22, select(3, rows[1]:GetPoint(1))) -- placed where the result sits in the table
     end)
 
     it("with no criteria lists the quests of your level not done yet", function()
@@ -215,6 +232,7 @@ describe("Search", function()
             ns.UI_Toggle()
             ns.UI_SetSearchMode(true)
             panel = ns.UI.searchPanel
+            panel.scroll._h = 100000 -- tall enough for every row to be in view
             reads = 0
             typeText("a")
             rowsShown = #ShownRows()
@@ -471,6 +489,7 @@ describe("Search", function()
             ns.UI_Toggle()
             ns.UI_SetSearchMode(true)
             panel = ns.UI.searchPanel
+            panel.scroll._h = 100000 -- tall enough for every row to be in view
         end)
 
         local function pick(button, name)

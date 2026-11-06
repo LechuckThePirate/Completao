@@ -570,6 +570,99 @@ end
 -- the view, the quest log, the client's data: `stale`). The player walking only changes the distances.
 local found, stale = nil, true
 
+-- Fills a table row with the result found[i], placed y down the table.
+local function fillRow(row, i, y, focusTag)
+    local f = found[i]
+    local q = f.quest
+    row.quest, row.entry, row.index = q, f.entry, i
+    if row.placedFor ~= cols.gen and cols.width > 0 then
+        placeRow(row)
+        row.placedFor = cols.gen
+    end
+    setStatusIcon(row.status, mode ~= "search" and (readyToTurnIn(q) and "ready" or "progress") or nil)
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", 0, -y)
+    row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
+    local shade = (i % 2 == 0) and 0.08 or 0.04
+    row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
+    -- the quest whose step has the waypoint: gold border
+    if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
+        row:SetBackdropBorderColor(1, 0.82, 0, 1)
+    else
+        row:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+    row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
+    row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
+    row.level:SetText(q.level or q.minLevel or "?")
+    row.whereText = f.whereText
+    row.where:SetText(row.whereText)
+    row.dist:SetText(ns.FormatDistance(distanceOf(f)))
+    local r = ns.REWARDS and ns.REWARDS[q.id]
+    row.xp:SetText(xpString(f.xp))
+    row.money:SetText(r and r.money and coinString(r.money) or "")
+    local ids = r and rewardIds(r) or {}
+    for k, icon in ipairs(row.icons) do
+        local id = k <= (cols.icons or MAX_ICONS) and ids[k]
+        if id then
+            local c = itemClass(id)
+            icon.itemID = id
+            icon.tex:SetTexture(c and c.icon or 134400)
+            icon:Show()
+        else
+            icon:Hide()
+        end
+    end
+    row:Show()
+end
+
+-- The search's results in view: rows only exist for them (a row is a backdrop, six icon buttons and seven texts,
+-- and its title and tag ask the client for the quest's data: hundreds of them made the game crawl). The table is
+-- as tall as all the results, and scrolling fills the rows again.
+local function visibleRange(shown)
+    local offset = panel.scroll:GetVerticalScroll() or 0
+    local view = panel.scroll:GetHeight() or 0
+    local first = math.max(1, math.floor(offset / ROW_H) + 1)
+    return first, math.min(shown, first + math.ceil(view / ROW_H))
+end
+
+local function draw()
+    if not found then return end
+    stepsUsed = 0
+    local shown = math.min(#found, MAX_ROWS)
+    panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
+        or L["%d quests"]:format(#found))
+    local width = panel.scroll:GetWidth()
+    if width and width > 0 then
+        panel.content:SetWidth(width)
+        if computeColumns(width, mode == "search" and 0 or STATUS_W) then
+            placeRow(panel.head)
+            for _, row in ipairs(rows) do row.placedFor = nil end
+        end
+    end
+    local focusTag = ns.FocusTag()
+    local used, height = 0, 0
+    if mode == "search" then
+        local first, last = visibleRange(shown)
+        for i = first, last do
+            used = used + 1
+            fillRow(getRow(used), i, (i - 1) * ROW_H, focusTag)
+        end
+        height = shown * ROW_H
+    else
+        -- the log views: a few quests, each with its steps under it
+        for i = 1, shown do
+            used = used + 1
+            fillRow(getRow(used), i, height, focusTag)
+            height = height + ROW_H
+            if mode == "tracked" then height = height + layoutSteps(found[i].quest, height) end
+        end
+    end
+    for i = used + 1, #rows do rows[i]:Hide() end
+    for i = stepsUsed + 1, #stepRows do stepRows[i]:Hide() end
+    panel.content:SetHeight(math.max(1, height))
+    panel.empty:SetShown(#found == 0)
+end
+
 local function refresh(moved)
     if not (panel and panel:IsShown()) then return end
     if moved then
@@ -583,76 +676,16 @@ local function refresh(moved)
         found = sortFound(prepare(mode == "search" and search() or logQuests(mode == "tracked")))
     elseif moved and state.sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
-        for i = 1, math.min(#found, MAX_ROWS) do
-            if rows[i] then rows[i].dist:SetText(ns.FormatDistance(distanceOf(found[i]))) end
+        for _, row in ipairs(rows) do
+            if row:IsShown() and row.index and found[row.index] then
+                row.dist:SetText(ns.FormatDistance(distanceOf(found[row.index])))
+            end
         end
         return
     elseif moved then
         sortFound(found)
     end
-    stepsUsed = 0
-    local shown = math.min(#found, MAX_ROWS)
-    panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
-        or L["%d quests"]:format(#found))
-    local width = panel.scroll:GetWidth()
-    if width and width > 0 then
-        panel.content:SetWidth(width)
-        if computeColumns(width, mode == "search" and 0 or STATUS_W) then
-            placeRow(panel.head)
-            for _, row in ipairs(rows) do row.placedFor = nil end
-        end
-    end
-    local y = 0
-    local focusTag = ns.FocusTag()
-    for i = 1, shown do
-        local f = found[i]
-        local q, row = f.quest, getRow(i)
-        row.quest, row.entry = q, f.entry
-        if row.placedFor ~= cols.gen and cols.width > 0 then
-            placeRow(row)
-            row.placedFor = cols.gen
-        end
-        setStatusIcon(row.status, mode ~= "search" and (readyToTurnIn(q) and "ready" or "progress") or nil)
-        row:ClearAllPoints()
-        row:SetPoint("TOPLEFT", 0, -y)
-        row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
-        local shade = (i % 2 == 0) and 0.08 or 0.04
-        row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
-        -- the quest whose step has the waypoint: gold border
-        if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
-            row:SetBackdropBorderColor(1, 0.82, 0, 1)
-        else
-            row:SetBackdropBorderColor(0, 0, 0, 0)
-        end
-        row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
-        row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
-        row.level:SetText(q.level or q.minLevel or "?")
-        row.whereText = f.whereText
-        row.where:SetText(row.whereText)
-        row.dist:SetText(ns.FormatDistance(distanceOf(f)))
-        local r = ns.REWARDS and ns.REWARDS[q.id]
-        row.xp:SetText(xpString(f.xp))
-        row.money:SetText(r and r.money and coinString(r.money) or "")
-        local ids = r and rewardIds(r) or {}
-        for k, icon in ipairs(row.icons) do
-            local id = k <= (cols.icons or MAX_ICONS) and ids[k]
-            if id then
-                local c = itemClass(id)
-                icon.itemID = id
-                icon.tex:SetTexture(c and c.icon or 134400)
-                icon:Show()
-            else
-                icon:Hide()
-            end
-        end
-        row:Show()
-        y = y + ROW_H
-        if mode == "tracked" then y = y + layoutSteps(q, y) end
-    end
-    for i = shown + 1, #rows do rows[i]:Hide() end
-    for i = stepsUsed + 1, #stepRows do stepRows[i]:Hide() end
-    panel.content:SetHeight(math.max(1, y))
-    panel.empty:SetShown(#found == 0)
+    draw()
 end
 
 -- Redraws a moment later, batching what comes together; `keep` = only the layout changed (a resize), the search
@@ -897,6 +930,10 @@ function ns.Search_Create(parent)
     panel.content:SetSize(1, 1)
     panel.scroll:SetScrollChild(panel.content)
     panel.scroll:SetScript("OnSizeChanged", function() requestRefresh(true) end)
+    -- other rows come into view: filled again from the same results
+    panel.scroll:HookScript("OnVerticalScroll", function()
+        if panel:IsShown() and mode == "search" then draw() end
+    end)
     ns.AutoScrollBar(panel.scroll, function(has)
         barInset = has and 24 or 0
         panel.scroll:SetPoint("BOTTOMRIGHT", -barInset, 0)

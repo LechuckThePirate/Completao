@@ -152,61 +152,154 @@ local function logQuests(trackedOnly)
     return found
 end
 
--- Every quest (once each, in the first entry where it shows up: dungeons, raids, zones...).
-local function search()
-    local found, seen = {}, {}
-    local needle = state.text ~= "" and state.text or nil
+-- Whether a quest is in the log, and its title in the client's language. The clients whose C_QuestLog lacks them get
+-- them from QuestLogCompat, which scans the whole log for every quest asked: there the log is read once per search.
+local isOnQuest, titleOf
+local function readLive()
+    local game = _G.C_QuestLog or {}
+    isOnQuest, titleOf = game.IsOnQuest, game.GetTitleForQuestID or game.GetQuestInfo
+    if isOnQuest and titleOf then return end
+    local inLog = {}
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        if info and not info.isHeader and info.questID and info.questID > 0 then inLog[info.questID] = info.title or "" end
+    end
+    isOnQuest = isOnQuest or function(id) return inLog[id] ~= nil end
+    titleOf = titleOf or function(id)
+        local t = inLog[id]
+        return t ~= "" and t or nil
+    end
+end
+
+-- Lowercase titles, kept once the client has given one (every keystroke compares thousands of them).
+local lowerTitles, lowerNames = {}, {}
+local function lowerName(q)
+    local t = lowerNames[q.id]
+    if not t then
+        t = q.name:lower()
+        lowerNames[q.id] = t
+    end
+    return t
+end
+-- the client's title (else the data's name), and whether it is the data's name
+local function lowerTitle(q)
+    local t = lowerTitles[q.id]
+    if t then return t end
+    local live = titleOf(q.id)
+    if live and live ~= "" then
+        lowerTitles[q.id] = live:lower()
+        return lowerTitles[q.id]
+    end
+    return lowerName(q), true
+end
+
+-- The quests meant for this character, once each (in the first entry where it shows up: dungeons, raids,
+-- zones...). It only changes with the "other faction" filter, so it is worked out again only then.
+local candidates, candidatesKey
+local function visibleQuests()
+    local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction and true or false
+    local key = tostring(otherFaction) .. ":" .. #ns.entryList
+    if candidates and candidatesKey == key then return candidates end
+    candidates, candidatesKey = {}, key
+    local seen = {}
     for _, d in ipairs(ns.entryList) do
         for _, q in ipairs(d.quests) do
-            if not seen[q.id] and ns.QuestVisible(q, nil) then
+            if not seen[q.id] then
                 seen[q.id] = true
-                local ok = true
-                local onQuest = C_QuestLog.IsOnQuest(q.id)
-                if not state.done and C_QuestLog.IsQuestFlaggedCompleted(q.id) then ok = false end
-                if ok and not onQuest then
-                    if not state.low and ns.IsLowLevel(q) then ok = false end
-                    if ok and not state.high and ns.IsTooHigh(q) then ok = false end
-                end
-                if ok and needle then
-                    local cached = C_QuestLog.GetTitleForQuestID(q.id)
-                    ok = (cached and cached:lower():find(needle, 1, true)) or q.name:lower():find(needle, 1, true)
-                    ok = ok and true or false
-                end
-                if ok and not matchesReward(q) then ok = false end
-                if ok and state.itemsOnly then
-                    local r = ns.REWARDS and ns.REWARDS[q.id]
-                    ok = r ~= nil and #rewardIds(r) > 0
-                end
-                if ok then found[#found + 1] = { quest = q, entry = d } end
+                if ns.QuestVisible(q, nil) then candidates[#candidates + 1] = { q = q, d = d } end
             end
         end
+    end
+    return candidates
+end
+
+-- Every quest that matches the form.
+local function search()
+    local found = {}
+    local needle = state.text ~= "" and state.text or nil
+    local lowByLevel = {} -- IsLowLevel only depends on the level, and asks the client
+    for _, c in ipairs(visibleQuests()) do
+        local q, d = c.q, c.d
+        local ok = true
+        local onQuest = isOnQuest(q.id)
+        if not state.done and C_QuestLog.IsQuestFlaggedCompleted(q.id) then ok = false end
+        if ok and not onQuest then
+            local level = q.level or q.minLevel
+            local low = level and lowByLevel[level]
+            if low == nil then
+                low = ns.IsLowLevel(q)
+                if level then lowByLevel[level] = low end
+            end
+            if not state.low and low then ok = false end
+            if ok and not state.high and ns.IsTooHigh(q) then ok = false end
+        end
+        if ok and needle then
+            local title, isName = lowerTitle(q)
+            ok = title:find(needle, 1, true) or (not isName and lowerName(q):find(needle, 1, true))
+            ok = ok and true or false
+        end
+        if ok and not matchesReward(q) then ok = false end
+        if ok and state.itemsOnly then
+            local r = ns.REWARDS and ns.REWARDS[q.id]
+            ok = r ~= nil and #rewardIds(r) > 0
+        end
+        if ok then found[#found + 1] = { quest = q, entry = d } end
     end
     return found
 end
 
--- Yards from the player to the quest's next step (nil when unknown), worked out once per result.
-local function distanceOf(f)
-    if not f.distDone then
-        f.distDone = true
-        if f.quest.steps or f.quest.start or f.quest.finish then
-            local steps, current = ns.QuestSteps(f.quest)
-            f.dist = steps[current] and ns.DistanceTo(steps[current].loc)
+-- Where a quest's next step is. Out of the log the steps aren't worked out (ns.QuestSteps asks the client for the
+-- quest's data, and with thousands of results that is thousands of requests, each one answered with an event that
+-- redraws the window): not taken yet, it is the start of the missing requirement or its own start; done, the turn-in.
+local function nextStepLoc(q)
+    if C_QuestLog.IsQuestFlaggedCompleted(q.id) then return q.finish end
+    if not isOnQuest(q.id) then
+        for _, id in ipairs(q.requires or {}) do
+            if not C_QuestLog.IsQuestFlaggedCompleted(id) then
+                local def = ns.FindQuestDef(id)
+                return def and def.start
+            end
         end
+        return q.start
+    end
+    local steps, current = ns.QuestSteps(q)
+    return steps[current] and steps[current].loc
+end
+
+-- Yards from the player to the quest's next step (nil when unknown). The step is worked out once per result;
+-- the distance again each time the player moves (moveGen).
+local moveGen = 0
+local function distanceOf(f)
+    if not (f.quest.steps or f.quest.start or f.quest.finish) then return nil end
+    if not f.locDone then
+        f.locDone = true
+        f.loc = nextStepLoc(f.quest)
+    end
+    if f.distGen ~= moveGen then
+        f.distGen = moveGen
+        f.dist = ns.DistanceTo(f.loc)
     end
     return f.dist
+end
+
+-- What the table shows and sorts by, once per search.
+local function prepare(found)
+    for _, f in ipairs(found) do
+        local q = f.quest
+        local r = ns.REWARDS and ns.REWARDS[q.id]
+        f.title = lowerTitle(q)
+        f.level = q.level or q.minLevel or 0
+        f.money = r and r.money or 0
+        f.xp = ns.QuestXP(q.id)
+        f.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
+    end
+    return found
 end
 
 -- table order (headers): by title (the one shown), level, zone, distance or money; ties by level and title
 local function sortFound(found)
     local key = {}
     for _, f in ipairs(found) do
-        local q = f.quest
-        local r = ns.REWARDS and ns.REWARDS[q.id]
-        f.title = (C_QuestLog.GetTitleForQuestID(q.id) or q.name):lower()
-        f.level = q.level or q.minLevel or 0
-        f.money = r and r.money or 0
-        f.xp = ns.QuestXP(q.id)
-        f.whereText = f.entry and ns.EntryName(f.entry) or f.zone or ""
         if state.sort == "distance" then
             key[f] = distanceOf(f) or false
         else
@@ -473,10 +566,31 @@ local function layoutSteps(quest, y)
     return used
 end
 
-local function refresh()
+-- The last search's results, kept between redraws: it is done again only when what it depends on changes (the form,
+-- the view, the quest log, the client's data: `stale`). The player walking only changes the distances.
+local found, stale = nil, true
+
+local function refresh(moved)
     if not (panel and panel:IsShown()) then return end
+    if moved then
+        moveGen = moveGen + 1
+        -- the log views are short, and their steps follow the player (the spots the game gives): done again
+        if mode ~= "search" then stale = true end
+    end
+    if stale or not found then
+        stale = false
+        readLive()
+        found = sortFound(prepare(mode == "search" and search() or logQuests(mode == "tracked")))
+    elseif moved and state.sort ~= "distance" then
+        -- same rows in the same order: only the distance column changes
+        for i = 1, math.min(#found, MAX_ROWS) do
+            if rows[i] then rows[i].dist:SetText(ns.FormatDistance(distanceOf(found[i]))) end
+        end
+        return
+    elseif moved then
+        sortFound(found)
+    end
     stepsUsed = 0
-    local found = sortFound(mode == "search" and search() or logQuests(mode == "tracked"))
     local shown = math.min(#found, MAX_ROWS)
     panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
         or L["%d quests"]:format(#found))
@@ -489,6 +603,7 @@ local function refresh()
         end
     end
     local y = 0
+    local focusTag = ns.FocusTag()
     for i = 1, shown do
         local f = found[i]
         local q, row = f.quest, getRow(i)
@@ -504,13 +619,12 @@ local function refresh()
         local shade = (i % 2 == 0) and 0.08 or 0.04
         row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
         -- the quest whose step has the waypoint: gold border
-        local focusTag = ns.FocusTag()
-        if focusTag and focusTag:find("^" .. q.id .. ":") then
+        if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
             row:SetBackdropBorderColor(1, 0.82, 0, 1)
         else
             row:SetBackdropBorderColor(0, 0, 0, 0)
         end
-        row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name))
+        row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
         row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
         row.level:SetText(q.level or q.minLevel or "?")
         row.whereText = f.whereText
@@ -541,8 +655,11 @@ local function refresh()
     panel.empty:SetShown(#found == 0)
 end
 
+-- Redraws a moment later, batching what comes together; `keep` = only the layout changed (a resize), the search
+-- stands.
 local pending
-local function requestRefresh()
+local function requestRefresh(keep)
+    if not keep then stale = true end
     if pending then return end
     pending = true
     C_Timer.After(0.15, function()
@@ -770,7 +887,7 @@ function ns.Search_Create(parent)
     layoutForm()
     panel:SetScript("OnSizeChanged", function()
         layoutForm()
-        requestRefresh()
+        requestRefresh(true)
     end)
 
     panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
@@ -779,7 +896,7 @@ function ns.Search_Create(parent)
     panel.content = CreateFrame("Frame", nil, panel.scroll)
     panel.content:SetSize(1, 1)
     panel.scroll:SetScrollChild(panel.content)
-    panel.scroll:SetScript("OnSizeChanged", function() requestRefresh() end)
+    panel.scroll:SetScript("OnSizeChanged", function() requestRefresh(true) end)
     ns.AutoScrollBar(panel.scroll, function(has)
         barInset = has and 24 or 0
         panel.scroll:SetPoint("BOTTOMRIGHT", -barInset, 0)
@@ -792,6 +909,7 @@ function ns.Search_Create(parent)
 
     panel:SetScript("OnShow", function()
         updateDropdowns()
+        stale = true -- the log may have changed while it was hidden
         refresh()
     end)
     panel:SetScript("OnHide", ns.PopupMenu_Hide)
@@ -806,7 +924,7 @@ function ns.Search_Create(parent)
         local pos = map and ("%d:%.4f:%.4f"):format(map, x, y) or false
         if pos ~= lastPos then
             lastPos = pos
-            refresh()
+            refresh(true)
         end
     end)
     return panel

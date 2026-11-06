@@ -23,6 +23,23 @@ describe("Search", function()
         ns.UI_Toggle()
         ns.UI_SetSearchMode(true)
         panel = ns.UI.searchPanel
+        panel.scroll._h = 100000 -- tall enough for every row to be in view
+        ns.Search_Refresh()
+    end)
+
+    it("only makes rows for the results in view, and fills them again on scrolling", function()
+        panel.scroll._h = 10 * 22
+        ns.Search_Refresh()
+        local rows = ShownRows()
+        assert.is_true(#rows <= 12)
+        assert.is_true(panel.content:GetHeight() > 50 * 22) -- the table is as tall as all the results
+        local firstQuest = rows[1].quest.id
+        panel.scroll:SetVerticalScroll(30 * 22)
+        for _, h in ipairs(panel.scroll._hooks.OnVerticalScroll or {}) do h(panel.scroll, 30 * 22) end
+        rows = ShownRows()
+        assert.is_true(#rows <= 12)
+        assert.are_not.equal(firstQuest, rows[1].quest.id)
+        assert.are.equal(-30 * 22, select(3, rows[1]:GetPoint(1))) -- placed where the result sits in the table
     end)
 
     it("with no criteria lists the quests of your level not done yet", function()
@@ -161,6 +178,70 @@ describe("Search", function()
         onUpdate(panel, 1)
         assert.are.equal("200 yd", ShownRows()[1].dist:GetText())
         ns.DistanceTo = original
+    end)
+
+    it("walking only redraws the distances: the search isn't done again", function()
+        local x, calls = 0.5, 0
+        ns.PlayerPosition = function() return 1, x, 0.5 end
+        local onUpdate = panel._scripts.OnUpdate
+        onUpdate(panel, 1)
+        local original = ns.QuestVisible
+        ns.QuestVisible = function(...) calls = calls + 1 return original(...) end
+        local done = C_QuestLog.IsQuestFlaggedCompleted
+        local asked = 0
+        C_QuestLog.IsQuestFlaggedCompleted = function(id) asked = asked + 1 return done(id) end
+        for step = 1, 5 do
+            x = 0.5 + step / 100
+            onUpdate(panel, 1)
+        end
+        C_QuestLog.IsQuestFlaggedCompleted = done
+        ns.QuestVisible = original
+        assert.are.equal(0, calls)
+        assert.is_true(asked < #ShownRows()) -- a search asks it of every quest
+    end)
+
+    it("sorting by distance doesn't work out the steps of the quests that aren't in the log", function()
+        local original, stepped = ns.QuestSteps, {}
+        ns.QuestSteps = function(q) stepped[#stepped + 1] = q.id return original(q) end
+        panel.head.dist:Click()
+        ns.QuestSteps = original
+        assert.are.equal(0, #stepped)
+    end)
+
+    it("on a client with no IsOnQuest of its own, reads the log once per search, not once per quest", function()
+        ns.UI_Toggle() -- this test's own copy of the addon is loaded below; the one from before_each stays closed
+        -- the old quest log API, which QuestLogCompat fills C_QuestLog's gaps from (as on TBC Anniversary)
+        local game, savedTitle, savedNum = _G.C_QuestLog, _G.GetQuestLogTitle, _G.GetNumQuestLogEntries
+        local log = { { "Zone", nil, nil, 1 }, { "A quest", 18, 0, nil, nil, nil, nil, 166 } }
+        local reads = 0
+        _G.GetNumQuestLogEntries = function() return #log end
+        _G.GetQuestLogTitle = function(i)
+            reads = reads + 1
+            if log[i] then return (_G.unpack or _G.table.unpack)(log[i], 1, 8) end
+        end
+        local stripped = {}
+        for k, v in pairs(game) do stripped[k] = v end
+        for _, k in ipairs({ "IsOnQuest", "GetTitleForQuestID", "GetInfo", "GetNumQuestLogEntries", "GetLogIndexForQuestID" }) do
+            stripped[k] = nil
+        end
+        _G.C_QuestLog = stripped
+        local rowsShown
+        local ok, err = pcall(function()
+            ns = LoadAddon()
+            StartAddon(ns, nil, { selected = "vc" })
+            ns.UI_Toggle()
+            ns.UI_SetSearchMode(true)
+            panel = ns.UI.searchPanel
+            panel.scroll._h = 100000 -- tall enough for every row to be in view
+            reads = 0
+            typeText("a")
+            rowsShown = #ShownRows()
+        end)
+        _G.C_QuestLog, _G.GetQuestLogTitle, _G.GetNumQuestLogEntries = game, savedTitle, savedNum
+        assert(ok, err)
+        assert.is_true(rowsShown > 20)
+        assert.is_true(reads > 0)
+        assert.is_true(reads < 20) -- a scan per quest would be thousands
     end)
 
     it("remembers the table's order between sessions", function()
@@ -408,6 +489,7 @@ describe("Search", function()
             ns.UI_Toggle()
             ns.UI_SetSearchMode(true)
             panel = ns.UI.searchPanel
+            panel.scroll._h = 100000 -- tall enough for every row to be in view
         end)
 
         local function pick(button, name)

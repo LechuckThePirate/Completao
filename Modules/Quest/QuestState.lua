@@ -17,9 +17,10 @@ end
 ns.RequestQuestLoad = requestLoad
 
 -- Title in the client's language. Chain steps that share a name are numbered in the data
--- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it.
-function ns.QuestTitle(id, fallback)
-    local title = C_QuestLog.GetTitleForQuestID(id)
+-- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it. `getTitle` stands in for
+-- the client's lookup (the search table's, which reads the log once for all its rows).
+function ns.QuestTitle(id, fallback, getTitle)
+    local title = (getTitle or C_QuestLog.GetTitleForQuestID)(id)
     if title and title ~= "" then
         local step = fallback and fallback:match(" %(%d+/%d+%)$")
         if step and not title:find(step, 1, true) then title = title .. step end

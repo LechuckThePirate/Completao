@@ -763,6 +763,80 @@ describe("FocusWindow", function()
                 assert.are.equal(999003, ns.Focus_Quest())
             end)
         end)
+
+        describe("live focus", function()
+            -- wolves 10 yd (Pest Control), foxes 40 (Fox Hunt), owls 900 (Owl Watch)
+            before_each(function()
+                ns.char.focusAuto = nil
+                ns.char.focusLive = true
+            end)
+
+            it("follows the player to the nearest quest, even in the middle of one", function()
+                update()
+                assert.are.equal(999001, ns.Focus_Quest())
+                distance[wolves.x], distance[boars.x] = 500, 600 -- walked off
+                tick()
+                assert.are.equal(999003, ns.Focus_Quest())
+                assert.near(0.3, WowMock.userWaypoint.x, 1e-9) -- the foxes
+            end)
+
+            it("works with Autofocus off, and stops when switched off", function()
+                ns.char.focusLive = nil
+                update()
+                assert.is_nil(ns.Focus_Quest())
+                ns.Focus_SetLive(true)
+                assert.are.equal(999001, ns.Focus_Quest())
+                ns.Focus_SetLive(false)
+                assert.is_nil(ns.char.focusLive)
+                distance[wolves.x], distance[boars.x] = 500, 600
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("only switches to a quest clearly nearer, so it doesn't flip between two", function()
+                update()
+                assert.are.equal(999001, ns.Focus_Quest())
+                distance[30] = 1 -- the foxes, 9 yd nearer than the wolves
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+                distance[wolves.x] = 60
+                tick()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("a quest focused by hand stays until the player gets to it", function()
+                update()
+                assert.is_true(ns.Focus_Set(999004)) -- the owls, 900 yd off
+                tick()
+                assert.are.equal(999004, ns.Focus_Quest())
+                distance[80] = 5 -- there
+                tick()
+                assert.are.equal(999004, ns.Focus_Quest())
+                distance[80] = 500 -- and off again
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+            end)
+
+            it("doesn't switch in combat", function()
+                update()
+                WowMock.inCombat = true
+                FireEvent("PLAYER_REGEN_DISABLED")
+                distance[wolves.x], distance[boars.x] = 500, 600
+                tick()
+                assert.are.equal(999001, ns.Focus_Quest())
+                WowMock.inCombat = false
+                FireEvent("PLAYER_REGEN_ENABLED")
+                tick()
+                assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("closing the window pauses it", function()
+                update()
+                ns.Focus_Clear()
+                tick()
+                assert.is_nil(ns.Focus_Quest())
+            end)
+        end)
     end)
 
     describe("following Blizzard's quest tracker", function()
@@ -848,7 +922,7 @@ describe("FocusWindow", function()
             local checks = WowMock.FindAll(function(f)
                 return f._kind == "CheckButton" and f._parent == CompletaoPreferencesFrame
             end)
-            local check = checks[9] -- (see Preferences.test.lua for the order)
+            local check = checks[10] -- (see Preferences.test.lua for the order)
             assert.is_false(check:GetChecked())
             check:SetChecked(true); check:Click()
             assert.are.equal(999003, ns.Focus_Quest())
@@ -1029,6 +1103,15 @@ describe("FocusWindow", function()
                 ready(999004)
                 FireEvent("QUEST_LOG_UPDATE")
                 assert.are.equal(999003, ns.Focus_Quest())
+            end)
+
+            it("the button by the padlock does the same, and takes no clicks in combat", function()
+                ns.Focus_Set(999004)
+                frame.auto:Click()
+                assert.are.equal(999001, ns.Focus_Quest())
+                assert.is_true(frame.auto:IsMouseEnabled())
+                FireEvent("PLAYER_REGEN_DISABLED")
+                assert.is_false(frame.auto:IsMouseEnabled())
             end)
 
             it("with no quest it can go to, says so", function()

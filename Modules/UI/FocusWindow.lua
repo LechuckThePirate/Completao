@@ -12,13 +12,15 @@ local L = ns.L
 -- ("Focused Quest" title bar; the place is saved; a padlock there locks it in place). Clicking an objective sets the waypoint on it; clicking the
 -- rest of the window (or the hint, when no quest is focused) opens the main window on the tracked quests; a
 -- right click anywhere on it opens a menu to choose the quest to focus (Auto, or one of the tracked quests by
--- distance; inside a dungeon, only the quests done in it). In combat the window stops taking the mouse, so clicks reach the world.
+-- distance; inside a dungeon, only the quests done in it). The button by the padlock does what Auto does: the focus goes back
+-- to the nearest tracked quest. In combat the window stops taking the mouse, so clicks reach the world.
 -- Under the focused quest, "Also here:" lists the other tracked quests with something to do within a short
 -- distance of the step being worked on (the miniboss's quest and the 10 critters beside it), each with all
 -- its objectives; clicking one sets the waypoint on it.
 local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
-local LOCK_SIZE = 16 -- the padlock in it
+local LOCK_SIZE = 16 -- the padlock in it (and the Auto button beside it)
+local BAR_SIDE = 5 + 2 * LOCK_SIZE + 4 -- room the padlock and the Auto button take at the left of the title bar
 local TOP = TITLE_H + 6 -- where the quest's icon and title start
 local WIDTH_MIN, WIDTH_MAX = 200, 420
 local CHECK_W = 16 -- room for the check before a done objective
@@ -82,7 +84,7 @@ end
 local function applyMouse(combat)
     mouseOn = not combat
     if not frame then return end
-    local targets = { frame, frame.close, frame.lock }
+    local targets = { frame, frame.close, frame.lock, frame.auto }
     for _, line in ipairs(lines) do targets[#targets + 1] = line.button end
     for _, f in ipairs(targets) do
         f:EnableMouse(mouseOn)
@@ -213,6 +215,25 @@ local function create()
     lock:SetScript("OnLeave", GameTooltip_Hide)
     frame.lock = lock
     updateLock()
+
+    -- beside it, Auto: back to the nearest tracked quest, as Auto in the right-click menu
+    local auto = CreateFrame("Button", nil, frame)
+    auto:SetSize(LOCK_SIZE - 2, LOCK_SIZE - 2)
+    auto:SetPoint("LEFT", lock, "RIGHT", 3, 0)
+    auto:SetNormalTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
+    auto:SetPushedTexture("Interface\\Icons\\INV_Misc_Spyglass_03")
+    auto:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+    auto:SetScript("OnClick", function()
+        ns.PopupMenu_Hide()
+        ns.Focus_Auto()
+    end)
+    auto:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(L["Focus the nearest quest"], 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    auto:SetScript("OnLeave", GameTooltip_Hide)
+    frame.auto = auto
 
     applyPosition()
     applyMouse(inCombat())
@@ -430,7 +451,7 @@ local function draw(iconKind, title, r, g, b, content)
     frame.title:SetText(title)
     frame.title:SetTextColor(r, g, b)
 
-    local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * (TITLE_H + 6))
+    local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * math.max(BAR_SIDE, TITLE_H + 6))
     for i, l in ipairs(content) do
         local line = setLine(i, l)
         width = math.max(width, line.offset + line.text:GetStringWidth())
@@ -463,12 +484,19 @@ end
 --  * The focused quest is still in progress: only a quest just accepted that is a direct turn-in (ready the
 --    moment it is taken) and whose turn-in is nearer than what the focused quest needs next takes the focus.
 -- Inside a dungeon or raid only its own quests (the ones done inside it) are candidates.
+-- Live focus (Preferences) goes further: the focus follows the player to whichever tracked quest's next step is
+-- nearest, even in the middle of one (the quests by the same spot stay in sight under "Also here"). So that it
+-- doesn't flip between two quests at about the same distance, another quest has to be LIVE_MARGIN yards nearer
+-- to take the focus. A quest focused by hand stays until the player gets to it (or it is the nearest anyway), so
+-- they can pick one far away and walk there.
 -- Looked at when the quest log changes and every few seconds. Closing the window or unfocusing by hand pauses
 -- it until the player focuses a quest or switches the setting.
 local AUTO_EVERY = 2
 local sticky, suspended, picking = {}, false, false
 local FRESH_SECONDS = 10 -- how long an accepted quest counts as new (its tracking and state can lag a moment)
 local fresh = {}         -- [questId] = GetTime() until which it counts as just accepted
+local LIVE_MARGIN = 50
+local held               -- the quest focused by hand that live focus leaves be until the player gets to it
 
 -- Every tracked quest in the log, in log order: { id, def, dist, ready }; `dist` (how far its next step is) is
 -- nil when it can't be told. Inside a known dungeon or raid only the quests done in it are listed, for
@@ -524,9 +552,33 @@ local function freshTurnIn(cur)
     return best
 end
 
+-- What live focus would put the focus on now (see above), or nil to leave it as it is.
+local function livePick(cur)
+    local list = trackedCandidates()
+    local best = nearest(list)
+    if not best then return nil end
+    if not cur then return best.id end
+    if not C_QuestLog.IsOnQuest(cur) then return nil end
+    if best.id == cur then
+        held = nil
+        return nil
+    end
+    local mine
+    for _, e in ipairs(list) do
+        if e.id == cur then mine = e.dist end
+    end
+    if held == cur then
+        if not (mine and mine <= RELATED_RADIUS) then return nil end
+        held = nil
+    end
+    if not mine or best.dist + LIVE_MARGIN < mine then return best.id end
+    return nil
+end
+
 -- The quest autofocus would put the focus on now, or nil to leave it as it is.
 function ns.Focus_AutoPick()
     local cur = ns.Focus_Quest()
+    if ns.char and ns.char.focusLive then return livePick(cur) end
     if cur then
         if not C_QuestLog.IsOnQuest(cur) then return nil end
         if not ns.IsReadyToTurnIn(cur) then return freshTurnIn(cur) end
@@ -578,8 +630,13 @@ function ns.Focus_ChooseQuest(anchor)
     end, MENU_WIDTH)
 end
 
+-- Autofocus or live focus is on.
+function ns.Focus_AutoOn()
+    return ns.char and (ns.char.focusAuto or ns.char.focusLive) and true or false
+end
+
 local function autoFocus()
-    if picking or not ready or suspended or not (ns.char and ns.char.focusAuto) or inCombat() then return false end
+    if picking or not ready or suspended or not ns.Focus_AutoOn() or inCombat() then return false end
     local id = ns.Focus_AutoPick()
     if not id then return false end
     picking = true -- (Focus_Set refreshes, which comes back here)
@@ -755,6 +812,13 @@ function ns.Focus_SetAuto(on)
     ns.Focus_Refresh()
 end
 
+function ns.Focus_SetLive(on)
+    ns.char.focusLive = on and true or nil
+    suspended = false
+    held = nil
+    ns.Focus_Refresh()
+end
+
 function ns.Focus_Refresh(force)
     if autoFocus() then return end
     relatedSpot = nil
@@ -762,7 +826,7 @@ function ns.Focus_Refresh(force)
     if not id then
         -- nothing focused: the message stays up (after a turn-in, or with autofocus on and nothing it can pick,
         -- like quests with no known spot) for the player to click and choose
-        local autoWaiting = ready and not suspended and ns.char and ns.char.focusAuto
+        local autoWaiting = ready and not suspended and ns.Focus_AutoOn()
         if idle or autoWaiting then drawIdle() elseif frame then frame:Hide() end
         return
     end
@@ -810,6 +874,7 @@ function ns.Focus_Set(id, auto)
     if not auto then
         suspended = false
         sticky[id] = ns.IsReadyToTurnIn(id) or nil
+        held = id
     end
     ns.Focus_Refresh(true)
     return true
@@ -821,6 +886,7 @@ function ns.Focus_Clear(keep)
     ns.char.focusQuest = nil
     lastSignature = nil
     sticky = {}
+    held = nil
     idle = keep and true or false
     suspended = not keep
     ns.Focus_Refresh()
@@ -881,7 +947,7 @@ events:SetScript("OnUpdate", function(_, elapsed)
     sinceAuto = sinceAuto + elapsed
     if sinceAuto < AUTO_EVERY then return end
     sinceAuto = 0
-    if ns.char and ns.char.focusAuto then autoFocus() end
+    if ns.Focus_AutoOn() then autoFocus() end
     -- "Also here" turns into "Also there" (and back) as the player walks off from, or to, the spot
     if relatedSpot and frame and frame:IsShown() and isNear(relatedSpot) ~= relatedHere then ns.Focus_Refresh() end
     ns.Focus_UpdateTargeting()

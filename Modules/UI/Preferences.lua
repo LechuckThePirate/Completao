@@ -7,7 +7,7 @@ local L = ns.L
 -- log, the focus window and the buttons on the right.
 local COL_W = 290
 local LEFT_X, RIGHT_X = 20, 20 + COL_W + 20
-local WIDTH, HEIGHT = RIGHT_X + COL_W + 20, 500
+local WIDTH, HEIGHT = RIGHT_X + COL_W + 20, 530
 local LABEL_W = COL_W - 28 - 8 -- a checkbox's text: from after the box to the column's right edge
 local prefs
 
@@ -180,15 +180,20 @@ local function create()
         function() return ns.char.focusAuto end,
         function(value) ns.Focus_SetAuto(value) end)
 
+    -- off unless ticked: the focus follows the player, switching quests by distance as they go
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - STEP, L["Live focus: switch to the nearest quest as you go"],
+        function() return ns.char.focusLive end,
+        function(value) ns.Focus_SetLive(value) end)
+
     -- on unless switched off: saved as false, since nil means "never chosen"
-    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - STEP, L["Follow Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 2 * STEP, L["Follow Blizzard's quest tracker"],
         function() return ns.char.followBlizzardFocus ~= false end,
         function(value)
             ns.char.followBlizzardFocus = value
             if value then ns.Focus_FollowBlizzard() end
         end)
 
-    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 2 * STEP, L["Focusing here also sets Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 3 * STEP, L["Focusing here also sets Blizzard's quest tracker"],
         function() return ns.char.setBlizzardFocus ~= false end,
         function(value) ns.char.setBlizzardFocus = value end)
 
@@ -200,7 +205,7 @@ local function create()
         end)
 
     -- off unless ticked: the game's own tracker stays as it is by default
-    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 3 * STEP, L["Hide Blizzard's objective tracker"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 4 * STEP, L["Hide Blizzard's objective tracker"],
         function() return ns.char.hideBlizzardTracker end,
         function(value)
             ns.char.hideBlizzardTracker = value or nil
@@ -208,20 +213,20 @@ local function create()
         end)
 
     -- off unless ticked: Tab is the player's own key by default
-    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 4 * STEP, L["Tab targets quest creatures and turn-in NPCs first"],
+    widgets[#widgets + 1] = makeCheck(prefs, RX, -166 - 5 * STEP, L["Tab targets quest creatures and turn-in NPCs first"],
         function() return ns.char.tabTarget end,
         function(value)
             ns.char.tabTarget = value or nil
             ns.Focus_UpdateTargeting()
         end)
 
-    makeButton(prefs, RX, -346, L["Reset window position"], function() ns.UI_ResetWindow() end)
-    makeButton(prefs, RX, -376, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
-    makeButton(prefs, RX, -406, L["Reset filters"], function()
+    makeButton(prefs, RX, -378, L["Reset window position"], function() ns.UI_ResetWindow() end)
+    makeButton(prefs, RX, -408, L["Reset zoom"], function() ns.UI_SetZoom(1) end)
+    makeButton(prefs, RX, -438, L["Reset filters"], function()
         ns.char.filters = {}
         ns.UI_SyncFilters()
     end)
-    makeButton(prefs, RX, -440, L["What's new"], function() ns.Welcome_Show() end)
+    makeButton(prefs, RX, -472, L["What's new"], function() ns.Welcome_Show() end)
 
     prefs:SetScript("OnShow", refreshAll)
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)

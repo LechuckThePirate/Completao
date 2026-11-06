@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.6.0
 
 - New: a button in the focus window's title bar, beside the padlock, puts the focus back on the nearest tracked quest, as Auto in its right-click menu does.
 - New: "Live focus" (Preferences, off by default): the focused quest changes by itself as you play, to whichever tracked quest has its next step nearest (the quests by the same spot stay listed under "Also here"). Another quest has to be clearly nearer to take the focus, nothing changes in combat, and a quest you focus by hand stays until you get to it.

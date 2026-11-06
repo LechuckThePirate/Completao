@@ -12,8 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fixed: on WoW Forever, \"Completao has been blocked from an action only available to the Blizzard UI\" when entering " ..
-        "the game, followed by errors on the nameplates and action bars.",
+    "- New: a button in the focus window's title bar puts the focus back on the nearest tracked quest.",
+    "- New: \"Live focus\" (Preferences): the focused quest changes by itself to the nearest one as you play.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

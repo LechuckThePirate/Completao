@@ -754,7 +754,7 @@ end
 
 function ns.UI_Refresh()
     if not frame then return end
-    -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked"; the entry is
+    -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
     refreshList()
@@ -1156,6 +1156,7 @@ local function createFrame()
     sideButton("search", "Interface\\Common\\UI-Searchbox-Icon", ns.L["Search quests..."])
     sideButton("log", "Interface\\GossipFrame\\ActiveQuestIcon", ns.L["Quest Log"])
     sideButton("tracked", "Interface\\GossipFrame\\AvailableQuestIcon", ns.L["Tracked Quests"])
+    sideButton("turnin", "Interface\\RaidFrame\\ReadyCheck-Ready", ns.L["Quests to Turn In"])
 
     -- first row of the side panel: collapses it to the icons, or expands it back
     sideToggle = CreateFrame("Button", nil, frame.listChild)
@@ -1330,7 +1331,8 @@ local function createFrame()
             ns.Detail_Hide()
             searchMode = true
             ns.Search_SetMode("log")
-        elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search" or ns.char.view == "tracked") then
+        elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search" or ns.char.view == "tracked"
+            or ns.char.view == "turnin") then
             searchMode = true
             ns.Search_SetMode(ns.char.view)
         end

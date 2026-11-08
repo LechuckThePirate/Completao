@@ -133,6 +133,8 @@ ns.AddLocale({ "ptBR" }, {
     ["Click to set the waypoint."] = "Clique para definir o waypoint.",
     ["Click to show it on the map."] = "Clique para mostrar no mapa.",
     ["No quests are being tracked."] = "Nenhuma missão está sendo rastreada.",
+    ["Quests to Turn In"] = "Missões para entregar",
+    ["No quests are ready to turn in."] = "Nenhuma missão está pronta para entregar.",
     ["Focus"] = "Focar",
     ["Focused Quest"] = "Missão em foco",
     ["Autofocus tracked quests"] = "Focar automaticamente as missões rastreadas",

@@ -133,6 +133,8 @@ ns.AddLocale({ "frFR" }, {
     ["Click to set the waypoint."] = "Cliquez pour placer le waypoint.",
     ["Click to show it on the map."] = "Cliquez pour l'afficher sur la carte.",
     ["No quests are being tracked."] = "Aucune quête n'est suivie.",
+    ["Quests to Turn In"] = "Quêtes à rendre",
+    ["No quests are ready to turn in."] = "Aucune quête n'est prête à être rendue.",
     ["Your quest log is empty."] = "Votre journal de quêtes est vide.",
     ["Focus"] = "Focaliser",
     ["Focused Quest"] = "Quête focalisée",

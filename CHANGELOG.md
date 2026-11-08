@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Quests to Turn In" in the side panel, under "Tracked Quests": every quest in your log that is ready to turn in, tracked or not, nearest first, each with its turn-in under it.
+
 ## 1.6.1
 
 - Fixed: the quest search slowed the game down, up to freezing it, above all while moving with the table open or sorting it by distance. The search table now only draws the rows in view (filled again as you scroll), walking only updates the distances, and the search no longer asks the game for the data of every quest it lists.

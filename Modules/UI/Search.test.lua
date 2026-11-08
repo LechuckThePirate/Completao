@@ -478,6 +478,58 @@ describe("Search", function()
         end)
     end)
 
+    describe("quests to turn in view", function()
+        local real
+        before_each(function()
+            real = { ns.QuestSteps, ns.IsReadyToTurnIn, ns.DistanceTo, C_QuestLog.GetQuestWatchType }
+            WowMock.log = { { isHeader = true, title = "Westfall" }, { questID = 166, title = "A", level = 22 },
+                { questID = 167, title = "B", level = 22 }, { questID = 168, title = "C", level = 22 } }
+            WowMock.onQuest[166], WowMock.onQuest[167], WowMock.onQuest[168] = true, true, true
+            local far = { [166] = 300, [167] = 5, [168] = 40 }
+            ns.QuestSteps = function(q)
+                return { { kind = "finish", label = "Turn in: " .. q.id, current = true, loc = { area = 12, x = far[q.id], y = 1 } } }, 1
+            end
+            ns.IsReadyToTurnIn = function(id) return id ~= 167 end
+            ns.DistanceTo = function(loc) return loc and loc.x end
+            C_QuestLog.GetQuestWatchType = function() return nil end -- none of them tracked
+        end)
+        after_each(function()
+            ns.QuestSteps, ns.IsReadyToTurnIn, ns.DistanceTo, C_QuestLog.GetQuestWatchType = real[1], real[2], real[3], real[4]
+        end)
+
+        it("has its own entry in the side panel", function()
+            local text = WowMock.FindByText("Quests to Turn In")
+            assert.is_not_nil(text)
+            text:GetParent():Click()
+            assert.are.equal("turnin", ns.Search_Mode())
+        end)
+
+        it("lists every quest ready to turn in, tracked or not, nearest first, whatever order the other tables use", function()
+            panel.head.name:Click() -- the search table by name
+            local saved = ns.char.tableSort
+            ns.UI_SetSearchMode(true, "turnin")
+            local rows = ShownRows()
+            assert.are.equal(2, #rows)
+            assert.are.equal(168, rows[1].quest.id)
+            assert.are.equal(166, rows[2].quest.id)
+            assert.is_false(panel.box:IsShown())
+            assert.is_not_nil(WowMock.Find(function(f) return f:IsShown() and type(f._text) == "string" and f._text:find("Turn in: 168", 1, true) end))
+            -- its own order changes with the headers but is not saved over the other tables'
+            panel.head.dist:Click()
+            assert.are.equal(166, ShownRows()[1].quest.id)
+            assert.are.same(saved, ns.char.tableSort)
+            ns.UI_SetSearchMode(true, "log")
+            assert.are.equal(3, #ShownRows())
+        end)
+
+        it("says so when nothing is ready to turn in", function()
+            ns.IsReadyToTurnIn = function() return false end
+            ns.UI_SetSearchMode(true, "turnin")
+            assert.are.equal(0, #ShownRows())
+            assert.is_true(panel.empty:IsShown())
+        end)
+    end)
+
     -- nothing here sets ns.REWARDS: the types, the filter and the icons work with what the client's toc loads
     for _, toc in ipairs({ "Completao_TBC.toc", "Completao_Vanilla.toc" }) do describe("with the data of " .. toc, function()
         before_each(function()

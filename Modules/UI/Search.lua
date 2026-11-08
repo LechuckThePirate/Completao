@@ -118,8 +118,8 @@ local function matchesReward(q)
     return false
 end
 
--- View: "search" (form + results), "log" (the quests in the log, in the same table) or "tracked" (the ones
--- of them in the objective tracker).
+-- View: "search" (form + results), "log" (the quests in the log, in the same table), "tracked" (the ones
+-- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not).
 local mode = "search"
 
 local function isTracked(id)
@@ -133,14 +133,16 @@ ns.IsQuestTracked = isTracked -- the focus window's too
 
 -- Quests in the log, with the zone (header) they are listed under. The ones the addon knows open in their
 -- tree; the rest are listed anyway, with the log's title and level.
-local function logQuests(trackedOnly)
+-- `only`: nil (all of them), "tracked" or "turnin".
+local function logQuests(only)
     local found = {}
     local zone
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         if info and info.isHeader then
             zone = info.title
-        elseif info and info.questID and info.questID > 0 and (not trackedOnly or isTracked(info.questID)) then
+        elseif info and info.questID and info.questID > 0 and (only ~= "tracked" or isTracked(info.questID))
+            and (only ~= "turnin" or ns.IsReadyToTurnIn(info.questID)) then
             local def = ns.FindQuestDef(info.questID)
             if def then
                 found[#found + 1] = { quest = def, entry = ns.entries[def.entryId], zone = zone }
@@ -296,15 +298,22 @@ local function prepare(found)
     return found
 end
 
+-- The turn-in view has an order of its own, nearest first (not saved): it is for walking from one to the next.
+local turninSort = { sort = "distance", desc = false }
+local function sortState()
+    return mode == "turnin" and turninSort or state
+end
+
 -- table order (headers): by title (the one shown), level, zone, distance or money; ties by level and title
 local function sortFound(found)
+    local s = sortState()
     local key = {}
     for _, f in ipairs(found) do
-        if state.sort == "distance" then
+        if s.sort == "distance" then
             key[f] = distanceOf(f) or false
         else
-            key[f] = state.sort == "name" and f.title or state.sort == "money" and f.money
-                or state.sort == "xp" and f.xp or state.sort == "where" and f.whereText:lower() or f.level
+            key[f] = s.sort == "name" and f.title or s.sort == "money" and f.money
+                or s.sort == "xp" and f.xp or s.sort == "where" and f.whereText:lower() or f.level
         end
     end
     table.sort(found, function(a, b)
@@ -312,7 +321,7 @@ local function sortFound(found)
             -- no distance (false): always after the ones that have it, whichever way it is sorted
             if not key[a] then return false end
             if not key[b] then return true end
-            if state.desc then return key[a] > key[b] end
+            if s.desc then return key[a] > key[b] end
             return key[a] < key[b]
         end
         if a.level ~= b.level then return a.level < b.level end
@@ -654,7 +663,7 @@ local function draw()
             used = used + 1
             fillRow(getRow(used), i, height, focusTag)
             height = height + ROW_H
-            if mode == "tracked" then height = height + layoutSteps(found[i].quest, height) end
+            if mode ~= "log" then height = height + layoutSteps(found[i].quest, height) end
         end
     end
     for i = used + 1, #rows do rows[i]:Hide() end
@@ -673,8 +682,8 @@ local function refresh(moved)
     if stale or not found then
         stale = false
         readLive()
-        found = sortFound(prepare(mode == "search" and search() or logQuests(mode == "tracked")))
-    elseif moved and state.sort ~= "distance" then
+        found = sortFound(prepare(mode == "search" and search() or logQuests(mode ~= "log" and mode or nil)))
+    elseif moved and sortState().sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
         for _, row in ipairs(rows) do
             if row:IsShown() and row.index and found[row.index] then
@@ -867,8 +876,9 @@ function ns.Search_Create(parent)
     -- sortable columns: a click sorts by them; another click reverses the order (arrow next to the name)
     local sortable = {}
     local function updateSortLabels()
+        local s = sortState()
         for sortKey, c in pairs(sortable) do
-            local arrow = state.sort == sortKey and (state.desc and " v" or " ^") or ""
+            local arrow = s.sort == sortKey and (s.desc and " v" or " ^") or ""
             c.fs:SetText(c.label .. arrow)
         end
     end
@@ -881,12 +891,13 @@ function ns.Search_Create(parent)
             fs:SetAllPoints()
             b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
             b:SetScript("OnClick", function()
-                if state.sort == sortKey then
-                    state.desc = not state.desc
+                local s = sortState()
+                if s.sort == sortKey then
+                    s.desc = not s.desc
                 else
-                    state.sort, state.desc = sortKey, sortKey == "money" or sortKey == "xp" -- money and XP, most first
+                    s.sort, s.desc = sortKey, sortKey == "money" or sortKey == "xp" -- money and XP, most first
                 end
-                ns.char.tableSort = { key = state.sort, desc = state.desc }
+                if s == state then ns.char.tableSort = { key = state.sort, desc = state.desc } end
                 updateSortLabels()
                 requestRefresh()
             end)
@@ -916,6 +927,7 @@ function ns.Search_Create(parent)
     local saved = ns.char.tableSort
     if saved and sortable[saved.key] then state.sort, state.desc = saved.key, saved.desc and true or false end
     updateSortLabels()
+    panel.updateSortLabels = updateSortLabels
     panel.layoutForm = layoutForm
     layoutForm()
     panel:SetScript("OnSizeChanged", function()
@@ -971,17 +983,19 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
-local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests" }
+local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In" }
 local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.",
-    tracked = "No quests are being tracked." }
+    tracked = "No quests are being tracked.", turnin = "No quests are ready to turn in." }
 
--- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked.
+-- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked;
+-- "turnin": the ones ready to turn in.
 function ns.Search_SetMode(m)
     mode = TITLES[m] and m or "search"
     if not panel then return end
     ns.PopupMenu_Hide()
     panel.title:SetText(L[TITLES[mode]])
     panel.empty:SetText(L[EMPTY[mode]])
+    panel.updateSortLabels()
     panel.layoutForm()
     requestRefresh()
 end

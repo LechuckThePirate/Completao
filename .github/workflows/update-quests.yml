@@ -47,8 +47,10 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           for flavor in Forever Vanilla TBC; do
-            gh release download "$tag" --repo Questie/QuestieDB --pattern "QuestieDB-$flavor.zip" --dir "$RUNNER_TEMP"
-            unzip -q "$RUNNER_TEMP/QuestieDB-$flavor.zip" -d "$RUNNER_TEMP/questie-$flavor"
+            # Since v1.0.11 the assets carry the version (QuestieDB-1.0.12-Forever.zip); the glob also matches the older names.
+            mkdir -p "$RUNNER_TEMP/zip-$flavor"
+            gh release download "$tag" --repo Questie/QuestieDB --pattern "QuestieDB-*$flavor.zip" --dir "$RUNNER_TEMP/zip-$flavor"
+            unzip -q "$RUNNER_TEMP/zip-$flavor"/QuestieDB-*"$flavor".zip -d "$RUNNER_TEMP/questie-$flavor"
             test -f "$RUNNER_TEMP/questie-$flavor/QuestieDB/QuestieDB_$flavor.toc"
           done
 

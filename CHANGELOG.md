@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.6.2
 
 - New: "Quests to Turn In" in the side panel, under "Tracked Quests": every quest in your log that is ready to turn in, tracked or not, nearest first, each with its turn-in under it.
+- Data: the quests, as the public databases have them now.
 
 ## 1.6.1
 

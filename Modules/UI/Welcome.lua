@@ -12,7 +12,9 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fixed: the quest search no longer slows the game down or freezes it, also while moving with it open.",
+    "- New: a list in the side panel, under \"Tracked Quests\", of every quest in your log that is ready to hand in, " ..
+        "tracked or not, nearest first.",
+    "- Data: the quests, as the public databases have them now.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

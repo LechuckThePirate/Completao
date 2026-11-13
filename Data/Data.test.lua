@@ -147,9 +147,15 @@ for _, flavor in ipairs(FLAVORS) do
             local books = {}
             assert.are.equal("misc", ns.entries.books.category)
             for _, q in ipairs(ns.entries.books.quests) do books[q.id] = true end
-            for _, id in ipairs({ 78124, 79091, 84396 }) do assert.is_true(books[id], id) end
-            -- a quest already filed by its sort is not repeated here
-            assert.is_nil(books[78148])
+            -- 78148 and 82208 are library quests Questie files under "Special": the books still take them
+            for _, id in ipairs({ 78124, 79091, 84396, 78148, 82208 }) do assert.is_true(books[id], id) end
+            -- and they are not repeated in "Special", which keeps only its event quests
+            local special = {}
+            for _, q in ipairs(ns.entries.special.quests) do
+                special[q.id] = true
+                assert.is_nil(books[q.id], q.id)
+            end
+            assert.is_true(special[172])
         end) end
 
         it("raid quests are marked as done inside their raid", function()

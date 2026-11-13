@@ -518,9 +518,12 @@ for (const [id, q] of quests) {
 // books: a book lying in the world (an object starts the quest) is handed in to an NPC, and Questie files
 // none of them under a zone, so they would be in no entry at all. They go into one of their own, with the
 // other quests of the NPCs that take them (the library keeper's reward quest) that are in no entry either.
+// Since QuestieDB v1.1.0 Questie files the library quests under the "Special" sort, an events entry: the books
+// still go to their own entry, so that sort does not count as placing a quest here (see the filter below).
+const BOOKS_OVER_SORT = -284;
 const placed = new Set(instanceQuests);
 for (const map of [zoneSet, classSet, profSet]) for (const set of map.values()) for (const id of set) placed.add(id);
-for (const [id, q] of quests) if (SORT_ENTRIES.some((e) => e.sort === q[17])) placed.add(id);
+for (const [id, q] of quests) if (q[17] !== BOOKS_OVER_SORT && SORT_ENTRIES.some((e) => e.sort === q[17])) placed.add(id);
 const isBook = (q) => group(q[2], 1).length > 0 && group(q[2], 2).length > 0 && group(q[3], 1).length > 0;
 const bookNpcs = new Set();
 for (const [id, q] of quests) if (!placed.has(id) && isBook(q)) for (const n of group(q[2], 1)) bookNpcs.add(n);
@@ -578,7 +581,7 @@ write("Races.lua", rout);
 const eout = [...HEADER];
 let totalE = 0;
 for (const e of SORT_ENTRIES) {
-    const set = new Set([...quests].filter(([, q]) => q[17] === e.sort).map(([id]) => id));
+    const set = new Set([...quests].filter(([id, q]) => q[17] === e.sort && !bookSet.has(id)).map(([id]) => id));
     if (!set.size) continue;
     totalE += emitEntry(eout, e.id, `ns.RegisterEntry({ id = ${lua(e.id)}, name = ${lua(e.name)}, category = ${lua(e.category)} })`, set);
 }

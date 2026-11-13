@@ -12,6 +12,8 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
+    "- Changed: every library quest is under \"Books\" now, also the few that were under \"Special\" " ..
+        "(\"Greater Friend of the Library\" and others).",
     "- Data: the quests, as the public databases have them now.",
 }, "\n")
 

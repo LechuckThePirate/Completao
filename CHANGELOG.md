@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.4
+
+- Data: the quests, as the public databases have them now.
+
 ## 1.6.3
 
 - Data: the quests, as the public databases have them now.

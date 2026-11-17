@@ -12,9 +12,12 @@ ns.AddLocale({ "itIT" }, {
     ["Hide low level"] = "Nascondi basso livello",
     ["Hide too high"] = "Nascondi troppo alte",
     ["Hide completed"] = "Nascondi completate",
-    ["Account-wide"] = "Tutto l'account",
-    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
-        "Conta come completate le quest fatte da uno qualsiasi dei tuoi personaggi (ognuno viene ricordato appena entra in gioco).",
+    ["Consolidate alts"] = "Unisci gli alt",
+    ["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."] =
+        "Considera tutti i tuoi personaggi come uno solo: ciò che uno di loro ha fatto conta come completato, anche per le missioni che sblocca.",
+    ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
+        "Si mostrano le classi, razze, professioni e fazioni di tutti; troppo basso o troppo alto dipende dal personaggio con cui giochi.",
+    ["Each character is remembered once it logs in."] = "Ogni personaggio viene ricordato appena entra nel gioco.",
     ["Completed by %s"] = "Completata da %s",
     ["Hide repeatable"] = "Nascondi ripetibili",
     ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =

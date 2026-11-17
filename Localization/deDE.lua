@@ -12,9 +12,12 @@ ns.AddLocale({ "deDE" }, {
     ["Hide low level"] = "Niedrige Stufe ausblenden",
     ["Hide too high"] = "Zu hohe ausblenden",
     ["Hide completed"] = "Abgeschlossene ausblenden",
-    ["Account-wide"] = "Accountweit",
-    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
-        "Zählt die Quests als abgeschlossen, die einer deiner Charaktere erledigt hat (jeder wird gespeichert, sobald er sich einloggt).",
+    ["Consolidate alts"] = "Twinks zusammenfassen",
+    ["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."] =
+        "Betrachtet alle deine Charaktere als einen: Was einer von ihnen erledigt hat, zählt als abgeschlossen, auch für die Quests, die es freischaltet.",
+    ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
+        "Klassen, Völker, Berufe und Fraktionen aller werden angezeigt; zu niedrig oder zu hoch richtet sich nach dem Charakter, den du spielst.",
+    ["Each character is remembered once it logs in."] = "Jeder Charakter wird gespeichert, sobald er sich einloggt.",
     ["Completed by %s"] = "Abgeschlossen von %s",
     ["Hide repeatable"] = "Wiederholbare ausblenden",
     ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =

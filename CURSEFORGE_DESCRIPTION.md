@@ -111,12 +111,15 @@ under **Careful** in their details and tooltip -- also on the quest that would
 make the lead-in disappear -- before it happens. Once lost, they show in red as
 *No longer available* and leave the progress.
 
-### Account-wide completion, for alts
-Tick **Account-wide** and the quests any of your characters has done count as
-completed in the trees, the progress and the search, with *Completed by*
-and that character's name in their tooltip and details -- so you can finish every zone across
-your account. What the character itself can take still goes by its own quests.
-Each character is remembered once it logs in.
+### Consolidate alts
+Turn on **Consolidate alts**, the switch in the window's title bar, and the
+whole addon looks at all your characters as one -- so you can finish every zone
+across your account. What any of them has done counts as completed in the
+trees, the progress and the search (with *Completed by* and that character's
+name in its tooltip and details), also for the quests it unlocks; and the
+quests, classes, races, professions and factions of all of them are shown. The
+quests too low or too high are still the ones of the character you play. Each
+character is remembered once it logs in.
 
 ### Which ones are done inside
 Quests that take place inside a dungeon or raid wear a small **doorway icon** on

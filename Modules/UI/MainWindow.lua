@@ -770,6 +770,7 @@ end
 
 function ns.UI_Refresh()
     if not frame then return end
+    if frame.consolidateSwitch then frame.consolidateSwitch.Update() end
     -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
@@ -1063,7 +1064,49 @@ local function createFrame()
     end)
     gear:SetScript("OnLeave", GameTooltip_Hide)
 
-    frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    -- "Consolidate alts", left of the gear: an on/off switch (a track and a knob that slides to the right when on),
+    -- for the whole addon, so it sits in the title bar and not with the tree's filters.
+    local switch = CreateFrame("Button", nil, frame)
+    switch:SetSize(30, 14)
+    switch:SetFrameLevel(level)
+    switch:SetPoint("RIGHT", gear, "LEFT", -8, 0)
+    local track = switch:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints()
+    local knob = switch:CreateTexture(nil, "ARTWORK")
+    knob:SetSize(12, 12)
+    knob:SetColorTexture(0.95, 0.95, 0.95, 1)
+    local switchLabel = switch:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    switchLabel:SetPoint("RIGHT", switch, "LEFT", -5, 0)
+    switchLabel:SetText(ns.L["Consolidate alts"])
+    function switch.Update()
+        local on = ns.Consolidated()
+        switch.on = on
+        track:SetColorTexture(on and 0.20 or 0.30, on and 0.65 or 0.30, on and 0.25 or 0.30, 1)
+        knob:ClearAllPoints()
+        knob:SetPoint(on and "RIGHT" or "LEFT", on and -1 or 1, 0)
+        switchLabel:SetTextColor(on and 0.4 or 0.6, on and 1 or 0.6, on and 0.4 or 0.6)
+    end
+    switch:SetScript("OnClick", function()
+        ns.SetConsolidated(not ns.Consolidated())
+        switch.Update()
+    end)
+    switch:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(ns.L["Consolidate alts"])
+        for _, line in ipairs({
+            ns.L["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."],
+            ns.L["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."],
+            ns.L["Each character is remembered once it logs in."],
+        }) do
+            GameTooltip:AddLine(line, 1, 1, 1, true)
+        end
+        GameTooltip:Show()
+    end)
+    switch:SetScript("OnLeave", GameTooltip_Hide)
+    switch.Update()
+    frame.consolidateSwitch = switch
+
+    frame.header =frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
     frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
     frame.header:SetJustifyH("LEFT")
@@ -1128,8 +1171,6 @@ local function createFrame()
     makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
     makeCheck("hideRepeatable", ns.L["Hide repeatable"],
         ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."])
-    makeCheck("accountWide", ns.L["Account-wide"],
-        ns.L["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 

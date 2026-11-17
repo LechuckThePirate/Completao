@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Changed: "Account-wide" is now "Consolidate alts", an on/off switch in the window's title bar that makes the whole addon look at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks, and the quests, classes, races, professions and factions of all of them are shown. The quests too low or too high are still the ones of the character you play. Each character is remembered once it logs in with this version (to know its race and professions); the "Account-wide" setting carries over.
+
 ## 1.7.0
 
 - New: "Account-wide" filter, for alt players: the quests any of your characters has done count as completed in the trees, the progress and the search, with "Completed by <name>" in their tooltip and details. Each character is remembered once it logs in with this version. What the character itself can take still goes by its own quests.

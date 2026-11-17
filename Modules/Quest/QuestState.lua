@@ -63,11 +63,11 @@ function ns.QuestPrefix(q)
     return ("[%d%s%s] "):format(level, ns.IsEliteQuest(q.id) and "+" or q.dungeon and "D" or "", q.repeatable and "R" or "")
 end
 
--- Done, as the views count it: by the character, or, with the "Account-wide" filter on, by any character of the
--- account (AccountProgress.lua). What the character can take still goes by its own (requirements, the log).
+-- Done, as the views count it: by the character, or, with "Consolidate alts" on, by any character of the account
+-- (AccountProgress.lua), also for the quests another one requires. The level is still the character's own.
 function ns.IsQuestDone(id)
     if C_QuestLog.IsQuestFlaggedCompleted(id) then return true end
-    return ns.AccountWide ~= nil and ns.AccountWide() and ns.DoneByAlt(id) ~= nil
+    return ns.Consolidated ~= nil and ns.Consolidated() and ns.DoneByAlt(id) ~= nil
 end
 
 local function takenOrDone(id)
@@ -122,7 +122,7 @@ function ns.QuestStatus(q)
         return "active"
     end
     if ns.IsQuestDone(q.id) then
-        return "done" -- by another character, with "Account-wide" on
+        return "done" -- by another character, with "Consolidate alts" on
     end
     local lost = ns.QuestLostTo(q)
     if lost then
@@ -134,7 +134,7 @@ function ns.QuestStatus(q)
         reasons[#reasons + 1] = ns.L["Requires level %d (you are %d)"]:format(q.minLevel, UnitLevel("player"))
     end
     for _, reqId in ipairs(q.requires or {}) do
-        if not C_QuestLog.IsQuestFlaggedCompleted(reqId) then
+        if not ns.IsQuestDone(reqId) then
             local def = ns.FindQuestDef(reqId)
             reasons[#reasons + 1] = ns.L["Requires: "] .. ns.QuestTitle(reqId, def and def.name)
         end
@@ -142,7 +142,7 @@ function ns.QuestStatus(q)
     if q.requiresAny and #q.requiresAny > 0 then
         local names, anyDone = {}, false
         for _, reqId in ipairs(q.requiresAny) do
-            if C_QuestLog.IsQuestFlaggedCompleted(reqId) then anyDone = true break end
+            if ns.IsQuestDone(reqId) then anyDone = true break end
             local def = ns.FindQuestDef(reqId)
             names[#names + 1] = ns.QuestTitle(reqId, def and def.name)
         end
@@ -165,12 +165,12 @@ function ns.IsQuestAvailable(q)
     if q.minLevel and UnitLevel("player") < q.minLevel then return false end
     if ns.QuestLostTo(q) then return false end
     for _, reqId in ipairs(q.requires or {}) do
-        if not C_QuestLog.IsQuestFlaggedCompleted(reqId) then return false end
+        if not ns.IsQuestDone(reqId) then return false end
     end
     if q.requiresAny and #q.requiresAny > 0 then
         local anyDone = false
         for _, reqId in ipairs(q.requiresAny) do
-            if C_QuestLog.IsQuestFlaggedCompleted(reqId) then anyDone = true break end
+            if ns.IsQuestDone(reqId) then anyDone = true break end
         end
         if not anyDone then return false end
     end
@@ -243,39 +243,57 @@ function ns.QuestFaction(q)
     if horde and not alliance then return "Horde" end
 end
 
--- What the character sees. Quests of another class, race or faction are hidden, unless that class or
--- race is being looked at (its entry in the panel; `d` is the entry being looked at) or the "other
--- faction" filter is on, which allows the opposite faction's.
-local playerRaceId, playerClassId, playerClassFile
-function ns.QuestVisible(q, d)
-    if q.hidden then return false end
-    local category = d and d.category
-    local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
+-- The character being played, as the visibility rules see it: class, race and faction. The class and race are read
+-- once; the faction every time (a Pandaren picks one, and a mercenary's changes).
+local player
+function ns.PlayerProfile()
+    if not player then
+        local _, classFile, classId = UnitClass("player")
+        player = { classFile = classFile, classId = classId, raceId = select(3, UnitRace("player")), me = true }
+    end
+    player.faction = UnitFactionGroup("player")
+    return player
+end
 
+-- Whether one character (a profile: PlayerProfile, or an alt's in AccountProgress.lua) sees the quest.
+local function visibleFor(q, category, who, otherFaction)
     -- the quests of a class entry carry no mask: the entry says whose they are (the search looks at them without an entry)
     local home = q.entryId and ns.entries and ns.entries[q.entryId]
     if home and home.classFile and category ~= "classes" then
-        playerClassFile = playerClassFile or select(2, UnitClass("player"))
-        if playerClassFile and playerClassFile ~= home.classFile then return false end
+        if who.classFile and who.classFile ~= home.classFile then return false end
     end
 
     if q.classes and category ~= "classes" then
-        playerClassId = playerClassId or select(3, UnitClass("player"))
-        if playerClassId and not hasBit(q.classes, playerClassId) then return false end
+        if who.classId and not hasBit(q.classes, who.classId) then return false end
     end
 
-    local mine = UnitFactionGroup("player")
+    local mine = ns.PlayerProfile().faction -- "other faction" is the one opposite to the character being played
     local faction = ns.QuestFaction(q)
     local lookingAtRace = category == "races"
-    if faction and faction ~= mine and not (lookingAtRace or otherFaction) then return false end
+    if faction and faction ~= who.faction and not (lookingAtRace or (otherFaction and faction ~= mine)) then return false end
     if q.races and not lookingAtRace then
-        playerRaceId = playerRaceId or select(3, UnitRace("player"))
-        if playerRaceId and not hasBit(q.races, playerRaceId) then
+        if who.raceId and not hasBit(q.races, who.raceId) then
             -- another race: only shown if it is of the opposite faction and that was asked for
             if not (otherFaction and faction and faction ~= mine) then return false end
         end
     end
     return true
+end
+
+-- What the character sees. Quests of another class, race or faction are hidden, unless that class or
+-- race is being looked at (its entry in the panel; `d` is the entry being looked at) or the "other
+-- faction" filter is on, which allows the opposite faction's. With "Consolidate alts" on, what any character of
+-- the account sees (ns.Characters, AccountProgress.lua).
+function ns.QuestVisible(q, d)
+    if q.hidden then return false end
+    local category = d and d.category
+    local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
+    if visibleFor(q, category, ns.PlayerProfile(), otherFaction) then return true end
+    if not (ns.Consolidated and ns.Consolidated()) then return false end
+    for _, who in ipairs(ns.Characters()) do
+        if not who.me and visibleFor(q, category, who, otherFaction) then return true end
+    end
+    return false
 end
 
 -- A quest's long description. The client doesn't give the text of any quest by its id, only of the

@@ -196,11 +196,12 @@ local function lowerTitle(q)
 end
 
 -- The quests meant for this character, once each (in the first entry where it shows up: dungeons, raids,
--- zones...). It only changes with the "other faction" filter, so it is worked out again only then.
+-- zones...). It only changes with the "other faction" filter and "Consolidate alts", so it is worked out again only then.
 local candidates, candidatesKey
 local function visibleQuests()
     local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction and true or false
-    local key = tostring(otherFaction) .. ":" .. #ns.entryList
+    local consolidated = ns.Consolidated and ns.Consolidated() and #ns.Characters() or 0
+    local key = tostring(otherFaction) .. ":" .. consolidated .. ":" .. #ns.entryList
     if candidates and candidatesKey == key then return candidates end
     candidates, candidatesKey = {}, key
     local seen = {}

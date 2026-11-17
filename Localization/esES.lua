@@ -90,8 +90,8 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["%d-man"] = "%d jug.",
     ["Quests in your log (id - title):"] = "Quests en tu registro (id - título):",
     ["  %d - %s (level %d)"] = "  %d - %s (nivel %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
-        "Uso: /completao (abrir) | prefs | minimap | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
+        "Uso: /completao (abrir) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Se hace dentro de la instancia: %s",
     ["Instance"] = "Instancia",
     ["The Temple of Atal'Hakkar"] = "El Templo de Atal'Hakkar",
@@ -201,5 +201,13 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Right-click: preferences"] = "Clic derecho: preferencias",
     ["Drag: move"] = "Arrastrar: mover",
     ["Minimap button hidden."] = "Botón del minimapa oculto.",
+    ["Quest helpers on."] = "Ayudas de quest activadas.",
+    ["Quest helpers off: no focus window, waypoints or map markers."] =
+        "Ayudas de quest desactivadas: sin ventana de foco, waypoints ni marcadores en el mapa.",
+    ["Quest helpers are off: turn them on in the preferences to focus a quest."] =
+        "Las ayudas de quest están desactivadas: actívalas en las preferencias para enfocar una quest.",
+    ["Shift-click: turn quest helpers on"] = "Mayús-clic: activar las ayudas de quest",
+    ["Shift-click: turn quest helpers off"] = "Mayús-clic: desactivar las ayudas de quest",
+    ["Quest helpers: focus window, waypoints and map markers"] = "Ayudas de quest: ventana de foco, waypoints y marcadores en el mapa",
     ["Minimap button shown."] = "Botón del minimapa visible.",
 })

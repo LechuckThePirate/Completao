@@ -90,8 +90,8 @@ ns.AddLocale({ "deDE" }, {
     ["%d-man"] = "%d Spieler",
     ["Quests in your log (id - title):"] = "Quests in deinem Questlog (ID - Titel):",
     ["  %d - %s (level %d)"] = "  %d - %s (Stufe %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
-        "Verwendung: /completao (öffnen) | prefs | minimap | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
+        "Verwendung: /completao (öffnen) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Wird innerhalb der Instanz erledigt: %s",
     ["Instance"] = "Instanz",
     ["The Temple of Atal'Hakkar"] = "Der Tempel von Atal'Hakkar",
@@ -201,5 +201,13 @@ ns.AddLocale({ "deDE" }, {
     ["Right-click: preferences"] = "Rechtsklick: Einstellungen",
     ["Drag: move"] = "Ziehen: verschieben",
     ["Minimap button hidden."] = "Minikartenknopf ausgeblendet.",
+    ["Quest helpers on."] = "Questhilfen aktiviert.",
+    ["Quest helpers off: no focus window, waypoints or map markers."] =
+        "Questhilfen deaktiviert: kein Fokusfenster, keine Wegpunkte und keine Kartenmarkierungen.",
+    ["Quest helpers are off: turn them on in the preferences to focus a quest."] =
+        "Die Questhilfen sind deaktiviert: aktiviere sie in den Einstellungen, um eine Quest zu fokussieren.",
+    ["Shift-click: turn quest helpers on"] = "Umschalt-Klick: Questhilfen aktivieren",
+    ["Shift-click: turn quest helpers off"] = "Umschalt-Klick: Questhilfen deaktivieren",
+    ["Quest helpers: focus window, waypoints and map markers"] = "Questhilfen: Fokusfenster, Wegpunkte und Kartenmarkierungen",
     ["Minimap button shown."] = "Minikartenknopf angezeigt.",
 })

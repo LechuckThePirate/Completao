@@ -21,8 +21,14 @@ describe("Preferences", function()
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, live focus, follow
         -- Blizzard's tracker, focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide
-        -- Blizzard's tracker, Tab targets quest creatures first
-        assert.are.equal(14, #checks)
+        -- Blizzard's tracker, Tab targets quest creatures first, quest helpers
+        assert.are.equal(15, #checks)
+        assert.is_true(checks[15]:GetChecked()) -- the quest helpers are on by default
+        checks[15]:SetChecked(false); checks[15]:Click()
+        assert.is_true(ns.char.helpersOff)
+        checks[15]:SetChecked(true); checks[15]:Click()
+        assert.is_nil(ns.char.helpersOff)
+        table.remove(checks, 15)
         assert.is_false(checks[9]:GetChecked()) -- live focus is off by default
         checks[9]:SetChecked(true); checks[9]:Click()
         assert.is_true(ns.char.focusLive)

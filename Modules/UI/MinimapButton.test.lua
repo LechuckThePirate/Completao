@@ -35,7 +35,21 @@ describe("MinimapButton", function()
         local lines = {}
         GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
         button._scripts.OnEnter(button)
-        assert.are.same({ "Left-click: open", "Right-click: preferences", "Drag: move" }, lines)
+        assert.are.same({ "Left-click: open", "Right-click: preferences", "Shift-click: turn quest helpers off", "Drag: move" }, lines)
+    end)
+
+    it("a shift-click turns the quest helpers off and on, without opening the window", function()
+        WowMock.shift = true
+        button:Click()
+        assert.is_true(ns.HelpersOff())
+        assert.is_true(ns.UI == nil or not ns.UI:IsShown())
+        local lines = {}
+        GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
+        button._scripts.OnEnter(button)
+        assert.are.equal("Shift-click: turn quest helpers on", lines[3])
+        button:Click()
+        assert.is_false(ns.HelpersOff())
+        WowMock.shift = false
     end)
 
     it("dragging it changes its angle around the minimap", function()

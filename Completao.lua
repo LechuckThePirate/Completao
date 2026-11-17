@@ -109,6 +109,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Prefs_Toggle()
     elseif msg == "minimap" then
         ns.Minimap_Toggle()
+    elseif msg == "helpers" then
+        ns.Focus_ToggleHelpers()
     elseif msg == "target" then
         ns.Focus_TargetReport()
     elseif msg == "here" then
@@ -122,6 +124,6 @@ SlashCmdList.COMPLETAO = function(msg)
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"])
+        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"])
     end
 end

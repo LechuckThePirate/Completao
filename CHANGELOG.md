@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Quest helpers" can be switched off (Preferences, shift-click on the minimap button, or `/completao helpers`) for those who quest without help and only want the lists of what is left: no focus window, waypoints, arrows or map markers pop up while questing. The main window and its buttons stay as they are.
+
 ## 1.6.5
 
 - Changed: every library quest is under "Books" now, also the few that were under "Special" ("Greater Friend of the Library" and others).

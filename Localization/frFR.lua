@@ -90,8 +90,8 @@ ns.AddLocale({ "frFR" }, {
     ["%d-man"] = "%d joueurs",
     ["Quests in your log (id - title):"] = "Quêtes de votre journal (id - titre) :",
     ["  %d - %s (level %d)"] = "  %d - %s (niveau %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
-        "Usage : /completao (ouvrir) | prefs | minimap | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
+        "Usage : /completao (ouvrir) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Se fait à l'intérieur de l'instance : %s",
     ["Instance"] = "Instance",
     ["The Temple of Atal'Hakkar"] = "Le temple d'Atal'Hakkar",
@@ -201,5 +201,13 @@ ns.AddLocale({ "frFR" }, {
     ["Right-click: preferences"] = "Clic droit : préférences",
     ["Drag: move"] = "Glisser : déplacer",
     ["Minimap button hidden."] = "Bouton de la minicarte masqué.",
+    ["Quest helpers on."] = "Aides de quête activées.",
+    ["Quest helpers off: no focus window, waypoints or map markers."] =
+        "Aides de quête désactivées : ni fenêtre de suivi, ni points de passage, ni marqueurs sur la carte.",
+    ["Quest helpers are off: turn them on in the preferences to focus a quest."] =
+        "Les aides de quête sont désactivées : activez-les dans les préférences pour suivre une quête.",
+    ["Shift-click: turn quest helpers on"] = "Maj-clic : activer les aides de quête",
+    ["Shift-click: turn quest helpers off"] = "Maj-clic : désactiver les aides de quête",
+    ["Quest helpers: focus window, waypoints and map markers"] = "Aides de quête : fenêtre de suivi, points de passage et marqueurs sur la carte",
     ["Minimap button shown."] = "Bouton de la minicarte affiché.",
 })

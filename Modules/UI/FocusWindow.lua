@@ -42,6 +42,13 @@ function ns.Focus_Quest()
     return ns.char and ns.char.focusQuest
 end
 
+-- "Quest helpers" off (Preferences, the minimap button or /completao helpers): for those who quest without help and
+-- only want the lists of what is left. No focus window, no waypoint, arrow or map pin set on its own, and the
+-- target key does no more than the game's own; the main window and its buttons stay as they are.
+function ns.HelpersOff()
+    return ns.char and ns.char.helpersOff and true or false
+end
+
 local function inCombat()
     if UnitAffectingCombat and UnitAffectingCombat("player") then return true end
     return InCombatLockdown and InCombatLockdown() and true or false
@@ -636,7 +643,7 @@ function ns.Focus_AutoOn()
 end
 
 local function autoFocus()
-    if picking or not ready or suspended or not ns.Focus_AutoOn() or inCombat() then return false end
+    if picking or not ready or suspended or not ns.Focus_AutoOn() or ns.HelpersOff() or inCombat() then return false end
     local id = ns.Focus_AutoPick()
     if not id then return false end
     picking = true -- (Focus_Set refreshes, which comes back here)
@@ -747,7 +754,7 @@ function ns.Focus_UpdateTargeting()
     if inCombat() then return end
     local button = ensureTargetButton()
     if not button then return end
-    local text = ns.Focus_TargetMacro(ready and targetList(ns.Focus_Quest()) or {})
+    local text = ns.Focus_TargetMacro(ready and not ns.HelpersOff() and targetList(ns.Focus_Quest()) or {})
     if button:GetAttribute("macrotext") ~= text then button:SetAttribute("macrotext", text) end
     local wantTab = ns.char and ns.char.tabTarget and true or false
     if wantTab and not tabBound then
@@ -819,9 +826,29 @@ function ns.Focus_SetLive(on)
     ns.Focus_Refresh()
 end
 
+-- Turns the quest helpers on or off. Off, the window and the addon's waypoint go away at once; the focused quest is
+-- kept, so turning them on again brings it back as it was.
+function ns.Focus_SetHelpers(on)
+    ns.char.helpersOff = (not on) or nil
+    lastSignature = nil
+    if not on then ns.ClearWaypoint() end
+    ns.Focus_Refresh(true)
+    ns.Focus_UpdateTargeting()
+end
+
+function ns.Focus_ToggleHelpers()
+    local on = ns.HelpersOff()
+    ns.Focus_SetHelpers(on)
+    ns.Print(on and L["Quest helpers on."] or L["Quest helpers off: no focus window, waypoints or map markers."])
+end
+
 function ns.Focus_Refresh(force)
-    if autoFocus() then return end
     relatedSpot = nil
+    if ns.HelpersOff() then
+        if frame then frame:Hide() end
+        return
+    end
+    if autoFocus() then return end
     local id = ns.Focus_Quest()
     if not id then
         -- nothing focused: the message stays up (after a turn-in, or with autofocus on and nothing it can pick,
@@ -866,6 +893,10 @@ end
 -- `auto`: chosen by autofocus rather than by the player.
 function ns.Focus_Set(id, auto)
     if not (id and C_QuestLog.IsOnQuest(id)) then return false end
+    if ns.HelpersOff() then
+        if not auto then ns.Print(L["Quest helpers are off: turn them on in the preferences to focus a quest."]) end
+        return false
+    end
     ns.char.focusQuest = id
     tellBlizzard(id)
     lastSignature = nil
@@ -905,7 +936,7 @@ end
 -- other way is tellBlizzard. Nothing happens before the quest log is loaded (the game restores its own choice
 -- while logging in) nor when the game clears its choice.
 function ns.Focus_FollowBlizzard()
-    if not ready or (ns.char and ns.char.followBlizzardFocus == false) then return end
+    if not ready or ns.HelpersOff() or (ns.char and ns.char.followBlizzardFocus == false) then return end
     if not (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID) then return end
     local id = C_SuperTrack.GetSuperTrackedQuestID()
     if not id or id == 0 or id == ns.Focus_Quest() then return end

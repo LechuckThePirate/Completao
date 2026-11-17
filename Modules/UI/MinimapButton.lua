@@ -46,6 +46,8 @@ local function create()
     button:SetScript("OnClick", function(_, mouseButton)
         if mouseButton == "RightButton" then
             ns.Prefs_Toggle()
+        elseif IsShiftKeyDown and IsShiftKeyDown() then
+            ns.Focus_ToggleHelpers()
         else
             ns.UI_Toggle()
         end
@@ -63,6 +65,7 @@ local function create()
         GameTooltip:SetText("Completao!!")
         GameTooltip:AddLine(L["Left-click: open"], 1, 1, 1)
         GameTooltip:AddLine(L["Right-click: preferences"], 1, 1, 1)
+        GameTooltip:AddLine(ns.HelpersOff() and L["Shift-click: turn quest helpers on"] or L["Shift-click: turn quest helpers off"], 1, 1, 1)
         GameTooltip:AddLine(L["Drag: move"], 0.7, 0.7, 0.7)
         GameTooltip:Show()
     end)

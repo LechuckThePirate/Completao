@@ -1527,4 +1527,73 @@ describe("FocusWindow", function()
         end)
     end)
 
+    describe("with the quest helpers off", function()
+        it("turning them off hides the window and takes the waypoint away, but keeps the focused quest", function()
+            focus()
+            assert.is_not_nil(WowMock.userWaypoint)
+            ns.Focus_SetHelpers(false)
+            assert.is_true(ns.char.helpersOff)
+            assert.is_false(frame:IsShown())
+            assert.is_nil(WowMock.userWaypoint)
+            assert.is_nil(ns.FocusTag())
+            assert.are.equal(999001, ns.Focus_Quest())
+        end)
+
+        it("a waypoint the player set by hand since is left alone", function()
+            focus()
+            WowMock.userWaypoint = { mapID = 1429, x = 0.5, y = 0.5 }
+            ns.Focus_SetHelpers(false)
+            assert.are.equal(0.5, WowMock.userWaypoint.x)
+        end)
+
+        it("nothing pops up: refreshes, the quest log and Blizzard's tracker leave it hidden", function()
+            ns.Focus_SetHelpers(false)
+            WowMock.chatted = nil
+            assert.is_false(ns.Focus_Set(999001))
+            assert.is_true(WowMock.chatted) -- says why, when the player asked for it
+            WowMock.superTrackedQuest = 999001
+            FireEvent("SUPER_TRACKING_CHANGED")
+            FireEvent("QUEST_LOG_UPDATE")
+            ns.Focus_Refresh(true)
+            assert.is_nil(ns.Focus_Quest())
+            assert.is_true(CompletaoFocusFrame == nil or not CompletaoFocusFrame:IsShown())
+            assert.is_nil(WowMock.userWaypoint)
+        end)
+
+        it("autofocus picks nothing", function()
+            ns.char.focusAuto = true
+            ns.Focus_SetHelpers(false)
+            FireEvent("QUEST_LOG_UPDATE")
+            ns.Focus_SetAuto(true)
+            assert.is_nil(ns.Focus_Quest())
+            assert.is_nil(WowMock.userWaypoint)
+        end)
+
+        it("the target key does only the game's own targeting", function()
+            focus()
+            ns.Focus_SetHelpers(false)
+            assert.are.equal(ns.Focus_TargetMacro({}), _G.CompletaoTargetButton:GetAttribute("macrotext"))
+        end)
+
+        it("turning them on again brings the window and the waypoint back", function()
+            focus()
+            ns.Focus_SetHelpers(false)
+            ns.Focus_SetHelpers(true)
+            assert.is_nil(ns.char.helpersOff)
+            assert.is_true(frame:IsShown())
+            assert.near(0.6, WowMock.userWaypoint.x, 1e-9)
+        end)
+
+        it("/completao helpers switches them off and on, saying so", function()
+            local said = {}
+            ns.Print = function(text) said[#said + 1] = text end
+            SlashCmdList.COMPLETAO("helpers")
+            assert.is_true(ns.HelpersOff())
+            assert.matches("off", said[1])
+            SlashCmdList.COMPLETAO("helpers")
+            assert.is_false(ns.HelpersOff())
+            assert.matches("on", said[2])
+        end)
+    end)
+
 end)

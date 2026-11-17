@@ -71,6 +71,8 @@ local function showNodeTooltip(btn)
     GameTooltip:AddLine(ns.QuestTitle(q.id, q.name), 1, 1, 1)
     local c = STATUS_COLORS[status]
     GameTooltip:AddLine(STATUS_LABELS[status], c[1], c[2], c[3])
+    local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAlt(q.id)
+    if alt then GameTooltip:AddLine(ns.L["Completed by %s"]:format(alt), c[1], c[2], c[3]) end
     if btn.readyToTurnIn then GameTooltip:AddLine(ns.L["Ready to turn in"], 0.35, 1, 0.35) end
     if q.repeatable then GameTooltip:AddLine(ns.L["Repeatable"], REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3]) end
     for _, w in ipairs(ns.QuestWarnings(q)) do GameTooltip:AddLine(w, 1, 0.55, 0.1, true) end
@@ -218,7 +220,7 @@ local function chainInfo(d)
     for id, q in pairs(set) do
         local c = chainOf(find(id))
         c.size = c.size + 1
-        local isDone = C_QuestLog.IsQuestFlaggedCompleted(id)
+        local isDone = ns.IsQuestDone(id)
         if not isDone then c.allDone = false end
         if isDone or C_QuestLog.IsOnQuest(id) then c.started = true end
         if not ns.IsLowLevel(q) then c.allLow = false end
@@ -294,7 +296,7 @@ local function makeFilter(d)
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
-        if f.hideDone and C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
+        if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
         -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
         if f.hideRepeatable and q.repeatable and not onQuest then return false end
         if c and c.size > 1 then
@@ -1126,6 +1128,8 @@ local function createFrame()
     makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
     makeCheck("hideRepeatable", ns.L["Hide repeatable"],
         ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."])
+    makeCheck("accountWide", ns.L["Account-wide"],
+        ns.L["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 

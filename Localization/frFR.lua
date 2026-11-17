@@ -12,6 +12,10 @@ ns.AddLocale({ "frFR" }, {
     ["Hide low level"] = "Masquer bas niveau",
     ["Hide too high"] = "Masquer trop élevé",
     ["Hide completed"] = "Masquer terminées",
+    ["Account-wide"] = "Tout le compte",
+    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
+        "Compte comme terminées les quêtes faites par n'importe lequel de vos personnages (chacun est mémorisé dès qu'il se connecte).",
+    ["Completed by %s"] = "Terminée par %s",
     ["Hide repeatable"] = "Masquer répétables",
     ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
         "Masque les quêtes répétables, que le jeu ne marque jamais comme terminées (elles ne comptent pas non plus dans la progression).",

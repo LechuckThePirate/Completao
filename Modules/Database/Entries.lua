@@ -247,7 +247,7 @@ end
 function ns.EntryProgress(d)
     local done, total = 0, 0
     for _, q in ipairs(d.quests) do
-        local isDone = C_QuestLog.IsQuestFlaggedCompleted(q.id)
+        local isDone = ns.IsQuestDone(q.id)
         if ns.QuestVisible(q, d) and not q.repeatable and (isDone or not ns.QuestLostTo(q)) then
             total = total + 1
             if isDone then done = done + 1 end

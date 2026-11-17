@@ -63,6 +63,13 @@ function ns.QuestPrefix(q)
     return ("[%d%s%s] "):format(level, ns.IsEliteQuest(q.id) and "+" or q.dungeon and "D" or "", q.repeatable and "R" or "")
 end
 
+-- Done, as the views count it: by the character, or, with the "Account-wide" filter on, by any character of the
+-- account (AccountProgress.lua). What the character can take still goes by its own (requirements, the log).
+function ns.IsQuestDone(id)
+    if C_QuestLog.IsQuestFlaggedCompleted(id) then return true end
+    return ns.AccountWide ~= nil and ns.AccountWide() and ns.DoneByAlt(id) ~= nil
+end
+
 local function takenOrDone(id)
     return C_QuestLog.IsQuestFlaggedCompleted(id) or C_QuestLog.IsOnQuest(id)
 end
@@ -114,6 +121,9 @@ function ns.QuestStatus(q)
     if C_QuestLog.IsOnQuest(q.id) then
         return "active"
     end
+    if ns.IsQuestDone(q.id) then
+        return "done" -- by another character, with "Account-wide" on
+    end
     local lost = ns.QuestLostTo(q)
     if lost then
         return "missed", { ns.L["No longer available: you took %s"]:format(titleOf(lost)) }
@@ -151,6 +161,7 @@ end
 function ns.IsQuestAvailable(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
     if C_QuestLog.IsOnQuest(q.id) then return true end
+    if ns.IsQuestDone(q.id) then return false end
     if q.minLevel and UnitLevel("player") < q.minLevel then return false end
     if ns.QuestLostTo(q) then return false end
     for _, reqId in ipairs(q.requires or {}) do

@@ -224,7 +224,7 @@ local function search()
         local q, d = c.q, c.d
         local ok = true
         local onQuest = isOnQuest(q.id)
-        if not state.done and C_QuestLog.IsQuestFlaggedCompleted(q.id) then ok = false end
+        if not state.done and ns.IsQuestDone(q.id) and not onQuest then ok = false end
         if ok and not onQuest then
             local level = q.level or q.minLevel
             local low = level and lowByLevel[level]

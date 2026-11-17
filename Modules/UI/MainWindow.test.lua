@@ -337,6 +337,46 @@ describe("MainWindow", function()
         end)
     end)
 
+    describe("the Filters drop-down", function()
+        local button, menu, clear
+        before_each(function()
+            button, menu, clear = ns.UI.filtersButton, ns.UI.filtersMenu, ns.UI.clearFilters
+        end)
+
+        it("opens and closes a list with a checkbox for each filter", function()
+            assert.are.equal("Filters", button:GetText())
+            assert.is_false(menu:IsShown())
+            button._scripts.OnClick(button)
+            assert.is_true(menu:IsShown())
+            for _, label in ipairs({ "Hide low level", "Hide too high", "Hide completed", "Hide repeatable", "Show other faction" }) do
+                local check = WowMock.FindByText(label):GetParent()
+                assert.are.equal(menu, check:GetParent(), label)
+            end
+            button._scripts.OnClick(button)
+            assert.is_false(menu:IsShown())
+        end)
+
+        it("with a filter on, the button counts them and Clear filters comes first, turning them all off", function()
+            assert.is_false(clear:IsShown())
+            for _, label in ipairs({ "Hide completed", "Hide low level" }) do
+                local check = WowMock.FindByText(label):GetParent()
+                check:SetChecked(true)
+                check._scripts.OnClick(check)
+            end
+            assert.is_true(ns.char.filters.hideDone)
+            assert.are.equal("Filters (2)", button:GetText())
+            assert.is_true(clear:IsShown())
+            local _, _, firstY = WowMock.FindByText("Hide low level"):GetParent():GetPoint()
+            assert.is_true(firstY < -20) -- the checkboxes go below it
+            clear._scripts.OnClick(clear)
+            assert.is_false(ns.char.filters.hideDone)
+            assert.is_false(ns.char.filters.hideLow)
+            assert.is_false(WowMock.FindByText("Hide completed"):GetParent():GetChecked())
+            assert.are.equal("Filters", button:GetText())
+            assert.is_false(clear:IsShown())
+        end)
+    end)
+
     it("a quest in the log with every objective done gets a check in the top-right corner", function()
         local id
         for _, q in ipairs(ns.entries.vc.quests) do

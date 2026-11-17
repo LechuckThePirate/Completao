@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed: the tree's filters (hide low level, too high, completed, repeatable, show other faction) are in a "Filters" drop-down next to the search box, which counts the ones that are on and, while any is, starts with "Clear filters".
 - Changed: "Account-wide" is now "Consolidate alts", an on/off switch in the window's title bar that makes the whole addon look at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks, and the quests, classes, races, professions and factions of all of them are shown. The quests too low or too high are still the ones of the character you play. Each character is remembered once it logs in with this version (to know its race and professions); the "Account-wide" setting carries over.
 
 ## 1.7.0

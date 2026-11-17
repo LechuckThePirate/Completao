@@ -9,6 +9,9 @@ ns.AddLocale({ "frFR" }, {
     ["Shows the quests and zones of the opposite faction, hidden by default."] =
         "Affiche les quêtes et les zones de la faction opposée, masquées par défaut.",
     ["Search by title"] = "Rechercher par titre",
+    ["Filters"] = "Filtres",
+    ["Filters (%d)"] = "Filtres (%d)",
+    ["Clear filters"] = "Effacer les filtres",
     ["Hide low level"] = "Masquer bas niveau",
     ["Hide too high"] = "Masquer trop élevé",
     ["Hide completed"] = "Masquer terminées",

@@ -860,6 +860,7 @@ end
 
 function ns.UI_SyncFilters()
     for key, cb in pairs(filterChecks) do cb:SetChecked(ns.char.filters[key] and true or false) end
+    if frame and frame.updateFilters then frame.updateFilters() end
     if frame then ns.UI_Refresh() end
 end
 
@@ -1141,8 +1142,74 @@ local function createFrame()
     end)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
+    -- The filters live in a "Filters" drop-down next to the search box: a button that opens a list with a checkbox
+    -- for each filter, and "Clear filters" on top while any is on. Our own frames (the game's menus differ between
+    -- the clients); a click anywhere else closes it.
+    local filtersButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+    filtersButton:SetSize(110, 22)
+    local arrow = filtersButton:CreateTexture(nil, "OVERLAY")
+    arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
+    arrow:SetSize(10, 10)
+    arrow:SetPoint("RIGHT", -8, -2)
+    toolbarItems[#toolbarItems + 1] = { frame = filtersButton, w = 110, h = 24, dy = 1 }
+    frame.filtersButton = filtersButton
+
+    local menu = CreateFrame("Frame", nil, filtersButton, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    menu:SetFrameStrata("DIALOG")
+    menu:SetPoint("TOPLEFT", filtersButton, "BOTTOMLEFT", 0, -2)
+    if menu.SetBackdrop then
+        menu:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 14, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
+        menu:SetBackdropColor(0.06, 0.06, 0.08, 0.97)
+    end
+    menu:Hide()
+    frame.filtersMenu = menu
+    filtersButton:SetScript("OnClick", function() menu:SetShown(not menu:IsShown()) end)
+    if pcall(menu.RegisterEvent, menu, "GLOBAL_MOUSE_DOWN") then
+        menu:SetScript("OnEvent", function(self)
+            if self:IsShown() and not self:IsMouseOver() and not filtersButton:IsMouseOver() then self:Hide() end
+        end)
+    end
+
+    local clear = CreateFrame("Button", nil, menu)
+    clear:SetHeight(20)
+    clear:SetPoint("TOPLEFT", 8, -6)
+    clear:SetPoint("RIGHT", -8, 0)
+    clear:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    local clearText = clear:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    clearText:SetPoint("LEFT", 4, 0)
+    clearText:SetText(ns.L["Clear filters"])
+    clear.text = clearText
+    frame.clearFilters = clear
+
+    local filterOrder = {}
+    local function updateFilters()
+        local active = 0
+        for _, key in ipairs(filterOrder) do
+            if ns.char.filters[key] then active = active + 1 end
+        end
+        filtersButton:SetText(active > 0 and ns.L["Filters (%d)"]:format(active) or ns.L["Filters"])
+        clear:SetShown(active > 0)
+        local y = active > 0 and -28 or -6
+        local width = 140
+        for _, key in ipairs(filterOrder) do
+            local cb = filterChecks[key]
+            cb:ClearAllPoints()
+            cb:SetPoint("TOPLEFT", 6, y)
+            y = y - 24
+            width = math.max(width, cb.width() + 16)
+        end
+        menu:SetSize(width, -y + 6)
+    end
+    frame.updateFilters = updateFilters
+    clear:SetScript("OnClick", function()
+        pinned = nil
+        for _, key in ipairs(filterOrder) do ns.char.filters[key] = false end
+        ns.UI_SyncFilters()
+    end)
+
     local function makeCheck(key, label, tip)
-        local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+        local cb = CreateFrame("CheckButton", nil, menu, "UICheckButtonTemplate")
         cb:SetSize(24, 24)
         local text = cb.Text or cb.text
         if not text then
@@ -1150,11 +1217,14 @@ local function createFrame()
             text:SetPoint("LEFT", cb, "RIGHT", 0, 1)
         end
         text:SetText(label)
+        cb.width = ns.CheckWidth(cb, text)
         cb:SetChecked(ns.char.filters[key] and true or false)
         filterChecks[key] = cb
+        filterOrder[#filterOrder + 1] = key
         cb:SetScript("OnClick", function(self)
             pinned = nil
             ns.char.filters[key] = self:GetChecked() and true or false
+            updateFilters()
             ns.UI_Refresh()
         end)
         cb:SetScript("OnEnter", function(self)
@@ -1164,7 +1234,6 @@ local function createFrame()
             GameTooltip:Show()
         end)
         cb:SetScript("OnLeave", GameTooltip_Hide)
-        toolbarItems[#toolbarItems + 1] = { frame = cb, w = ns.CheckWidth(cb, text), h = 24 }
     end
     makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
     makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet, because of your level."])
@@ -1173,6 +1242,7 @@ local function createFrame()
         ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
+    updateFilters()
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -1288,7 +1358,7 @@ local function createFrame()
 
     -- what is hidden while the search is open
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
-    for _, cb in pairs(filterChecks) do treeWidgets[#treeWidgets + 1] = cb end
+    treeWidgets[#treeWidgets + 1] = frame.filtersButton
 
     -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))

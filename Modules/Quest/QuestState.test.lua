@@ -94,6 +94,10 @@ describe("QuestState", function()
             assert.are.equal("[15+] ", ns.QuestPrefix({ id = 10, level = 15, dungeon = true }))
             assert.are.equal("", ns.QuestPrefix({ id = 10 }))
         end)
+        it("adds an R for a repeatable quest", function()
+            assert.are.equal("[30R] ", ns.QuestPrefix({ id = 10, level = 30, repeatable = true }))
+            assert.are.equal("[30DR] ", ns.QuestPrefix({ id = 10, level = 30, dungeon = true, repeatable = true }))
+        end)
     end)
 
     describe("IsQuestAvailable", function()
@@ -210,6 +214,64 @@ describe("QuestState", function()
             assert.are.equal(0, ns.QuestXP(41))
             assert.are.equal(0, ns.QuestXP(42))
             ns.REWARDS = saved
+        end)
+    end)
+
+    describe("quests lost by taking another first", function()
+        -- Westbrook Garrison Needs Help! (239) is a lead-in to Riverpaw Gnoll Bounty (11); 50 and 51 exclude each other
+        before_each(function()
+            ns.AddQuests("z", {
+                { id = 239, name = "Westbrook Garrison Needs Help!", breadcrumbFor = 11 },
+                { id = 50, name = "Light", exclusiveTo = { 51 } },
+                { id = 51, name = "Shadow", exclusiveTo = { 50 } },
+            })
+        end)
+
+        it("a lead-in is lost once the quest it leads to is taken or done", function()
+            assert.is_nil(ns.QuestLostTo(ns.FindQuestDef(239)))
+            WowMock.onQuest[11] = true
+            assert.are.equal(11, ns.QuestLostTo(ns.FindQuestDef(239)))
+            WowMock.onQuest[11] = nil
+            WowMock.done[11] = true
+            local status, reasons = ns.QuestStatus(ns.FindQuestDef(239))
+            assert.are.equal("missed", status)
+            assert.matches("Second", reasons[1])
+            assert.is_false(ns.IsQuestAvailable(ns.FindQuestDef(239)))
+        end)
+
+        it("done, it stays done", function()
+            WowMock.done[239], WowMock.done[11] = true, true
+            assert.are.equal("done", ns.QuestStatus(ns.FindQuestDef(239)))
+        end)
+
+        it("of two exclusive quests, taking one loses the other", function()
+            WowMock.onQuest[50] = true
+            assert.are.equal("active", ns.QuestStatus(ns.FindQuestDef(50)))
+            assert.are.equal("missed", ns.QuestStatus(ns.FindQuestDef(51)))
+        end)
+
+        it("warns before: on the lead-in, on the quest it leads to, and on exclusive ones", function()
+            local onLeadIn = ns.QuestWarnings(ns.FindQuestDef(239))
+            assert.are.equal(1, #onLeadIn)
+            assert.matches("Lead%-in to Second", onLeadIn[1])
+            local onTarget = ns.QuestWarnings(ns.FindQuestDef(11))
+            assert.are.equal(1, #onTarget)
+            assert.matches("Do Westbrook Garrison Needs Help! first", onTarget[1])
+            assert.matches("Shadow", ns.QuestWarnings(ns.FindQuestDef(50))[1])
+        end)
+
+        it("no warning once it no longer matters", function()
+            WowMock.done[239] = true
+            assert.are.same({}, ns.QuestWarnings(ns.FindQuestDef(11)))
+            WowMock.onQuest[11] = true
+            assert.are.same({}, ns.QuestWarnings(ns.FindQuestDef(11)))
+            WowMock.done[239] = nil
+            assert.are.same({}, ns.QuestWarnings(ns.FindQuestDef(239))) -- lost already: the status says so
+        end)
+
+        it("no warning about a lead-in the character can't see (another faction's)", function()
+            ns.FindQuestDef(239).faction = "Horde"
+            assert.are.same({}, ns.QuestWarnings(ns.FindQuestDef(11)))
         end)
     end)
 end)

@@ -12,6 +12,20 @@ ns.AddLocale({ "deDE" }, {
     ["Hide low level"] = "Niedrige Stufe ausblenden",
     ["Hide too high"] = "Zu hohe ausblenden",
     ["Hide completed"] = "Abgeschlossene ausblenden",
+    ["Account-wide"] = "Accountweit",
+    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
+        "Zählt die Quests als abgeschlossen, die einer deiner Charaktere erledigt hat (jeder wird gespeichert, sobald er sich einloggt).",
+    ["Completed by %s"] = "Abgeschlossen von %s",
+    ["Hide repeatable"] = "Wiederholbare ausblenden",
+    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
+        "Blendet wiederholbare Quests aus, die das Spiel nie als abgeschlossen markiert (sie zählen auch nicht zum Fortschritt).",
+    ["Repeatable"] = "Wiederholbar",
+    ["No longer available"] = "Nicht mehr verfügbar",
+    ["No longer available: you took %s"] = "Nicht mehr verfügbar: du hast %s angenommen",
+    ["Careful"] = "Achtung",
+    ["Lead-in to %s: take it before that one, or it can't be taken any more."] = "Hinführung zu %s: nimm sie vorher an, sonst ist sie nicht mehr verfügbar.",
+    ["Do %s first: taking this quest makes it unavailable."] = "Erledige zuerst %s: diese Quest anzunehmen macht sie unverfügbar.",
+    ["Only one can be done: taking it makes %s unavailable."] = "Nur eine ist möglich: diese anzunehmen macht %s unverfügbar.",
     ["Hides quests that are grey for your level (trivial)."] = "Blendet Quests aus, die für deine Stufe grau (trivial) sind.",
     ["Hides quests you cannot take yet, because of your level."] =
         "Blendet Quests aus, die du wegen deiner Stufe noch nicht annehmen kannst oder die rot (zu schwer) sind.",
@@ -90,8 +104,8 @@ ns.AddLocale({ "deDE" }, {
     ["%d-man"] = "%d Spieler",
     ["Quests in your log (id - title):"] = "Quests in deinem Questlog (ID - Titel):",
     ["  %d - %s (level %d)"] = "  %d - %s (Stufe %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
-        "Verwendung: /completao (öffnen) | prefs | minimap | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
+        "Verwendung: /completao (öffnen) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Wird innerhalb der Instanz erledigt: %s",
     ["Instance"] = "Instanz",
     ["The Temple of Atal'Hakkar"] = "Der Tempel von Atal'Hakkar",
@@ -201,5 +215,13 @@ ns.AddLocale({ "deDE" }, {
     ["Right-click: preferences"] = "Rechtsklick: Einstellungen",
     ["Drag: move"] = "Ziehen: verschieben",
     ["Minimap button hidden."] = "Minikartenknopf ausgeblendet.",
+    ["Quest helpers on."] = "Questhilfen aktiviert.",
+    ["Quest helpers off: no focus window, waypoints or map markers."] =
+        "Questhilfen deaktiviert: kein Fokusfenster, keine Wegpunkte und keine Kartenmarkierungen.",
+    ["Quest helpers are off: turn them on in the preferences to focus a quest."] =
+        "Die Questhilfen sind deaktiviert: aktiviere sie in den Einstellungen, um eine Quest zu fokussieren.",
+    ["Shift-click: turn quest helpers on"] = "Umschalt-Klick: Questhilfen aktivieren",
+    ["Shift-click: turn quest helpers off"] = "Umschalt-Klick: Questhilfen deaktivieren",
+    ["Quest helpers: focus window, waypoints and map markers"] = "Questhilfen: Fokusfenster, Wegpunkte und Kartenmarkierungen",
     ["Minimap button shown."] = "Minikartenknopf angezeigt.",
 })

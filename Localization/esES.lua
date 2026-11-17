@@ -12,6 +12,20 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Hide low level"] = "Ocultar bajo nivel",
     ["Hide too high"] = "Ocultar muy alto",
     ["Hide completed"] = "Ocultar completadas",
+    ["Account-wide"] = "Toda la cuenta",
+    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
+        "Cuenta como completadas las quests que haya hecho cualquiera de tus personajes (cada uno se recuerda en cuanto entra al juego).",
+    ["Completed by %s"] = "Completada por %s",
+    ["Hide repeatable"] = "Ocultar repetibles",
+    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
+        "Oculta las quests repetibles, que el juego nunca marca como completadas (tampoco cuentan en el progreso).",
+    ["Repeatable"] = "Repetible",
+    ["No longer available"] = "Ya no disponible",
+    ["No longer available: you took %s"] = "Ya no disponible: cogiste %s",
+    ["Careful"] = "Ojo",
+    ["Lead-in to %s: take it before that one, or it can't be taken any more."] = "Introducción a %s: cógela antes que esa o ya no podrás cogerla.",
+    ["Do %s first: taking this quest makes it unavailable."] = "Haz antes %s: coger esta quest hace que deje de estar disponible.",
+    ["Only one can be done: taking it makes %s unavailable."] = "Solo se puede hacer una: cogerla hace que %s deje de estar disponible.",
     ["Hides quests that are grey for your level (trivial)."] = "Oculta las quests en gris para tu nivel (triviales).",
     ["Hides quests you cannot take yet, because of your level."] =
         "Oculta las quests que aún no puedes coger o que salen en rojo (demasiado difíciles) para tu nivel.",
@@ -90,8 +104,8 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["%d-man"] = "%d jug.",
     ["Quests in your log (id - title):"] = "Quests en tu registro (id - título):",
     ["  %d - %s (level %d)"] = "  %d - %s (nivel %d)",
-    ["Usage: /completao (open) | prefs | minimap | fade <10-100> | changelog | dump"] =
-        "Uso: /completao (abrir) | prefs | minimap | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
+        "Uso: /completao (abrir) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
     ["Done inside the instance: %s"] = "Se hace dentro de la instancia: %s",
     ["Instance"] = "Instancia",
     ["The Temple of Atal'Hakkar"] = "El Templo de Atal'Hakkar",
@@ -201,5 +215,13 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Right-click: preferences"] = "Clic derecho: preferencias",
     ["Drag: move"] = "Arrastrar: mover",
     ["Minimap button hidden."] = "Botón del minimapa oculto.",
+    ["Quest helpers on."] = "Ayudas de quest activadas.",
+    ["Quest helpers off: no focus window, waypoints or map markers."] =
+        "Ayudas de quest desactivadas: sin ventana de foco, waypoints ni marcadores en el mapa.",
+    ["Quest helpers are off: turn them on in the preferences to focus a quest."] =
+        "Las ayudas de quest están desactivadas: actívalas en las preferencias para enfocar una quest.",
+    ["Shift-click: turn quest helpers on"] = "Mayús-clic: activar las ayudas de quest",
+    ["Shift-click: turn quest helpers off"] = "Mayús-clic: desactivar las ayudas de quest",
+    ["Quest helpers: focus window, waypoints and map markers"] = "Ayudas de quest: ventana de foco, waypoints y marcadores en el mapa",
     ["Minimap button shown."] = "Botón del minimapa visible.",
 })

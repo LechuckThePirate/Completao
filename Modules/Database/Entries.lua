@@ -109,6 +109,17 @@ function ns.FindQuestDef(id)
     return c and c[1]
 end
 
+-- The breadcrumbs (lead-ins) that lead to the quest: the quests whose `breadcrumbFor` is its id. Looked up when
+-- asked (a quest's details, its tooltip), not kept: the overrides can still change them after loading.
+function ns.BreadcrumbsTo(id)
+    local out = {}
+    for otherId, c in pairs(copies) do
+        if c[1].breadcrumbFor == id then out[#out + 1] = otherId end
+    end
+    table.sort(out)
+    return out
+end
+
 -- Whether the quest is also listed in an entry of that section (a quest can sit in several entries).
 function ns.QuestIsIn(id, category)
     for _, q in ipairs(copies[id] or {}) do
@@ -213,30 +224,33 @@ end
 --  * a profession's quests, without that profession;
 --  * the class and race entries of the others: the side panel lists every class and race so they can be looked
 --    at, but only the character's own have something to do (a race of the other faction too, with "Show other
---    faction" on).
+--    faction" on);
+--  * repeatable quests, with "Hide repeatable" on.
 function ns.EntryHasWork(d)
     if d.category == "professions" and canDoProfession(d) == false then return false end
     if d.category == "classes" and d.classFile and select(2, UnitClass("player")) ~= d.classFile then return false end
     if d.category == "races" and d.raceId and not isOwnRace(d.raceId) then return false end
     if INSTANCE_CATEGORIES[d.category] and UnitLevel("player") < (d.minLevel or 0) - INSTANCE_SLACK then return false end
     local isEvents = d.category == "events"
+    local noRepeatable = ns.char and ns.char.filters and ns.char.filters.hideRepeatable
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (isEvents or not (q.holiday or ns.QuestIsIn(q.id, "events"))) then
+        if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (isEvents or not (q.holiday or ns.QuestIsIn(q.id, "events")))
+            and not (noRepeatable and q.repeatable and not C_QuestLog.IsOnQuest(q.id)) then
             return true
         end
     end
     return false
 end
 
--- Progress of an entry: quests done / quests the character can see.
+-- Progress of an entry: quests done / quests the character can see. Repeatable quests don't count (the game
+-- never marks them done), nor do the ones that can't be taken any more because another quest was taken first.
 function ns.EntryProgress(d)
     local done, total = 0, 0
     for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) then
+        local isDone = ns.IsQuestDone(q.id)
+        if ns.QuestVisible(q, d) and not q.repeatable and (isDone or not ns.QuestLostTo(q)) then
             total = total + 1
-            if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
-                done = done + 1
-            end
+            if isDone then done = done + 1 end
         end
     end
     return done, total

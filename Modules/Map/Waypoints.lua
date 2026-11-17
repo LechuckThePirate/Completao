@@ -257,3 +257,20 @@ function ns.SetWaypoint(loc, title, tag, quiet)
     if not quiet then ns.Print(ns.L["Waypoint set: %s"]:format(title)) end
     return true
 end
+
+-- Takes away the waypoint the addon set (its map pin, TomTom's arrow, the game's own waypoint), if it is still
+-- the one there: a waypoint the player set by hand since is left alone.
+function ns.ClearWaypoint()
+    ns.ClearMapPin()
+    if not focus then return end
+    if focus.uid and TomTom and TomTom.RemoveWaypoint then pcall(TomTom.RemoveWaypoint, TomTom, focus.uid) end
+    if focus.blizzard and C_Map.ClearUserWaypoint then
+        local p = C_Map.GetUserWaypoint and C_Map.GetUserWaypoint()
+        local pos = p and p.position
+        if pos and p.uiMapID == focus.map and math.abs(pos.x - focus.x) < 1e-3 and math.abs(pos.y - focus.y) < 1e-3 then
+            C_Map.ClearUserWaypoint()
+        end
+    end
+    focus = nil
+    focusChanged()
+end

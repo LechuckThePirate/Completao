@@ -449,6 +449,13 @@ function questLine(id, name, comment, noClasses) {
     const classes = classMask(id);
     if (classes && !noClasses) f.push(`classes = ${classes}`);
     if (dungeonOf.has(id)) f.push(`dungeon = ${lua(dungeonOf.get(id))}`);
+    // repeatable: the special flag, or the daily and weekly quest flags
+    if (((q[24] ?? 0) & 1) || ((q[23] ?? 0) & (4096 | 32768))) f.push("repeatable = true");
+    // a breadcrumb (lead-in) can't be taken any more once the quest it leads to is taken; nor can a quest once
+    // one of those it is exclusive to is
+    if (q[27] > 0 && quests.has(q[27])) f.push(`breadcrumbFor = ${q[27]}`);
+    const exclusive = (q[16] ?? []).filter((p) => p > 0 && p !== id && quests.has(p));
+    if (exclusive.length) f.push(`exclusiveTo = { ${exclusive.join(", ")} }`);
     const giver = placeOf(q[2]), finisher = placeOf(q[3]);
     if (giver) { f.push(`giver = ${lua(giver.name)}`); f.push(`start = ${giver.loc}`); }
     if (finisher) f.push(`finish = ${finisher.loc}`);

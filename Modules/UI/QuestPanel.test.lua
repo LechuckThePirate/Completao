@@ -129,6 +129,26 @@ describe("QuestPanel", function()
         end)
     end)
 
+    describe("quests lost by taking another first", function()
+        it("a lead-in warns under Careful before, and says why once it is lost", function()
+            local q = { id = 900010, name = "Lead-in", breadcrumbFor = 900011 }
+            ns.Detail_Show(q)
+            assert.matches("Careful", panelText())
+            assert.matches("Lead%-in to Quest 900011", panelText())
+            WowMock.done[900011] = true
+            ns.Detail_Show(q)
+            assert.matches("No longer available: you took Quest 900011", panelText())
+            assert.is_nil(panelText():find("Lead-in to", 1, true))
+        end)
+
+        it("a plain quest has no Careful section, and a repeatable one says so", function()
+            ns.Detail_Show({ id = 900012, name = "Plain" })
+            assert.is_nil(panelText():find("Careful", 1, true))
+            ns.Detail_Show({ id = 900013, name = "Daily", repeatable = true, level = 30 })
+            assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("Repeatable", 1, true) end))
+        end)
+    end)
+
     describe("steps and waypoint", function()
         local q
 

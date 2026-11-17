@@ -67,14 +67,15 @@ describe("Waypoints", function()
     end)
 
     describe("focus", function()
-        local current
+        local current, mockGet, mockSet
         before_each(function()
             current = nil
+            mockGet, mockSet = C_Map.GetUserWaypoint, C_Map.SetUserWaypoint
             C_Map.GetUserWaypoint = function() return current end
             C_Map.SetUserWaypoint = function(p) current = { uiMapID = p.mapID, position = { x = p.x, y = p.y } } end
             ns.Search_Refresh = function() ns.refreshed = (ns.refreshed or 0) + 1 end
         end)
-        after_each(function() C_Map.GetUserWaypoint = nil end)
+        after_each(function() C_Map.GetUserWaypoint, C_Map.SetUserWaypoint = mockGet, mockSet end)
 
         it("remembers what the waypoint was set for, and keeps it when the game reports the same spot", function()
             ns.SetWaypoint(elwynn, "Marshal", "166:2")

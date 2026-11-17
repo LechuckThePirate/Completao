@@ -33,6 +33,7 @@ local function resetState()
     WowMock.selectedQuest = 0
     WowMock.superTrackedQuest = 0 -- the quest Blizzard's tracker has focused (C_SuperTrack), 0 for none
     WowMock.superTrackCalls = 0   -- times the addon asked C_SuperTrack to change it
+    WowMock.userWaypoint = nil    -- the game's own waypoint (C_Map.SetUserWaypoint)
     WowMock.maps = {}          -- [uiMapID] = { name, mapType }: the client's maps
     WowMock.tagInfo = {}       -- [questID] = { tagID, tagName }: elite/group/PvP/dungeon tag from the client
 end
@@ -329,6 +330,11 @@ C_Map = {
     GetBestMapForUnit = function() return WowMock.playerMap end,
     CanSetUserWaypointOnMap = function() return true end,
     SetUserWaypoint = function(p) WowMock.userWaypoint = p end,
+    GetUserWaypoint = function()
+        local p = WowMock.userWaypoint
+        return p and { uiMapID = p.mapID, position = { x = p.x, y = p.y } }
+    end,
+    ClearUserWaypoint = function() WowMock.userWaypoint = nil end,
 }
 UiMapPoint = { CreateFromCoordinates = function(m, x, y) return { mapID = m, x = x, y = y } end }
 C_SuperTrack = {

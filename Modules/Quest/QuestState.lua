@@ -56,20 +56,77 @@ function ns.IsEliteQuest(id)
 end
 
 -- Prefix for a quest's name, as Questie's tracker: "[11] ", "[13D] " (dungeon quest) or "[15+] " (elite; it
--- takes priority over dungeon). Empty when the level isn't known.
+-- takes priority over dungeon), with an R after it for a repeatable quest ("[30R] "). Empty when the level isn't known.
 function ns.QuestPrefix(q)
     local level = q.level or q.minLevel
     if not level then return "" end
-    return ("[%d%s] "):format(level, ns.IsEliteQuest(q.id) and "+" or q.dungeon and "D" or "")
+    return ("[%d%s%s] "):format(level, ns.IsEliteQuest(q.id) and "+" or q.dungeon and "D" or "", q.repeatable and "R" or "")
 end
 
--- Returns "done" | "active" | "available" | "locked", and a list of reasons when locked.
+-- Done, as the views count it: by the character, or, with the "Account-wide" filter on, by any character of the
+-- account (AccountProgress.lua). What the character can take still goes by its own (requirements, the log).
+function ns.IsQuestDone(id)
+    if C_QuestLog.IsQuestFlaggedCompleted(id) then return true end
+    return ns.AccountWide ~= nil and ns.AccountWide() and ns.DoneByAlt(id) ~= nil
+end
+
+local function takenOrDone(id)
+    return C_QuestLog.IsQuestFlaggedCompleted(id) or C_QuestLog.IsOnQuest(id)
+end
+
+local function titleOf(id)
+    local def = ns.FindQuestDef(id)
+    return ns.QuestTitle(id, def and def.name)
+end
+
+-- The quest that took this one away, or nil: a breadcrumb (lead-in) can't be taken once the quest it leads to is
+-- taken (Westbrook Garrison Needs Help! once Riverpaw Gnoll Bounty is), nor can a quest once one of those it is
+-- exclusive to is. For a quest that isn't done: it is lost for good.
+function ns.QuestLostTo(q)
+    if q.breadcrumbFor and takenOrDone(q.breadcrumbFor) then return q.breadcrumbFor end
+    for _, other in ipairs(q.exclusiveTo or {}) do
+        if takenOrDone(other) then return other end
+    end
+    return nil
+end
+
+-- What to know before taking it, so no quest is lost by doing another first: lines of text, empty when there is
+-- nothing. Only for a quest that is still to take.
+function ns.QuestWarnings(q)
+    local out = {}
+    if takenOrDone(q.id) or ns.QuestLostTo(q) then return out end
+    if q.breadcrumbFor then
+        out[#out + 1] = ns.L["Lead-in to %s: take it before that one, or it can't be taken any more."]:format(titleOf(q.breadcrumbFor))
+    end
+    for _, id in ipairs(ns.BreadcrumbsTo(q.id)) do
+        local def = ns.FindQuestDef(id)
+        if not takenOrDone(id) and not (def and not ns.QuestVisible(def)) then
+            out[#out + 1] = ns.L["Do %s first: taking this quest makes it unavailable."]:format(titleOf(id))
+        end
+    end
+    if q.exclusiveTo and #q.exclusiveTo > 0 then
+        local names = {}
+        for _, id in ipairs(q.exclusiveTo) do names[#names + 1] = titleOf(id) end
+        out[#out + 1] = ns.L["Only one can be done: taking it makes %s unavailable."]:format(table.concat(names, " / "))
+    end
+    return out
+end
+
+-- Returns "done" | "active" | "available" | "locked" | "missed", and a list of reasons when locked or missed
+-- (missed: it can't be taken any more, see QuestLostTo).
 function ns.QuestStatus(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then
         return "done"
     end
     if C_QuestLog.IsOnQuest(q.id) then
         return "active"
+    end
+    if ns.IsQuestDone(q.id) then
+        return "done" -- by another character, with "Account-wide" on
+    end
+    local lost = ns.QuestLostTo(q)
+    if lost then
+        return "missed", { ns.L["No longer available: you took %s"]:format(titleOf(lost)) }
     end
 
     local reasons = {}
@@ -104,7 +161,9 @@ end
 function ns.IsQuestAvailable(q)
     if C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
     if C_QuestLog.IsOnQuest(q.id) then return true end
+    if ns.IsQuestDone(q.id) then return false end
     if q.minLevel and UnitLevel("player") < q.minLevel then return false end
+    if ns.QuestLostTo(q) then return false end
     for _, reqId in ipairs(q.requires or {}) do
         if not C_QuestLog.IsQuestFlaggedCompleted(reqId) then return false end
     end

@@ -289,4 +289,33 @@ describe("Entries", function()
         assert.are.equal(1, done)
         assert.are.equal(2, total)
     end)
+
+    it("EntryProgress leaves out repeatable quests and the ones lost by taking another first", function()
+        ns.RegisterEntry({ id = "a", name = "A", category = "zones" })
+        ns.AddQuests("a", { { id = 1, name = "a" }, { id = 2, name = "daily", repeatable = true },
+            { id = 3, name = "lead-in", breadcrumbFor = 1 }, { id = 4, name = "lead-in done", breadcrumbFor = 1 } })
+        WowMock.done[1], WowMock.done[4] = true, true
+        local done, total = ns.EntryProgress(ns.entries.a)
+        assert.are.equal(2, done)
+        assert.are.equal(2, total)
+    end)
+
+    it("with Hide repeatable, a repeatable quest is no work left (unless it is in the log)", function()
+        ns.RegisterEntry({ id = "a", name = "A", category = "zones" })
+        ns.AddQuests("a", { { id = 2, name = "daily", repeatable = true } })
+        ns.char = { filters = {} }
+        assert.is_true(ns.EntryHasWork(ns.entries.a))
+        ns.char.filters.hideRepeatable = true
+        assert.is_false(ns.EntryHasWork(ns.entries.a))
+        WowMock.onQuest[2] = true
+        assert.is_true(ns.EntryHasWork(ns.entries.a))
+    end)
+
+    it("BreadcrumbsTo lists the lead-ins of a quest", function()
+        ns.RegisterEntry({ id = "a", name = "A", category = "zones" })
+        ns.AddQuests("a", { { id = 11, name = "target" }, { id = 239, name = "lead-in", breadcrumbFor = 11 },
+            { id = 7, name = "other lead-in", breadcrumbFor = 11 } })
+        assert.are.same({ 7, 239 }, ns.BreadcrumbsTo(11))
+        assert.are.same({}, ns.BreadcrumbsTo(239))
+    end)
 end)

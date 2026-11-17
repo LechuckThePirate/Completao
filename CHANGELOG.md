@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- New: "Account-wide" filter, for alt players: the quests any of your characters has done count as completed in the trees, the progress and the search, with "Completed by <name>" in their tooltip and details. Each character is remembered once it logs in with this version. What the character itself can take still goes by its own quests.
+- New: repeatable quests stand out: their title is blue in the trees, they carry an R in lists ("[30R]") and say "Repeatable" in their details. A new "Hide repeatable" filter puts them aside, and they no longer count in the progress (the game never marks them done).
+- New: quests that are lost by taking another one first. A lead-in (like "Westbrook Garrison Needs Help!", gone once you take "Riverpaw Gnoll Bounty" from Deputy Rainer) and quests that exclude each other now warn you under "Careful" in their details and tooltip, also on the quest that would make the lead-in disappear. Once lost they show in red as "No longer available" and leave the progress.
+- New: "Quest helpers" can be switched off (Preferences, shift-click on the minimap button, or `/completao helpers`) for those who quest without help and only want the lists of what is left: no focus window, waypoints, arrows or map markers pop up while questing. The main window and its buttons stay as they are.
+
 ## 1.6.5
 
 - Changed: every library quest is under "Books" now, also the few that were under "Special" ("Greater Friend of the Library" and others).

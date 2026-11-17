@@ -97,6 +97,27 @@ visible is drawn translucent: quests too high for you more, low level ones just
 a little, so they are still easy to read. "Low level" is the grey title you know
 from your quest log. Your choices are remembered, per character or for all of them.
 
+### Repeatable quests stand out
+Repeatable quests have a **blue** title in the trees, carry an **R** in the lists
+(`[30R]`) and say *Repeatable* in their details. They don't count in the
+progress (the game never marks them done), and **Hide repeatable** puts them
+aside altogether.
+
+### Don't lose a quest by taking another
+Some quests disappear for good once you take another one: a lead-in like
+*Westbrook Garrison Needs Help!* is gone after you take *Riverpaw Gnoll Bounty*
+from Deputy Rainer, and some quests exclude each other. Completao!! warns you
+under **Careful** in their details and tooltip -- also on the quest that would
+make the lead-in disappear -- before it happens. Once lost, they show in red as
+*No longer available* and leave the progress.
+
+### Account-wide completion, for alts
+Tick **Account-wide** and the quests any of your characters has done count as
+completed in the trees, the progress and the search, with *Completed by*
+and that character's name in their tooltip and details -- so you can finish every zone across
+your account. What the character itself can take still goes by its own quests.
+Each character is remembered once it logs in.
+
 ### Which ones are done inside
 Quests that take place inside a dungeon or raid wear a small **doorway icon** on
 the top-left corner of their box, with a note in the tooltip and the quest
@@ -142,8 +163,8 @@ Log or Tracked Quests and its details open right below the table:
 - **Waypoint** is a split button that already points at the next step: the
   quest giver (or the quest you still need first), the first objective you
   haven't finished, or the turn-in when you're done. The arrow lists every step
-  to pick another. It uses [TomTom](https://www.curseforge.com/wow/addons/tomtom),
-  or the game's own waypoint if you don't use it.
+  to pick another. Works with [TomTom](https://www.curseforge.com/wow/addons/tomtom)
+  or Waypoint Tracker, or uses the game's own waypoint if you have neither.
 - **Show on map** opens the world map on that step and drops a bouncing gold
   **!** marker on the exact spot, easy to see even on a busy map.
 - A step inside an instance? **Show entrance** takes you to the door of the
@@ -155,6 +176,10 @@ Log or Tracked Quests and its details open right below the table:
 ![A TomTom waypoint to the quest giver](https://media.joanvilarino.online/completao/images/screencaps/tomtom_integration.png)
 
 ### Made to stay out of your way
+- **Quest helpers** can be switched off -- in Preferences, with a shift-click
+  on the minimap button or with `/completao helpers` -- for those who quest
+  without help and only want the lists of what is left: no focus window,
+  waypoints or map markers pop up while questing. The main window stays as it is.
 - Move and resize the window; its position, size, open section and selected
   dungeon are remembered **per character** (or shared, if you prefer).
 - A minimap button opens it (drag it wherever you like), and the addon has its
@@ -182,7 +207,8 @@ Log or Tracked Quests and its details open right below the table:
 
 Commands: `/completao` (or `/cpl`) opens the window, `/completao prefs` the
 preferences, `/completao minimap` shows or hides the minimap button,
-`/completao fade <10-100>` sets the opacity while you move. You can also bind
+`/completao fade <10-100>` sets the opacity while you move, `/completao helpers`
+turns the quest helpers on or off. You can also bind
 keys to open the window and the preferences, in their own **Completao!!** section
 of **Options -> Keybindings**.
 
@@ -217,7 +243,9 @@ Expect gaps, and please report them.
 
 ## Supported game versions
 
-- Classic "Forever" (beta)
+- Classic "Forever"
+- Classic Era
+- TBC Classic (Anniversary)
 
 ## License and credits
 

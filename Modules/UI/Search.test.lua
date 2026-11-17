@@ -75,6 +75,33 @@ describe("Search", function()
         assert.is_true(ids(ShownRows())[166])
     end)
 
+    it("the reward type is picked inside the Filters drop-down, counts as a filter and Clear filters takes it off", function()
+        assert.are.equal(panel.filters.menu, panel.typeButton:GetParent():GetParent())
+        panel.typeButton:Click()
+        WowMock.Find(function(f) return f.text and f.text._text == "Weapon" and f._scripts.OnClick end):Click()
+        assert.are.equal("Weapon", panel.typeButton:GetText())
+        assert.are.equal("Filters (1)", panel.filters:GetText())
+        assert.is_true(panel.filters.clear:IsShown())
+        panel.filters.clear._scripts.OnClick(panel.filters.clear)
+        assert.are.equal("Any", panel.typeButton:GetText())
+        assert.are.equal("Filters", panel.filters:GetText())
+        assert.is_true(panel.itemsOnly:IsEnabled())
+    end)
+
+    it("a pick in the reward type's list doesn't close the Filters drop-down", function()
+        local menu = panel.filters.menu
+        panel.filters._scripts.OnClick(panel.filters)
+        assert.is_true(menu:IsShown())
+        local onPopup = ns.PopupMenu_IsMouseOver
+        ns.PopupMenu_IsMouseOver = function() return true end
+        menu._scripts.OnEvent(menu, "GLOBAL_MOUSE_DOWN")
+        assert.is_true(menu:IsShown())
+        ns.PopupMenu_IsMouseOver = function() return false end
+        menu._scripts.OnEvent(menu, "GLOBAL_MOUSE_DOWN")
+        assert.is_false(menu:IsShown()) -- a click anywhere else does
+        ns.PopupMenu_IsMouseOver = onPopup
+    end)
+
     it("filters by reward type (Weapon) and disables 'only with items'", function()
         panel.typeButton:Click()
         local weapon = WowMock.Find(function(f) return f.text and f.text._text == "Weapon" and f._scripts.OnClick end)

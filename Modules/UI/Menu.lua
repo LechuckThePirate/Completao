@@ -76,3 +76,8 @@ end
 function ns.PopupMenu_Hide()
     if popup then popup:Hide() end
 end
+
+-- The menu is open and the mouse is over it (a click there is a pick, not a click elsewhere).
+function ns.PopupMenu_IsMouseOver()
+    return popup ~= nil and popup:IsShown() and popup:IsMouseOver() or false
+end

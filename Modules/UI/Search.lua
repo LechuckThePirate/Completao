@@ -728,6 +728,7 @@ local function updateDropdowns()
     local byType = state.class ~= nil
     panel.itemsOnly:SetEnabled(not byType)
     panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
+    panel.filters.Update()
 end
 
 function ns.Search_Create(parent)
@@ -760,7 +761,8 @@ function ns.Search_Create(parent)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    -- what to include and "only with items", in a "Filters" drop-down (FilterMenu.lua); the reward types stay apart
+    -- what to include, "only with items" and the reward's type, in a "Filters" drop-down (FilterMenu.lua): the type and its
+    -- subtype are two pickers under the checkboxes
     local filters = ns.FilterMenu(panel, {
         options = {
             { key = "low", label = L["Include low level"] },
@@ -771,6 +773,29 @@ function ns.Search_Create(parent)
         get = function(key) return state[key] end,
         set = function(key, on) state[key] = on end,
         onChange = requestRefresh,
+        footer = function(menu)
+            local footer = CreateFrame("Frame", nil, menu)
+            footer:SetSize(158, 76)
+            local line = footer:CreateTexture(nil, "ARTWORK")
+            line:SetColorTexture(1, 1, 1, 0.15)
+            line:SetHeight(1)
+            line:SetPoint("TOPLEFT", 0, 0)
+            line:SetPoint("TOPRIGHT", 0, 0)
+            local label = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            label:SetPoint("TOPLEFT", 2, -8)
+            label:SetText(L["Reward type:"])
+            panel.typeButton = makeDropdown(footer, 150)
+            panel.typeButton:SetPoint("TOPLEFT", 0, -24)
+            panel.subButton = makeDropdown(footer, 150)
+            panel.subButton:SetPoint("TOPLEFT", 0, -50)
+            return footer
+        end,
+        footerActive = function() return state.class and 1 or 0 end,
+        clearFooter = function()
+            state.class, state.subclass = nil, nil
+            ns.PopupMenu_Hide()
+            if panel.itemsOnly then updateDropdowns() end
+        end,
     })
     panel.filters = filters
     -- only quests that give some item (fixed or to choose): off while a reward type is chosen
@@ -785,18 +810,10 @@ function ns.Search_Create(parent)
     itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
     panel.itemsOnly = itemsOnly
 
-    local rewardLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rewardLabel:SetText(L["Reward type:"])
-    panel.typeButton = makeDropdown(panel, 150)
-    panel.subButton = makeDropdown(panel, 150)
-
     -- form in rows by width; the table header goes under the last row
     local formItems = {
         { frame = box, w = 244, h = 24, dy = 2 },
         { frame = filters, w = 110, h = 24, dy = 1 },
-        { frame = rewardLabel, w = function() return math.ceil(rewardLabel:GetStringWidth()) + 4 end, h = 24, dy = 6 },
-        { frame = panel.typeButton, w = 150, h = 24 },
-        { frame = panel.subButton, w = 150, h = 24 },
     }
     local function layoutForm()
         local width = panel:GetWidth() - 8

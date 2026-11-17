@@ -5,7 +5,9 @@ local _, ns = ...
 -- (they differ between the clients); a click anywhere else closes it. Used by the tree's toolbar and the search.
 --
 -- spec = { options = { { key =, label =, tip = (optional) }, ... }, get = function(key), set = function(key, on),
---          onChange = function() (after a change by the player) }
+--          onChange = function() (after a change by the player),
+--          footer = function(menu) (optional: makes a frame of its own, sized, shown under the checkboxes),
+--          footerActive = function() (how many filters it has on), clearFooter = function() (Clear filters) }
 -- Returns the button, with .menu, .clear, .checks[key] (the CheckButtons, with .label) and :Update() (call it when
 -- the values change elsewhere).
 function ns.FilterMenu(parent, spec)
@@ -29,7 +31,10 @@ function ns.FilterMenu(parent, spec)
     button:SetScript("OnClick", function() menu:SetShown(not menu:IsShown()) end)
     if pcall(menu.RegisterEvent, menu, "GLOBAL_MOUSE_DOWN") then
         menu:SetScript("OnEvent", function(self)
-            if self:IsShown() and not self:IsMouseOver() and not button:IsMouseOver() then self:Hide() end
+            if self:IsShown() and not self:IsMouseOver() and not button:IsMouseOver()
+                and not (ns.PopupMenu_IsMouseOver and ns.PopupMenu_IsMouseOver()) then -- a pick in a menu opened from it
+                self:Hide()
+            end
         end)
     end
 
@@ -43,6 +48,7 @@ function ns.FilterMenu(parent, spec)
     clear.text:SetText(ns.L["Clear filters"])
     button.clear = clear
 
+    local footer = spec.footer and spec.footer(menu)
     button.checks = {}
     function button.Update()
         local active = 0
@@ -51,6 +57,7 @@ function ns.FilterMenu(parent, spec)
             button.checks[opt.key]:SetChecked(on)
             if on then active = active + 1 end
         end
+        if spec.footerActive then active = active + spec.footerActive() end
         button:SetText(active > 0 and ns.L["Filters (%d)"]:format(active) or ns.L["Filters"])
         clear:SetShown(active > 0)
         local y, width = active > 0 and -28 or -6, 140
@@ -61,11 +68,18 @@ function ns.FilterMenu(parent, spec)
             y = y - 24
             width = math.max(width, cb.width() + 16)
         end
+        if footer then
+            footer:ClearAllPoints()
+            footer:SetPoint("TOPLEFT", 8, y - 4)
+            y = y - 4 - footer:GetHeight()
+            width = math.max(width, footer:GetWidth() + 16)
+        end
         menu:SetSize(width, -y + 6)
     end
 
     clear:SetScript("OnClick", function()
         for _, opt in ipairs(spec.options) do spec.set(opt.key, false) end
+        if spec.clearFooter then spec.clearFooter() end
         button.Update()
         spec.onChange()
     end)

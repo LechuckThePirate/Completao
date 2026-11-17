@@ -304,6 +304,19 @@ describe("MainWindow", function()
             assert.is_not_nil((ShownNodes())[parent])
         end)
 
+        it("hide repeatable hides the repeatable quests, but not the one in the log", function()
+            local q = ns.FindQuestDef(parent)
+            q.repeatable = true
+            ns.char.filters.hideRepeatable = true
+            ns.UI_Refresh()
+            assert.is_nil(ShownNodes()[parent])
+            WowMock.onQuest[parent] = true
+            ns.UI_Refresh()
+            assert.is_not_nil(ShownNodes()[parent])
+            WowMock.onQuest[parent] = nil
+            q.repeatable = nil
+        end)
+
         it("too high hides the chains you can't start yet", function()
             WowMock.level = 5
             ns.char.filters.hideHigh = true

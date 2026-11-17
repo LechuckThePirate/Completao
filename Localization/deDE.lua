@@ -12,6 +12,16 @@ ns.AddLocale({ "deDE" }, {
     ["Hide low level"] = "Niedrige Stufe ausblenden",
     ["Hide too high"] = "Zu hohe ausblenden",
     ["Hide completed"] = "Abgeschlossene ausblenden",
+    ["Hide repeatable"] = "Wiederholbare ausblenden",
+    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
+        "Blendet wiederholbare Quests aus, die das Spiel nie als abgeschlossen markiert (sie zählen auch nicht zum Fortschritt).",
+    ["Repeatable"] = "Wiederholbar",
+    ["No longer available"] = "Nicht mehr verfügbar",
+    ["No longer available: you took %s"] = "Nicht mehr verfügbar: du hast %s angenommen",
+    ["Careful"] = "Achtung",
+    ["Lead-in to %s: take it before that one, or it can't be taken any more."] = "Hinführung zu %s: nimm sie vorher an, sonst ist sie nicht mehr verfügbar.",
+    ["Do %s first: taking this quest makes it unavailable."] = "Erledige zuerst %s: diese Quest anzunehmen macht sie unverfügbar.",
+    ["Only one can be done: taking it makes %s unavailable."] = "Nur eine ist möglich: diese anzunehmen macht %s unverfügbar.",
     ["Hides quests that are grey for your level (trivial)."] = "Blendet Quests aus, die für deine Stufe grau (trivial) sind.",
     ["Hides quests you cannot take yet, because of your level."] =
         "Blendet Quests aus, die du wegen deiner Stufe noch nicht annehmen kannst oder die rot (zu schwer) sind.",

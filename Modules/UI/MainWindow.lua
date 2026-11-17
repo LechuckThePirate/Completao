@@ -16,10 +16,14 @@ local STATUS_COLORS = {
     active    = { 1.00, 0.82, 0.00 },
     available = { 0.35, 0.65, 1.00 },
     locked    = { 0.45, 0.45, 0.45 },
+    missed    = { 0.80, 0.30, 0.30 },
 }
 local STATUS_LABELS = {
     done = ns.L["Completed"], active = ns.L["In progress"], available = ns.L["Available"], locked = ns.L["Locked"],
+    missed = ns.L["No longer available"],
 }
+-- a repeatable quest's title, in the tree: the blue the game gives them
+local REPEATABLE_COLOR = { 0.45, 0.80, 1.00 }
 ns.STATUS_COLORS, ns.STATUS_LABELS = STATUS_COLORS, STATUS_LABELS
 local BACKDROP = {
     bgFile = "Interface\\Buttons\\WHITE8x8",
@@ -68,6 +72,8 @@ local function showNodeTooltip(btn)
     local c = STATUS_COLORS[status]
     GameTooltip:AddLine(STATUS_LABELS[status], c[1], c[2], c[3])
     if btn.readyToTurnIn then GameTooltip:AddLine(ns.L["Ready to turn in"], 0.35, 1, 0.35) end
+    if q.repeatable then GameTooltip:AddLine(ns.L["Repeatable"], REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3]) end
+    for _, w in ipairs(ns.QuestWarnings(q)) do GameTooltip:AddLine(w, 1, 0.55, 0.1, true) end
     if q.level then
         GameTooltip:AddLine(ns.L["Level %d%s"]:format(q.level, q.minLevel and ns.L[" (min %d)"]:format(q.minLevel) or ""), 0.8, 0.8, 0.8)
     end
@@ -289,6 +295,8 @@ local function makeFilter(d)
         local onQuest = C_QuestLog.IsOnQuest(q.id)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
         if f.hideDone and C_QuestLog.IsQuestFlaggedCompleted(q.id) then return false end
+        -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
+        if f.hideRepeatable and q.repeatable and not onQuest then return false end
         if c and c.size > 1 then
             if not c.started then
                 if f.hideHigh and c.headsTooHigh then return false end
@@ -414,7 +422,13 @@ local function renderTree(d)
                 icon:Hide()
             end
         end
-        b.text:SetTextColor(status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1, status == "locked" and 0.65 or 1)
+        if status == "locked" or status == "missed" then
+            b.text:SetTextColor(0.65, 0.65, 0.65)
+        elseif n.quest.repeatable then
+            b.text:SetTextColor(REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3])
+        else
+            b.text:SetTextColor(1, 1, 1)
+        end
         -- translucent when they don't fit your level (too high ones more than low level ones);
         -- done ones and the ones in your log are always shown sharp
         local alpha = 1
@@ -1110,6 +1124,8 @@ local function createFrame()
     makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
     makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet, because of your level."])
     makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
+    makeCheck("hideRepeatable", ns.L["Hide repeatable"],
+        ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."])
     makeCheck("otherFaction", ns.L["Show other faction"],
         ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
 

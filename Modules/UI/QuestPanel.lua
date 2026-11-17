@@ -96,6 +96,11 @@ local function buildText(q)
     if q.level then requirements = requirements .. "\n" .. ns.QuestLevelColor(q.level) .. L["Level %d recommended"]:format(q.level) .. "|r" end
     section(L["Requirements"], requirements)
 
+    -- quests lost by doing another first: why this one was, or what to do first so none is
+    local _, lost = ns.QuestStatus(q)
+    local careful = ns.QuestLostTo(q) and lost or ns.QuestWarnings(q)
+    if #careful > 0 then section(L["Careful"], "|cffff8c1a" .. table.concat(careful, "\n") .. "|r") end
+
     if q.objective then section(L["Objective"], q.objective) end
     if detail.steps and #detail.steps > 0 then section(L["Steps"], stepsText()) end
     if q.dungeon then
@@ -351,6 +356,7 @@ local function render()
     detail.title:SetText(ns.QuestTitle(q.id, q.name))
     detail.title:SetTextColor(c[1], c[2], c[3])
     local meta = { ns.STATUS_LABELS[status] }
+    if q.repeatable then meta[#meta + 1] = L["Repeatable"] end
     if q.level then meta[#meta + 1] = L["Level %d%s"]:format(q.level, q.minLevel and L[" (min %d)"]:format(q.minLevel) or "") end
     meta[#meta + 1] = "ID " .. q.id
     detail.meta:SetText(table.concat(meta, "   |   "))

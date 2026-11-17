@@ -22,7 +22,7 @@ globals = {
 
 -- the game's API and frames it uses
 read_globals = {
-    "BackdropTemplateMixin", "C_AddOns", "C_GameRules", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
+    "BackdropTemplateMixin", "C_AddOns", "C_GameRules", "RAID_CLASS_COLORS", "C_CreatureInfo", "C_CurrencyInfo", "C_Item", "C_Map", "C_QuestLog", "C_Reputation", "C_SuperTrack",
     "C_Texture", "C_Timer", "C_TradeSkillUI",
     "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
     "GetCoinTextureString", "GetBuildInfo", "AddQuestWatch", "Questie", "QuestieLoader", "IsQuestFlaggedCompleted", "GetQuestLogTitle", "GetNumQuestLogEntries", "GetQuestLogSelection", "SelectQuestLogEntry", "QuestPOIGetIconInfo",

@@ -157,16 +157,22 @@ describe("AccountProgress", function()
         assert.is_nil(ns.char.filters.accountWide)
     end)
 
-    it("the tooltip and the details say who did it", function()
-        StartAddon(ns, altDB({ [990001] = true }), { selected = "zz" })
+    it("the tooltip and the details say who did it: every one of them, by name, in its class color", function()
+        _G.RAID_CLASS_COLORS = { MAGE = { colorStr = "ff3fc7eb" }, ROGUE = { colorStr = "fffff468" } }
+        local db = altDB({ [990001] = true })
+        db.chars["Bob-Realm"] = { name = "Bob", realm = "Realm", class = "ROGUE", done = { [990001] = true } }
+        db.chars["Zed-Realm"] = { name = "Zed", realm = "Realm", class = "ROGUE", done = {} }
+        StartAddon(ns, db, { selected = "zz" })
         ns.char.consolidateAlts = true
         ns.UI_Toggle()
         local node = ShownNodes()[990001]
         local lines = {}
         GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
         node._scripts.OnEnter(node)
-        assert.is_truthy(table.concat(lines, "\n"):find("Completed by Altie", 1, true))
+        local expected = "Completed by |cff3fc7ebAltie|r, |cfffff468Bob|r"
+        assert.is_truthy(table.concat(lines, "\n"):find(expected, 1, true))
         ns.Detail_Show(ns.FindQuestDef(990001))
-        assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("Completed by Altie", 1, true) end))
+        assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:find(expected, 1, true) end))
+        _G.RAID_CLASS_COLORS = nil
     end)
 end)

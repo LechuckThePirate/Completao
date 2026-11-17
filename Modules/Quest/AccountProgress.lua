@@ -145,6 +145,25 @@ function ns.DoneByAlt(id)
     return best
 end
 
+-- Every other character (of the same ruleset) who has done the quest, by name, each in its class color: "Altie, Bob",
+-- or nil when none has.
+function ns.DoneByAltsText(id)
+    if not (ns.db and ns.db.chars) then return nil end
+    local mine, list = charKey(), {}
+    for key, c in pairs(ns.db.chars) do
+        if key ~= mine and c.done and c.done[id] and sameRuleset(c) then list[#list + 1] = { name = c.name or key, class = c.class } end
+    end
+    if #list == 0 then return nil end
+    table.sort(list, function(a, b) return a.name < b.name end)
+    local out = {}
+    for i, c in ipairs(list) do
+        local color = RAID_CLASS_COLORS and c.class and RAID_CLASS_COLORS[c.class]
+        local hex = color and (color.colorStr or (color.GenerateHexColor and color:GenerateHexColor()))
+        out[i] = hex and ("|c" .. hex .. c.name .. "|r") or c.name
+    end
+    return table.concat(out, ", ")
+end
+
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 pcall(events.RegisterEvent, events, "QUEST_TURNED_IN")

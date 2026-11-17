@@ -1097,7 +1097,7 @@ local function createFrame()
         for _, line in ipairs({
             ns.L["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."],
             ns.L["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."],
-            ns.L["Each character is remembered once it logs in."],
+            ns.L["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."],
         }) do
             GameTooltip:AddLine(line, 1, 1, 1, true)
         end

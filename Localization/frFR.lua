@@ -20,7 +20,8 @@ ns.AddLocale({ "frFR" }, {
         "Considère tous vos personnages comme un seul : ce que l'un d'eux a fait compte comme terminé, aussi pour les quêtes que cela débloque.",
     ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
         "Les classes, races, métiers et factions de tous sont affichés ; trop bas ou trop haut dépend du personnage que vous jouez.",
-    ["Each character is remembered once it logs in."] = "Chaque personnage est mémorisé dès qu'il se connecte.",
+    ["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."] =
+        "Seuls les personnages de votre royaume vont ensemble (jamais ceux d'un autre type de règles) ; chacun est mémorisé dès qu'il se connecte.",
     ["Completed by %s"] = "Terminée par %s",
     ["Hide repeatable"] = "Masquer répétables",
     ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =

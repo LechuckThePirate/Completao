@@ -83,7 +83,7 @@ describe("AccountProgress", function()
     end)
 
     it("with the switch on, the quests of the alts' class, race and faction are shown", function()
-        local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
+        local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", realm = "Realm", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
             done = {} } } }
         ns.AddQuests("zz", { { id = 990010, name = "Warrior only", classes = 1 }, { id = 990011, name = "Orc only", races = 2 },
             { id = 990012, name = "Horde", faction = "Horde" } })
@@ -94,7 +94,7 @@ describe("AccountProgress", function()
     end)
 
     it("with the switch on, the class, race and profession entries of the alts have something to do", function()
-        local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
+        local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", realm = "Realm", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
             skills = { [171] = true }, done = {} } } }
         ns.RegisterEntry({ id = "warrior", name = "Warrior", category = "classes", classFile = "WARRIOR" })
         ns.AddQuests("warrior", { { id = 990020, name = "Warrior quest" } })
@@ -119,6 +119,36 @@ describe("AccountProgress", function()
         switch._scripts.OnClick(switch)
         assert.is_nil(ns.char.consolidateAlts)
         assert.is_false(switch.on)
+    end)
+
+    it("only the characters of the same ruleset go together: another realm's, or a Hardcore one's, don't", function()
+        local db = { chars = {
+            ["Faraway-Other"] = { name = "Faraway", realm = "Other", class = "WARRIOR", classId = 1, done = { [990001] = true } },
+            ["Brave-Realm"] = { name = "Brave", realm = "Realm", ruleset = "Realm+HC", class = "WARRIOR", classId = 1,
+                done = { [990001] = true } },
+        } }
+        ns.AddQuests("zz", { { id = 990010, name = "Warrior only", classes = 1 } })
+        StartAddon(ns, db)
+        ns.char.consolidateAlts = true
+        assert.is_nil(ns.DoneByAlt(990001))
+        assert.are.equal("available", ns.QuestStatus(ns.FindQuestDef(990001)))
+        assert.is_false(ns.QuestVisible(ns.FindQuestDef(990010), ns.entries.zz))
+        assert.are.equal(1, #ns.Characters())
+        assert.are.equal("Realm", CompletaoDB.chars["Tester-Realm"].ruleset)
+    end)
+
+    it("a Hardcore character only goes with the Hardcore ones of its realm", function()
+        _G.C_GameRules = { IsHardcoreActive = function() return true end }
+        local db = { chars = {
+            ["Normal-Realm"] = { name = "Normal", realm = "Realm", ruleset = "Realm", done = { [990001] = true } },
+            ["Brave-Realm"] = { name = "Brave", realm = "Realm", ruleset = "Realm+HC", done = { [990002] = true } },
+        } }
+        StartAddon(ns, db)
+        ns.char.consolidateAlts = true
+        assert.is_nil(ns.DoneByAlt(990001))
+        assert.are.equal("Brave", ns.DoneByAlt(990002))
+        assert.are.equal("Realm+HC", CompletaoDB.chars["Tester-Realm"].ruleset)
+        _G.C_GameRules = nil
     end)
 
     it("the Account-wide filter of 1.7.0 becomes the switch", function()

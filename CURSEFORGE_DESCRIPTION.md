@@ -119,7 +119,8 @@ trees, the progress and the search (with *Completed by* and that character's
 name in its tooltip and details), also for the quests it unlocks; and the
 quests, classes, races, professions and factions of all of them are shown. The
 quests too low or too high are still the ones of the character you play. Each
-character is remembered once it logs in.
+character is remembered once it logs in. Only the characters of the same ruleset go
+together: the same realm, and Hardcore ones only with Hardcore ones.
 
 ### Which ones are done inside
 Quests that take place inside a dungeon or raid wear a small **doorway icon** on

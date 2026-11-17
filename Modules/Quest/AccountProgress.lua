@@ -7,9 +7,30 @@ local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly 
 -- everywhere (trees, progress, search, the quests it unlocks), and the quests, classes, races and professions of
 -- any of them are shown. The level that hides quests as too low or too high is still the played character's, and
 -- what is in its own quest log is its own.
+--
+-- Only the characters of the same ruleset are put together (never a PvP realm's with a PvE one's, nor a Hardcore
+-- character's with a normal one's). The game has no query for a realm's ruleset, so each realm is a ruleset of its
+-- own, plus whether Hardcore is on; realms known to share one can be listed in RULESETS to go together.
 
 local function charKey()
     return (UnitName("player") or "?") .. "-" .. (GetRealmName and GetRealmName() or "?")
+end
+
+-- [realm name] = ruleset name, for realms of the same ruleset whose characters go together.
+local RULESETS = {}
+
+local function rulesetOf(realm, hardcore)
+    return (RULESETS[realm] or realm or "?") .. (hardcore and "+HC" or "")
+end
+
+local function myRuleset()
+    local hardcore = C_GameRules and C_GameRules.IsHardcoreActive and C_GameRules.IsHardcoreActive() or false
+    return rulesetOf(GetRealmName and GetRealmName() or nil, hardcore)
+end
+
+-- Whether a saved character is of the played one's ruleset (one saved before it was recorded: by its realm).
+local function sameRuleset(c)
+    return (c.ruleset or rulesetOf(c.realm, false)) == myRuleset()
 end
 
 -- The other characters, as profiles for the visibility rules (QuestState.lua): rebuilt when one is recorded.
@@ -30,6 +51,7 @@ local function store()
     me.class, me.classId = classFile, classId
     me.raceId = select(3, UnitRace("player"))
     me.faction = UnitFactionGroup("player")
+    me.ruleset = myRuleset()
     alts = nil
     return me
 end
@@ -89,7 +111,7 @@ function ns.Characters()
         alts = {}
         local mine = charKey()
         for key, c in pairs(ns.db and ns.db.chars or {}) do
-            if key ~= mine then
+            if key ~= mine and sameRuleset(c) then
                 alts[#alts + 1] = { name = c.name or key, classFile = c.class, classId = c.classId, raceId = c.raceId,
                     faction = c.faction, skills = c.skills }
             end
@@ -109,12 +131,13 @@ function ns.AltHasProfession(skillLine)
     return false
 end
 
--- The name of another character of the account who has done the quest, or nil (the first one by name).
+-- The name of another character of the account (of the same ruleset) who has done the quest, or nil (the first one by
+-- name).
 function ns.DoneByAlt(id)
     if not (ns.db and ns.db.chars) then return nil end
     local mine, best = charKey(), nil
     for key, c in pairs(ns.db.chars) do
-        if key ~= mine and c.done and c.done[id] then
+        if key ~= mine and c.done and c.done[id] and sameRuleset(c) then
             local name = c.name or key
             if not best or name < best then best = name end
         end

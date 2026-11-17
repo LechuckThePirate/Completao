@@ -760,53 +760,21 @@ function ns.Search_Create(parent)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    -- "Include:" and its three checkboxes go together, in a group placed as a whole
-    local include = CreateFrame("Frame", nil, panel)
-    include:SetHeight(24)
-    include.label = include:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    include.label:SetPoint("LEFT", 0, 0)
-    include.label:SetText(L["Include:"])
-    include.checks = {}
-    for _, opt in ipairs({ { "low", L["Low level"] }, { "high", L["Too high"] }, { "done", L["Done"] } }) do
-        local cb = CreateFrame("CheckButton", nil, include, "UICheckButtonTemplate")
-        cb:SetSize(24, 24)
-        local text = cb.Text or cb.text
-        if not text then
-            text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            text:SetPoint("LEFT", cb, "RIGHT", 0, 1)
-        end
-        text:SetText(opt[2])
-        cb:SetChecked(state[opt[1]])
-        cb:SetScript("OnClick", function(self)
-            state[opt[1]] = self:GetChecked() and true or false
-            requestRefresh()
-        end)
-        include.checks[#include.checks + 1] = { cb = cb, text = text }
-    end
-    local function includeWidth()
-        local x = math.ceil(include.label:GetStringWidth()) + 4
-        for _, c in ipairs(include.checks) do
-            c.cb:ClearAllPoints()
-            c.cb:SetPoint("LEFT", include, "LEFT", x, 0)
-            x = x + 24 + math.ceil(c.text:GetStringWidth()) + 8
-        end
-        include:SetWidth(x)
-        return x
-    end
-
-    -- only quests that give some item (fixed or to choose)
-    local itemsOnly = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    itemsOnly:SetSize(24, 24)
-    local itemsOnlyText = itemsOnly.Text or itemsOnly.text
-    if not itemsOnlyText then
-        itemsOnlyText = itemsOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        itemsOnlyText:SetPoint("LEFT", itemsOnly, "RIGHT", 0, 1)
-    end
-    itemsOnlyText:SetText(L["Only quests with item rewards"])
-    itemsOnly:SetScript("OnClick", function(self)
-        state.itemsOnly = self:GetChecked() and true or false
-        requestRefresh()
-    end)
+    -- what to include and "only with items", in a "Filters" drop-down (FilterMenu.lua); the reward types stay apart
+    local filters = ns.FilterMenu(panel, {
+        options = {
+            { key = "low", label = L["Include low level"] },
+            { key = "high", label = L["Include too high"] },
+            { key = "done", label = L["Include completed"] },
+            { key = "itemsOnly", label = L["Only quests with item rewards"] },
+        },
+        get = function(key) return state[key] end,
+        set = function(key, on) state[key] = on end,
+        onChange = requestRefresh,
+    })
+    panel.filters = filters
+    -- only quests that give some item (fixed or to choose): off while a reward type is chosen
+    local itemsOnly = filters.checks.itemsOnly
     itemsOnly:SetMotionScriptsWhileDisabled(true)
     itemsOnly:SetScript("OnEnter", function(self)
         if self:IsEnabled() then return end
@@ -815,7 +783,6 @@ function ns.Search_Create(parent)
         GameTooltip:Show()
     end)
     itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
-    itemsOnly.label = itemsOnlyText
     panel.itemsOnly = itemsOnly
 
     local rewardLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -826,8 +793,7 @@ function ns.Search_Create(parent)
     -- form in rows by width; the table header goes under the last row
     local formItems = {
         { frame = box, w = 244, h = 24, dy = 2 },
-        { frame = include, w = includeWidth, h = 24 },
-        { frame = itemsOnly, w = ns.CheckWidth(itemsOnly, itemsOnlyText), h = 24 },
+        { frame = filters, w = 110, h = 24, dy = 1 },
         { frame = rewardLabel, w = function() return math.ceil(rewardLabel:GetStringWidth()) + 4 end, h = 24, dy = 6 },
         { frame = panel.typeButton, w = 150, h = 24 },
         { frame = panel.subButton, w = 150, h = 24 },

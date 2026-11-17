@@ -3,6 +3,7 @@
     <Script file="Modules\Graph\Graph.lua"/>
     <Script file="Modules\Map\Waypoints.lua"/>
     <Script file="Modules\UI\Menu.lua"/>
+    <Script file="Modules\UI\FilterMenu.lua"/>
     <Script file="Modules\UI\QuestPanel.lua"/>
     <Script file="Modules\UI\QuestMenu.lua"/>
     <Script file="Modules\UI\Search.lua"/>

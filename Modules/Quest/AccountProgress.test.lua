@@ -103,6 +103,15 @@ describe("AccountProgress", function()
         assert.is_true(ns.EntryHasWork(ns.entries.warlock))
     end)
 
+    it("with the switch on, a quest another character has done shows, whatever the data says of its faction", function()
+        ns.AddQuests("zz", { { id = 990040, name = "Said to be Horde only", faction = "Horde" } })
+        StartAddon(ns, altDB({ [990040] = true }))
+        assert.is_false(ns.QuestVisible(ns.FindQuestDef(990040), ns.entries.zz))
+        ns.char.consolidateAlts = true
+        assert.is_true(ns.QuestVisible(ns.FindQuestDef(990040), ns.entries.zz))
+        assert.are.equal("done", ns.QuestStatus(ns.FindQuestDef(990040)))
+    end)
+
     it("with the switch on, the class, race and profession entries of the alts have something to do", function()
         local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", realm = "Realm", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
             skills = { [171] = true }, done = {} } } }

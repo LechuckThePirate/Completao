@@ -10,3 +10,6 @@ local _, ns = ...
 for _, id in ipairs({ 91899, 91900, 91904, 91905, 95816, 95819, 98247, 98248, 98372 }) do
     ns.PatchQuest(id, { holiday = true })
 end
+
+-- "Important Heirlooms" (Hall of Thanes) is listed as Alliance only, but the Horde takes it too.
+ns.PatchQuest(96403, { faction = false })

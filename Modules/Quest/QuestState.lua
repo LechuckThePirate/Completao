@@ -291,6 +291,8 @@ function ns.QuestVisible(q, d)
     local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
     if visibleFor(q, category, ns.PlayerProfile(), otherFaction) then return true end
     if not (ns.Consolidated and ns.Consolidated()) then return false end
+    -- one another character has done can be done, whatever the data says of its faction, race or class
+    if ns.DoneByAlt(q.id) then return true end
     for _, who in ipairs(ns.Characters()) do
         if not who.me and visibleFor(q, category, who, otherFaction) then return true end
     end

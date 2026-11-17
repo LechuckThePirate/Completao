@@ -196,9 +196,11 @@ for _, flavor in ipairs(FLAVORS) do
         end)
 
         it("hand fixes point at quests that exist", function()
-            local code = io.open("Data/Forever/Overrides.lua"):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
-            for id in code:gmatch("PatchQuest%((%d+)") do
-                assert.is_not_nil(ns.FindQuestDef(tonumber(id)), "Overrides: quest " .. id)
+            for _, file in ipairs(flavor.overrides) do -- the client's own
+                local code = io.open(file):read("*a"):gsub("%-%-[^\n]*", "") -- without the commented examples
+                for id in code:gmatch("PatchQuest%((%d+)") do
+                    assert.is_not_nil(ns.FindQuestDef(tonumber(id)), file .. ": quest " .. id)
+                end
             end
         end)
 

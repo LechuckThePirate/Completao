@@ -70,9 +70,9 @@ local function showNodeTooltip(btn)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:AddLine(ns.QuestTitle(q.id, q.name), 1, 1, 1)
     local c = STATUS_COLORS[status]
-    GameTooltip:AddLine(STATUS_LABELS[status], c[1], c[2], c[3])
+    -- done by other characters: who, in place of the plain "Completed"
     local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
-    if alt then GameTooltip:AddLine(ns.L["Completed by %s"]:format(alt), c[1], c[2], c[3]) end
+    GameTooltip:AddLine(alt and ns.L["Completed by %s"]:format(alt) or STATUS_LABELS[status], c[1], c[2], c[3])
     if btn.readyToTurnIn then GameTooltip:AddLine(ns.L["Ready to turn in"], 0.35, 1, 0.35) end
     if q.repeatable then GameTooltip:AddLine(ns.L["Repeatable"], REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3]) end
     for _, w in ipairs(ns.QuestWarnings(q)) do GameTooltip:AddLine(w, 1, 0.55, 0.1, true) end

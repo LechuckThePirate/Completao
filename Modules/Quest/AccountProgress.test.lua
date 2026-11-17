@@ -180,7 +180,8 @@ describe("AccountProgress", function()
         GameTooltip.AddLine = function(_, text) lines[#lines + 1] = text end
         node._scripts.OnEnter(node)
         local expected = "Completed by |cff3fc7ebAltie|r, |cfffff468Bob|r"
-        assert.is_truthy(table.concat(lines, "\n"):find(expected, 1, true))
+        assert.are.equal(expected, lines[2]) -- in place of the plain "Completed", not after it
+        assert.are_not.equal("Completed", lines[3])
         ns.Detail_Show(ns.FindQuestDef(990001))
         assert.is_not_nil(WowMock.Find(function(f) return type(f._text) == "string" and f._text:find(expected, 1, true) end))
         _G.RAID_CLASS_COLORS = nil

@@ -268,9 +268,10 @@ local function visibleFor(q, category, who, otherFaction)
     end
 
     local mine = ns.PlayerProfile().faction -- "other faction" is the one opposite to the character being played
+    local theirs = who.faction or mine -- an alt saved before its faction was (1.7.0): taken as the played one's
     local faction = ns.QuestFaction(q)
     local lookingAtRace = category == "races"
-    if faction and faction ~= who.faction and not (lookingAtRace or (otherFaction and faction ~= mine)) then return false end
+    if faction and faction ~= theirs and not (lookingAtRace or (otherFaction and faction ~= mine)) then return false end
     if q.races and not lookingAtRace then
         if who.raceId and not hasBit(q.races, who.raceId) then
             -- another race: only shown if it is of the opposite faction and that was asked for

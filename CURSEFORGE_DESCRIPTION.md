@@ -100,8 +100,9 @@ from your quest log. Your choices are remembered, per character or for all of th
 ### Repeatable quests stand out
 Repeatable quests have a **blue** title in the trees, carry an **R** in the lists
 (`[30R]`) and say *Repeatable* in their details. They don't count in the
-progress (the game never marks them done), and **Hide repeatable** puts them
-aside altogether.
+progress (the game never marks them done), and **Hide repeatable done** puts
+aside the ones you have already turned in once -- the ones you have never done
+still show.
 
 ### Don't lose a quest by taking another
 Some quests disappear for good once you take another one: a lead-in like
@@ -115,8 +116,9 @@ make the lead-in disappear -- before it happens. Once lost, they show in red as
 Turn on **Consolidate alts**, the switch in the window's title bar, and the
 whole addon looks at all your characters as one -- so you can finish every zone
 across your account. What any of them has done counts as completed in the
-trees, the progress and the search (with *Completed by* and that character's
-name in its tooltip and details), also for the quests it unlocks; and the
+trees, the progress and the search (with *Completed by* and the names of the
+characters who did it, in their class colors, in its tooltip and details), also
+for the quests it unlocks; and the
 quests, classes, races, professions and factions of all of them are shown. The
 quests too low or too high are still the ones of the character you play. Each
 character is remembered once it logs in. Only the characters of the same ruleset go

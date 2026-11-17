@@ -77,19 +77,49 @@ function ns.Account_Record()
     local done = {}
     for _, d in ipairs(ns.entryList) do
         for _, q in ipairs(d.quests) do
-            if not q.repeatable and not done[q.id] and C_QuestLog.IsQuestFlaggedCompleted(q.id) then done[q.id] = true end
+            if not done[q.id] and C_QuestLog.IsQuestFlaggedCompleted(q.id) then
+                if q.repeatable then
+                    -- a daily or weekly done today: once done, it stays so (the game forgets it at the reset)
+                    me.repeated = me.repeated or {}
+                    me.repeated[q.id] = true
+                else
+                    done[q.id] = true
+                end
+            end
         end
     end
     me.done = done
     recordSkills(me)
 end
 
--- A quest the character just turned in (the game's list may not say so yet).
+-- A quest the character just turned in (the game's list may not say so yet). A repeatable one is kept apart: the
+-- game never says it was done, and "Hide repeatable done" needs to know.
 function ns.Account_MarkDone(id)
     local def = id and ns.FindQuestDef(id)
-    if not def or def.repeatable then return end
+    if not def then return end
     local me = store()
-    if me then me.done[id] = true end
+    if not me then return end
+    if def.repeatable then
+        me.repeated = me.repeated or {}
+        me.repeated[id] = true
+    else
+        me.done[id] = true
+    end
+end
+
+-- A repeatable quest turned in at least once: by the character, or, with "Consolidate alts" on, by another one of
+-- the same ruleset. Only known since this version recorded it (and for a daily, while the game still says so).
+function ns.RepeatableDone(id)
+    if C_QuestLog.IsQuestFlaggedCompleted(id) then return true end
+    if not (ns.db and ns.db.chars) then return false end
+    local mine = charKey()
+    local me = ns.db.chars[mine]
+    if me and me.repeated and me.repeated[id] then return true end
+    if not ns.Consolidated() then return false end
+    for key, c in pairs(ns.db.chars) do
+        if key ~= mine and c.repeated and c.repeated[id] and sameRuleset(c) then return true end
+    end
+    return false
 end
 
 -- The "Consolidate alts" switch is on.

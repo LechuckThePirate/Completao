@@ -297,7 +297,7 @@ local function makeFilter(d)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
         if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
         -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
-        if f.hideRepeatable and q.repeatable and not onQuest then return false end
+        if f.hideRepeatable and q.repeatable and not onQuest and ns.RepeatableDone(q.id) then return false end
         if c and c.size > 1 then
             if not c.started then
                 if f.hideHigh and c.headsTooHigh then return false end
@@ -1147,8 +1147,8 @@ local function createFrame()
             { key = "hideHigh", label = ns.L["Hide too high"], tip = ns.L["Hides quests you cannot take yet, because of your level."] },
             { key = "hideDone", label = ns.L["Hide completed"],
                 tip = ns.L["Hides the quests you have completed, also inside unfinished chains."] },
-            { key = "hideRepeatable", label = ns.L["Hide repeatable"],
-                tip = ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] },
+            { key = "hideRepeatable", label = ns.L["Hide repeatable done"],
+                tip = ns.L["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] },
             { key = "otherFaction", label = ns.L["Show other faction"],
                 tip = ns.L["Shows the quests and zones of the opposite faction, hidden by default."] },
         },

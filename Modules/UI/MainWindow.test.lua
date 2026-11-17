@@ -304,10 +304,13 @@ describe("MainWindow", function()
             assert.is_not_nil((ShownNodes())[parent])
         end)
 
-        it("hide repeatable hides the repeatable quests, but not the one in the log", function()
+        it("hide repeatable done hides the repeatable quests turned in once, but not the one in the log", function()
             local q = ns.FindQuestDef(parent)
             q.repeatable = true
             ns.char.filters.hideRepeatable = true
+            ns.UI_Refresh()
+            assert.is_not_nil(ShownNodes()[parent]) -- never done
+            ns.Account_MarkDone(parent)
             ns.UI_Refresh()
             assert.is_nil(ShownNodes()[parent])
             WowMock.onQuest[parent] = true
@@ -348,7 +351,7 @@ describe("MainWindow", function()
             assert.is_false(menu:IsShown())
             button._scripts.OnClick(button)
             assert.is_true(menu:IsShown())
-            for _, label in ipairs({ "Hide low level", "Hide too high", "Hide completed", "Hide repeatable", "Show other faction" }) do
+            for _, label in ipairs({ "Hide low level", "Hide too high", "Hide completed", "Hide repeatable done", "Show other faction" }) do
                 local check = WowMock.FindByText(label):GetParent()
                 assert.are.equal(menu, check:GetParent(), label)
             end

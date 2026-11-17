@@ -243,7 +243,7 @@ end
 --  * the class and race entries of the others: the side panel lists every class and race so they can be looked
 --    at, but only the character's own have something to do (and the other characters' of the account, with
 --    "Consolidate alts" on; a race of the other faction too, with "Show other faction" on);
---  * repeatable quests, with "Hide repeatable" on.
+--  * repeatable quests already turned in once, with "Hide repeatable done" on.
 function ns.EntryHasWork(d)
     if d.category == "professions" and canDoProfession(d) == false then return false end
     if d.category == "classes" and d.classFile and not isOwnClass(d.classFile) then return false end
@@ -253,7 +253,7 @@ function ns.EntryHasWork(d)
     local noRepeatable = ns.char and ns.char.filters and ns.char.filters.hideRepeatable
     for _, q in ipairs(d.quests) do
         if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (isEvents or not (q.holiday or ns.QuestIsIn(q.id, "events")))
-            and not (noRepeatable and q.repeatable and not C_QuestLog.IsOnQuest(q.id)) then
+            and not (noRepeatable and q.repeatable and not C_QuestLog.IsOnQuest(q.id) and ns.RepeatableDone and ns.RepeatableDone(q.id)) then
             return true
         end
     end

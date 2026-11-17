@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Changed: "Hide repeatable" is now "Hide repeatable done": it only hides the repeatable quests you have already turned in once (recorded from this version on); the ones you have never done still show.
 - Changed: the tree's filters (hide low level, too high, completed, repeatable, show other faction) are in a "Filters" drop-down next to the search box, which counts the ones that are on and, while any is, starts with "Clear filters". So are the options of "Search quests" (include low level, too high and completed, only quests with item rewards); the reward types stay as they were.
 - Changed: "Account-wide" is now "Consolidate alts", an on/off switch in the window's title bar that makes the whole addon look at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks, and the quests, classes, races, professions and factions of all of them are shown. Only the characters of the same ruleset go together: the same realm, and Hardcore ones only with Hardcore ones. The quests too low or too high are still the ones of the character you play. Each character is remembered once it logs in with this version (to know its race and professions); the "Account-wide" setting carries over.
 

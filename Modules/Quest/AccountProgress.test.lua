@@ -93,6 +93,16 @@ describe("AccountProgress", function()
         for _, id in ipairs({ 990010, 990011, 990012 }) do assert.is_true(ns.QuestVisible(ns.FindQuestDef(id), ns.entries.zz)) end
     end)
 
+    it("an alt saved by 1.7.0 (only its class) still brings its class quests, of the played character's faction", function()
+        local db = { chars = { ["Warly-Realm"] = { name = "Warly", realm = "Realm", class = "WARLOCK", done = {} } } }
+        ns.RegisterEntry({ id = "warlock", name = "Warlock", category = "classes", classFile = "WARLOCK" })
+        ns.AddQuests("warlock", { { id = 990030, name = "Alliance warlock quest", faction = "Alliance" } })
+        StartAddon(ns, db)
+        assert.is_false(ns.EntryHasWork(ns.entries.warlock))
+        ns.char.consolidateAlts = true
+        assert.is_true(ns.EntryHasWork(ns.entries.warlock))
+    end)
+
     it("with the switch on, the class, race and profession entries of the alts have something to do", function()
         local db = { chars = { ["Orcy-Realm"] = { name = "Orcy", realm = "Realm", class = "WARRIOR", classId = 1, raceId = 2, faction = "Horde",
             skills = { [171] = true }, done = {} } } }

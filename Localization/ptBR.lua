@@ -23,9 +23,9 @@ ns.AddLocale({ "ptBR" }, {
     ["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."] =
         "Só os personagens do seu reino vão juntos (nunca de outro conjunto de regras); cada um é lembrado assim que entra no jogo.",
     ["Completed by %s"] = "Concluída por %s",
-    ["Hide repeatable"] = "Ocultar repetíveis",
-    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
-        "Oculta as quests repetíveis, que o jogo nunca marca como concluídas (também não contam no progresso).",
+    ["Hide repeatable done"] = "Ocultar repetíveis feitas",
+    ["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] =
+        "Oculta as missões repetíveis que você já entregou uma vez; as que você nunca fez continuam aparecendo.",
     ["Repeatable"] = "Repetível",
     ["No longer available"] = "Não está mais disponível",
     ["No longer available: you took %s"] = "Não está mais disponível: você pegou %s",

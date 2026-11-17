@@ -300,12 +300,14 @@ describe("Entries", function()
         assert.are.equal(2, total)
     end)
 
-    it("with Hide repeatable, a repeatable quest is no work left (unless it is in the log)", function()
+    it("with Hide repeatable done, a repeatable quest turned in once is no work left (unless it is in the log)", function()
         ns.RegisterEntry({ id = "a", name = "A", category = "zones" })
         ns.AddQuests("a", { { id = 2, name = "daily", repeatable = true } })
         ns.char = { filters = {} }
         assert.is_true(ns.EntryHasWork(ns.entries.a))
         ns.char.filters.hideRepeatable = true
+        assert.is_true(ns.EntryHasWork(ns.entries.a)) -- never done: still to do
+        ns.RepeatableDone = function(id) return id == 2 end -- turned in once (AccountProgress.lua)
         assert.is_false(ns.EntryHasWork(ns.entries.a))
         WowMock.onQuest[2] = true
         assert.is_true(ns.EntryHasWork(ns.entries.a))

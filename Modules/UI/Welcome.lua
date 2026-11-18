@@ -12,12 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: \"Account-wide\" filter for alt players: quests any of your characters has done count as completed.",
-    "- New: repeatable quests show in blue with an R, and \"Hide repeatable\" puts them aside.",
-    "- New: lead-ins and quests that exclude each other warn you under \"Careful\" before you lose one.",
-    "- New: \"Quest helpers\" can be switched off (Preferences, shift-click on the minimap button or " ..
-        "/completao helpers): no focus window, waypoints or map markers while questing.",
-    "- Data: the quests and rewards, as the public databases have them now.",
+    "- Changed: \"Account-wide\" is now \"Consolidate alts\", a switch in the title bar for the whole addon: what any " ..
+        "character of your realm has done counts as completed, and the classes, races and professions of all show.",
+    "- Changed: the filters are in a \"Filters\" drop-down, with \"Clear filters\" on top; the search's too.",
+    "- Changed: \"Hide repeatable done\" only hides the repeatable quests you have already turned in.",
+    "- Fixed: \"Important Heirlooms\" (The Hall of Thanes) shows for the Horde too.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

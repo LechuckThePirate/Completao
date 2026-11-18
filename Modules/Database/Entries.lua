@@ -164,23 +164,41 @@ end
 -- alchemy, blacksmithing, enchanting, engineering, leatherworking, tailoring, cooking.
 local CRAFTING_SKILLS = { 171, 164, 333, 202, 165, 197, 185 }
 
--- The character's race, or (with the "Show other faction" filter) one of the other faction's.
+-- The race of the character, or of another one of the account with "Consolidate alts" on, or (with the "Show other
+-- faction" filter) one of the other faction's.
 local function isOwnRace(raceId)
-    if select(3, UnitRace("player")) == raceId then return true end
+    for _, c in ipairs(ns.Characters and ns.Characters() or { { raceId = select(3, UnitRace("player")) } }) do
+        if c.raceId == raceId then return true end
+    end
     local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction
     return otherFaction and ns.QuestFaction({ races = 2 ^ (raceId - 1) }) ~= UnitFactionGroup("player") or false
 end
 
--- A profession's quests are for those who have it: true / false, nil when it can't be told.
+-- A profession's quests are for those who have it (the character, or another one with "Consolidate alts" on): true /
+-- false, nil when it can't be told.
+local function hasSkill(skillLine)
+    local has = ns.HasProfession(skillLine)
+    if not has and ns.AltHasProfession and ns.AltHasProfession(skillLine) then return true end
+    return has
+end
+
 local function canDoProfession(d)
-    if d.skillLine then return ns.HasProfession(d.skillLine) end
+    if d.skillLine then return hasSkill(d.skillLine) end
     local unknown = true
     for _, skillLine in ipairs(CRAFTING_SKILLS) do
-        local has = ns.HasProfession(skillLine)
+        local has = hasSkill(skillLine)
         if has then return true end
         if has ~= nil then unknown = false end
     end
     if unknown then return nil end
+    return false
+end
+
+-- The class of the character, or of another one of the account with "Consolidate alts" on.
+local function isOwnClass(classFile)
+    for _, c in ipairs(ns.Characters and ns.Characters() or { { classFile = select(2, UnitClass("player")) } }) do
+        if c.classFile == classFile then return true end
+    end
     return false
 end
 
@@ -223,19 +241,19 @@ end
 --  * the quests of an instance far above the character's level;
 --  * a profession's quests, without that profession;
 --  * the class and race entries of the others: the side panel lists every class and race so they can be looked
---    at, but only the character's own have something to do (a race of the other faction too, with "Show other
---    faction" on);
---  * repeatable quests, with "Hide repeatable" on.
+--    at, but only the character's own have something to do (and the other characters' of the account, with
+--    "Consolidate alts" on; a race of the other faction too, with "Show other faction" on);
+--  * repeatable quests already turned in once, with "Hide repeatable done" on.
 function ns.EntryHasWork(d)
     if d.category == "professions" and canDoProfession(d) == false then return false end
-    if d.category == "classes" and d.classFile and select(2, UnitClass("player")) ~= d.classFile then return false end
+    if d.category == "classes" and d.classFile and not isOwnClass(d.classFile) then return false end
     if d.category == "races" and d.raceId and not isOwnRace(d.raceId) then return false end
     if INSTANCE_CATEGORIES[d.category] and UnitLevel("player") < (d.minLevel or 0) - INSTANCE_SLACK then return false end
     local isEvents = d.category == "events"
     local noRepeatable = ns.char and ns.char.filters and ns.char.filters.hideRepeatable
     for _, q in ipairs(d.quests) do
         if ns.QuestVisible(q, d) and ns.IsQuestAvailable(q) and (isEvents or not (q.holiday or ns.QuestIsIn(q.id, "events")))
-            and not (noRepeatable and q.repeatable and not C_QuestLog.IsOnQuest(q.id)) then
+            and not (noRepeatable and q.repeatable and not C_QuestLog.IsOnQuest(q.id) and ns.RepeatableDone and ns.RepeatableDone(q.id)) then
             return true
         end
     end

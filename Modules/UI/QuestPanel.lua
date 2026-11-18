@@ -356,7 +356,7 @@ local function render()
     detail.title:SetText(ns.QuestTitle(q.id, q.name))
     detail.title:SetTextColor(c[1], c[2], c[3])
     local meta = { ns.STATUS_LABELS[status] }
-    local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAlt(q.id)
+    local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
     if alt then meta[1] = L["Completed by %s"]:format(alt) end
     if q.repeatable then meta[#meta + 1] = L["Repeatable"] end
     if q.level then meta[#meta + 1] = L["Level %d%s"]:format(q.level, q.minLevel and L[" (min %d)"]:format(q.minLevel) or "") end

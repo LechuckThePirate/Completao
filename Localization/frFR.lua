@@ -9,16 +9,23 @@ ns.AddLocale({ "frFR" }, {
     ["Shows the quests and zones of the opposite faction, hidden by default."] =
         "Affiche les quêtes et les zones de la faction opposée, masquées par défaut.",
     ["Search by title"] = "Rechercher par titre",
+    ["Filters"] = "Filtres",
+    ["Filters (%d)"] = "Filtres (%d)",
+    ["Clear filters"] = "Effacer les filtres",
     ["Hide low level"] = "Masquer bas niveau",
     ["Hide too high"] = "Masquer trop élevé",
     ["Hide completed"] = "Masquer terminées",
-    ["Account-wide"] = "Tout le compte",
-    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
-        "Compte comme terminées les quêtes faites par n'importe lequel de vos personnages (chacun est mémorisé dès qu'il se connecte).",
+    ["Consolidate alts"] = "Regrouper les rerolls",
+    ["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."] =
+        "Considère tous vos personnages comme un seul : ce que l'un d'eux a fait compte comme terminé, aussi pour les quêtes que cela débloque.",
+    ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
+        "Les classes, races, métiers et factions de tous sont affichés ; trop bas ou trop haut dépend du personnage que vous jouez.",
+    ["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."] =
+        "Seuls les personnages de votre royaume vont ensemble (jamais ceux d'un autre type de règles) ; chacun est mémorisé dès qu'il se connecte.",
     ["Completed by %s"] = "Terminée par %s",
-    ["Hide repeatable"] = "Masquer répétables",
-    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
-        "Masque les quêtes répétables, que le jeu ne marque jamais comme terminées (elles ne comptent pas non plus dans la progression).",
+    ["Hide repeatable done"] = "Masquer les répétables faites",
+    ["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] =
+        "Masque les quêtes répétables que vous avez déjà rendues une fois ; celles jamais faites restent affichées.",
     ["Repeatable"] = "Répétable",
     ["No longer available"] = "Plus disponible",
     ["No longer available: you took %s"] = "Plus disponible : vous avez pris %s",
@@ -125,10 +132,9 @@ ns.AddLocale({ "frFR" }, {
     ["Search quests..."] = "Rechercher des quêtes...",
     ["Search quests"] = "Rechercher des quêtes",
     ["Quest title"] = "Titre de la quête",
-    ["Include:"] = "Inclure :",
-    ["Low level"] = "Bas niveau",
-    ["Too high"] = "Trop élevé",
-    ["Done"] = "Terminées",
+    ["Include low level"] = "Inclure bas niveau",
+    ["Include too high"] = "Inclure trop hautes",
+    ["Include completed"] = "Inclure terminées",
     ["Reward type:"] = "Type de récompense :",
     ["Any"] = "Tous",
     ["Quest"] = "Quête",

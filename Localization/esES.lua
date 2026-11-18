@@ -9,16 +9,23 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Shows the quests and zones of the opposite faction, hidden by default."] =
         "Muestra las quests y zonas de la facción contraria, ocultas por defecto.",
     ["Search by title"] = "Buscar por título",
+    ["Filters"] = "Filtros",
+    ["Filters (%d)"] = "Filtros (%d)",
+    ["Clear filters"] = "Quitar filtros",
     ["Hide low level"] = "Ocultar bajo nivel",
     ["Hide too high"] = "Ocultar muy alto",
     ["Hide completed"] = "Ocultar completadas",
-    ["Account-wide"] = "Toda la cuenta",
-    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
-        "Cuenta como completadas las quests que haya hecho cualquiera de tus personajes (cada uno se recuerda en cuanto entra al juego).",
+    ["Consolidate alts"] = "Consolidar alters",
+    ["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."] =
+        "Trata a todos tus personajes como uno: lo que haya hecho cualquiera cuenta como completado, también para las quests que desbloquea.",
+    ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
+        "Se muestran las clases, razas, profesiones y facciones de todos; lo demasiado bajo o alto va por el personaje con el que juegas.",
+    ["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."] =
+        "Solo se juntan los personajes de tu reino (nunca de otro ruleset); cada uno se recuerda en cuanto entra al juego.",
     ["Completed by %s"] = "Completada por %s",
-    ["Hide repeatable"] = "Ocultar repetibles",
-    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
-        "Oculta las quests repetibles, que el juego nunca marca como completadas (tampoco cuentan en el progreso).",
+    ["Hide repeatable done"] = "Ocultar repetibles hechas",
+    ["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] =
+        "Oculta las quests repetibles que ya has entregado alguna vez; las que no has hecho nunca siguen saliendo.",
     ["Repeatable"] = "Repetible",
     ["No longer available"] = "Ya no disponible",
     ["No longer available: you took %s"] = "Ya no disponible: cogiste %s",
@@ -124,10 +131,9 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Search quests..."] = "Buscar quests...",
     ["Search quests"] = "Buscar quests",
     ["Quest title"] = "Título de la quest",
-    ["Include:"] = "Incluir:",
-    ["Low level"] = "Bajo nivel",
-    ["Too high"] = "Muy alto",
-    ["Done"] = "Completadas",
+    ["Include low level"] = "Incluir bajo nivel",
+    ["Include too high"] = "Incluir muy altas",
+    ["Include completed"] = "Incluir completadas",
     ["Reward type:"] = "Tipo de recompensa:",
     ["Any"] = "Cualquiera",
     ["Quest"] = "Quest",

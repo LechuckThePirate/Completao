@@ -65,16 +65,41 @@ describe("Search", function()
         assert.is_true(#rows < 10)
     end)
 
-    it("completed quests only show with Include: Done", function()
+    it("completed quests only show with Include completed", function()
         typeText("defias brother")
         WowMock.done[166] = true
         ns.Search_Refresh()
         assert.is_nil(ids(ShownRows())[166])
-        local doneCheck = WowMock.Find(function(f)
-            return f._kind == "CheckButton" and f.Text == nil and f._parent and f._parent.checks and f == f._parent.checks[3].cb
-        end)
+        local doneCheck = panel.filters.checks.done
         doneCheck:SetChecked(true); doneCheck:Click()
         assert.is_true(ids(ShownRows())[166])
+    end)
+
+    it("the reward type is picked inside the Filters drop-down, counts as a filter and Clear filters takes it off", function()
+        assert.are.equal(panel.filters.menu, panel.typeButton:GetParent():GetParent())
+        panel.typeButton:Click()
+        WowMock.Find(function(f) return f.text and f.text._text == "Weapon" and f._scripts.OnClick end):Click()
+        assert.are.equal("Weapon", panel.typeButton:GetText())
+        assert.are.equal("Filters (1)", panel.filters:GetText())
+        assert.is_true(panel.filters.clear:IsShown())
+        panel.filters.clear._scripts.OnClick(panel.filters.clear)
+        assert.are.equal("Any", panel.typeButton:GetText())
+        assert.are.equal("Filters", panel.filters:GetText())
+        assert.is_true(panel.itemsOnly:IsEnabled())
+    end)
+
+    it("a pick in the reward type's list doesn't close the Filters drop-down", function()
+        local menu = panel.filters.menu
+        panel.filters._scripts.OnClick(panel.filters)
+        assert.is_true(menu:IsShown())
+        local onPopup = ns.PopupMenu_IsMouseOver
+        ns.PopupMenu_IsMouseOver = function() return true end
+        menu._scripts.OnEvent(menu, "GLOBAL_MOUSE_DOWN")
+        assert.is_true(menu:IsShown())
+        ns.PopupMenu_IsMouseOver = function() return false end
+        menu._scripts.OnEvent(menu, "GLOBAL_MOUSE_DOWN")
+        assert.is_false(menu:IsShown()) -- a click anywhere else does
+        ns.PopupMenu_IsMouseOver = onPopup
     end)
 
     it("filters by reward type (Weapon) and disables 'only with items'", function()
@@ -309,6 +334,15 @@ describe("Search", function()
             local rows = ShownRows()
             assert.are.equal(2, #rows)
             assert.is_false(panel.box:IsShown())
+        end)
+
+        it("is the played character's own, whatever Consolidate alts says", function()
+            CompletaoDB.chars["Altie-Realm"] = { name = "Altie", realm = "Realm", done = { [166] = true, [167] = true } }
+            ns.SetConsolidated(true)
+            ns.Search_Refresh()
+            local rows = ShownRows()
+            assert.are.same({ [166] = true, [999999] = true }, ids(rows))
+            for _, r in ipairs(rows) do assert.is_true(r.status:IsShown()) end -- in progress, not done by the alt
         end)
 
         it("a quest missing from the addon's data shows its zone and its details, with no chain", function()

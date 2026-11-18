@@ -196,11 +196,12 @@ local function lowerTitle(q)
 end
 
 -- The quests meant for this character, once each (in the first entry where it shows up: dungeons, raids,
--- zones...). It only changes with the "other faction" filter, so it is worked out again only then.
+-- zones...). It only changes with the "other faction" filter and "Consolidate alts", so it is worked out again only then.
 local candidates, candidatesKey
 local function visibleQuests()
     local otherFaction = ns.char and ns.char.filters and ns.char.filters.otherFaction and true or false
-    local key = tostring(otherFaction) .. ":" .. #ns.entryList
+    local consolidated = ns.Consolidated and ns.Consolidated() and #ns.Characters() or 0
+    local key = tostring(otherFaction) .. ":" .. consolidated .. ":" .. #ns.entryList
     if candidates and candidatesKey == key then return candidates end
     candidates, candidatesKey = {}, key
     local seen = {}
@@ -727,6 +728,7 @@ local function updateDropdowns()
     local byType = state.class ~= nil
     panel.itemsOnly:SetEnabled(not byType)
     panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
+    panel.filters.Update()
 end
 
 function ns.Search_Create(parent)
@@ -759,53 +761,45 @@ function ns.Search_Create(parent)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    -- "Include:" and its three checkboxes go together, in a group placed as a whole
-    local include = CreateFrame("Frame", nil, panel)
-    include:SetHeight(24)
-    include.label = include:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    include.label:SetPoint("LEFT", 0, 0)
-    include.label:SetText(L["Include:"])
-    include.checks = {}
-    for _, opt in ipairs({ { "low", L["Low level"] }, { "high", L["Too high"] }, { "done", L["Done"] } }) do
-        local cb = CreateFrame("CheckButton", nil, include, "UICheckButtonTemplate")
-        cb:SetSize(24, 24)
-        local text = cb.Text or cb.text
-        if not text then
-            text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            text:SetPoint("LEFT", cb, "RIGHT", 0, 1)
-        end
-        text:SetText(opt[2])
-        cb:SetChecked(state[opt[1]])
-        cb:SetScript("OnClick", function(self)
-            state[opt[1]] = self:GetChecked() and true or false
-            requestRefresh()
-        end)
-        include.checks[#include.checks + 1] = { cb = cb, text = text }
-    end
-    local function includeWidth()
-        local x = math.ceil(include.label:GetStringWidth()) + 4
-        for _, c in ipairs(include.checks) do
-            c.cb:ClearAllPoints()
-            c.cb:SetPoint("LEFT", include, "LEFT", x, 0)
-            x = x + 24 + math.ceil(c.text:GetStringWidth()) + 8
-        end
-        include:SetWidth(x)
-        return x
-    end
-
-    -- only quests that give some item (fixed or to choose)
-    local itemsOnly = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    itemsOnly:SetSize(24, 24)
-    local itemsOnlyText = itemsOnly.Text or itemsOnly.text
-    if not itemsOnlyText then
-        itemsOnlyText = itemsOnly:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        itemsOnlyText:SetPoint("LEFT", itemsOnly, "RIGHT", 0, 1)
-    end
-    itemsOnlyText:SetText(L["Only quests with item rewards"])
-    itemsOnly:SetScript("OnClick", function(self)
-        state.itemsOnly = self:GetChecked() and true or false
-        requestRefresh()
-    end)
+    -- what to include, "only with items" and the reward's type, in a "Filters" drop-down (FilterMenu.lua): the type and its
+    -- subtype are two pickers under the checkboxes
+    local filters = ns.FilterMenu(panel, {
+        options = {
+            { key = "low", label = L["Include low level"] },
+            { key = "high", label = L["Include too high"] },
+            { key = "done", label = L["Include completed"] },
+            { key = "itemsOnly", label = L["Only quests with item rewards"] },
+        },
+        get = function(key) return state[key] end,
+        set = function(key, on) state[key] = on end,
+        onChange = requestRefresh,
+        footer = function(menu)
+            local footer = CreateFrame("Frame", nil, menu)
+            footer:SetSize(158, 76)
+            local line = footer:CreateTexture(nil, "ARTWORK")
+            line:SetColorTexture(1, 1, 1, 0.15)
+            line:SetHeight(1)
+            line:SetPoint("TOPLEFT", 0, 0)
+            line:SetPoint("TOPRIGHT", 0, 0)
+            local label = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            label:SetPoint("TOPLEFT", 2, -8)
+            label:SetText(L["Reward type:"])
+            panel.typeButton = makeDropdown(footer, 150)
+            panel.typeButton:SetPoint("TOPLEFT", 0, -24)
+            panel.subButton = makeDropdown(footer, 150)
+            panel.subButton:SetPoint("TOPLEFT", 0, -50)
+            return footer
+        end,
+        footerActive = function() return state.class and 1 or 0 end,
+        clearFooter = function()
+            state.class, state.subclass = nil, nil
+            ns.PopupMenu_Hide()
+            if panel.itemsOnly then updateDropdowns() end
+        end,
+    })
+    panel.filters = filters
+    -- only quests that give some item (fixed or to choose): off while a reward type is chosen
+    local itemsOnly = filters.checks.itemsOnly
     itemsOnly:SetMotionScriptsWhileDisabled(true)
     itemsOnly:SetScript("OnEnter", function(self)
         if self:IsEnabled() then return end
@@ -814,22 +808,12 @@ function ns.Search_Create(parent)
         GameTooltip:Show()
     end)
     itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
-    itemsOnly.label = itemsOnlyText
     panel.itemsOnly = itemsOnly
-
-    local rewardLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    rewardLabel:SetText(L["Reward type:"])
-    panel.typeButton = makeDropdown(panel, 150)
-    panel.subButton = makeDropdown(panel, 150)
 
     -- form in rows by width; the table header goes under the last row
     local formItems = {
         { frame = box, w = 244, h = 24, dy = 2 },
-        { frame = include, w = includeWidth, h = 24 },
-        { frame = itemsOnly, w = ns.CheckWidth(itemsOnly, itemsOnlyText), h = 24 },
-        { frame = rewardLabel, w = function() return math.ceil(rewardLabel:GetStringWidth()) + 4 end, h = 24, dy = 6 },
-        { frame = panel.typeButton, w = 150, h = 24 },
-        { frame = panel.subButton, w = 150, h = 24 },
+        { frame = filters, w = 110, h = 24, dy = 1 },
     }
     local function layoutForm()
         local width = panel:GetWidth() - 8

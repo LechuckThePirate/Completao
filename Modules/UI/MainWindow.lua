@@ -70,9 +70,9 @@ local function showNodeTooltip(btn)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:AddLine(ns.QuestTitle(q.id, q.name), 1, 1, 1)
     local c = STATUS_COLORS[status]
-    GameTooltip:AddLine(STATUS_LABELS[status], c[1], c[2], c[3])
-    local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAlt(q.id)
-    if alt then GameTooltip:AddLine(ns.L["Completed by %s"]:format(alt), c[1], c[2], c[3]) end
+    -- done by other characters: who, in place of the plain "Completed"
+    local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
+    GameTooltip:AddLine(alt and ns.L["Completed by %s"]:format(alt) or STATUS_LABELS[status], c[1], c[2], c[3])
     if btn.readyToTurnIn then GameTooltip:AddLine(ns.L["Ready to turn in"], 0.35, 1, 0.35) end
     if q.repeatable then GameTooltip:AddLine(ns.L["Repeatable"], REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3]) end
     for _, w in ipairs(ns.QuestWarnings(q)) do GameTooltip:AddLine(w, 1, 0.55, 0.1, true) end
@@ -185,7 +185,6 @@ local searchBox
 -- A quest opened from elsewhere (a search result, "View chain", another addon): its whole chain is shown whatever the filters
 -- say, as a set of quest ids, until the selection or a filter changes.
 local pinned
-local filterChecks = {}
 
 -- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
 -- data: size (number of quests), allDone (all done; loose done quests included), started (some done or in
@@ -298,7 +297,7 @@ local function makeFilter(d)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
         if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
         -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
-        if f.hideRepeatable and q.repeatable and not onQuest then return false end
+        if f.hideRepeatable and q.repeatable and not onQuest and ns.RepeatableDone(q.id) then return false end
         if c and c.size > 1 then
             if not c.started then
                 if f.hideHigh and c.headsTooHigh then return false end
@@ -770,6 +769,7 @@ end
 
 function ns.UI_Refresh()
     if not frame then return end
+    if frame.consolidateSwitch then frame.consolidateSwitch.Update() end
     -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
@@ -858,7 +858,7 @@ function ns.UI_SetZoom(z)
 end
 
 function ns.UI_SyncFilters()
-    for key, cb in pairs(filterChecks) do cb:SetChecked(ns.char.filters[key] and true or false) end
+    if frame and frame.updateFilters then frame.updateFilters() end
     if frame then ns.UI_Refresh() end
 end
 
@@ -1063,7 +1063,49 @@ local function createFrame()
     end)
     gear:SetScript("OnLeave", GameTooltip_Hide)
 
-    frame.header = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    -- "Consolidate alts", left of the gear: an on/off switch (a track and a knob that slides to the right when on),
+    -- for the whole addon, so it sits in the title bar and not with the tree's filters.
+    local switch = CreateFrame("Button", nil, frame)
+    switch:SetSize(30, 14)
+    switch:SetFrameLevel(level)
+    switch:SetPoint("RIGHT", gear, "LEFT", -8, 0)
+    local track = switch:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints()
+    local knob = switch:CreateTexture(nil, "ARTWORK")
+    knob:SetSize(12, 12)
+    knob:SetColorTexture(0.95, 0.95, 0.95, 1)
+    local switchLabel = switch:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    switchLabel:SetPoint("RIGHT", switch, "LEFT", -5, 0)
+    switchLabel:SetText(ns.L["Consolidate alts"])
+    function switch.Update()
+        local on = ns.Consolidated()
+        switch.on = on
+        track:SetColorTexture(on and 0.20 or 0.30, on and 0.65 or 0.30, on and 0.25 or 0.30, 1)
+        knob:ClearAllPoints()
+        knob:SetPoint(on and "RIGHT" or "LEFT", on and -1 or 1, 0)
+        switchLabel:SetTextColor(on and 0.4 or 0.6, on and 1 or 0.6, on and 0.4 or 0.6)
+    end
+    switch:SetScript("OnClick", function()
+        ns.SetConsolidated(not ns.Consolidated())
+        switch.Update()
+    end)
+    switch:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(ns.L["Consolidate alts"])
+        for _, line in ipairs({
+            ns.L["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."],
+            ns.L["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."],
+            ns.L["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."],
+        }) do
+            GameTooltip:AddLine(line, 1, 1, 1, true)
+        end
+        GameTooltip:Show()
+    end)
+    switch:SetScript("OnLeave", GameTooltip_Hide)
+    switch.Update()
+    frame.consolidateSwitch = switch
+
+    frame.header =frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
     frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
     frame.header:SetJustifyH("LEFT")
@@ -1098,40 +1140,28 @@ local function createFrame()
     end)
     box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
-    local function makeCheck(key, label, tip)
-        local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-        cb:SetSize(24, 24)
-        local text = cb.Text or cb.text
-        if not text then
-            text = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            text:SetPoint("LEFT", cb, "RIGHT", 0, 1)
-        end
-        text:SetText(label)
-        cb:SetChecked(ns.char.filters[key] and true or false)
-        filterChecks[key] = cb
-        cb:SetScript("OnClick", function(self)
+    -- The filters live in a "Filters" drop-down next to the search box (FilterMenu.lua).
+    local filtersButton = ns.FilterMenu(frame, {
+        options = {
+            { key = "hideLow", label = ns.L["Hide low level"], tip = ns.L["Hides quests that are grey for your level (trivial)."] },
+            { key = "hideHigh", label = ns.L["Hide too high"], tip = ns.L["Hides quests you cannot take yet, because of your level."] },
+            { key = "hideDone", label = ns.L["Hide completed"],
+                tip = ns.L["Hides the quests you have completed, also inside unfinished chains."] },
+            { key = "hideRepeatable", label = ns.L["Hide repeatable done"],
+                tip = ns.L["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] },
+            { key = "otherFaction", label = ns.L["Show other faction"],
+                tip = ns.L["Shows the quests and zones of the opposite faction, hidden by default."] },
+        },
+        get = function(key) return ns.char.filters[key] end,
+        set = function(key, on) ns.char.filters[key] = on end,
+        onChange = function()
             pinned = nil
-            ns.char.filters[key] = self:GetChecked() and true or false
             ns.UI_Refresh()
-        end)
-        cb:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(label)
-            GameTooltip:AddLine(tip, 1, 1, 1, true)
-            GameTooltip:Show()
-        end)
-        cb:SetScript("OnLeave", GameTooltip_Hide)
-        toolbarItems[#toolbarItems + 1] = { frame = cb, w = ns.CheckWidth(cb, text), h = 24 }
-    end
-    makeCheck("hideLow", ns.L["Hide low level"], ns.L["Hides quests that are grey for your level (trivial)."])
-    makeCheck("hideHigh", ns.L["Hide too high"], ns.L["Hides quests you cannot take yet, because of your level."])
-    makeCheck("hideDone", ns.L["Hide completed"], ns.L["Hides the quests you have completed, also inside unfinished chains."])
-    makeCheck("hideRepeatable", ns.L["Hide repeatable"],
-        ns.L["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."])
-    makeCheck("accountWide", ns.L["Account-wide"],
-        ns.L["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."])
-    makeCheck("otherFaction", ns.L["Show other faction"],
-        ns.L["Shows the quests and zones of the opposite faction, hidden by default."])
+        end,
+    })
+    toolbarItems[#toolbarItems + 1] = { frame = filtersButton, w = 110, h = 24, dy = 1 }
+    frame.filtersButton, frame.filtersMenu, frame.clearFilters = filtersButton, filtersButton.menu, filtersButton.clear
+    frame.updateFilters = filtersButton.Update
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
@@ -1247,7 +1277,7 @@ local function createFrame()
 
     -- what is hidden while the search is open
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
-    for _, cb in pairs(filterChecks) do treeWidgets[#treeWidgets + 1] = cb end
+    treeWidgets[#treeWidgets + 1] = frame.filtersButton
 
     -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))

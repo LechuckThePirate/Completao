@@ -9,16 +9,23 @@ ns.AddLocale({ "deDE" }, {
     ["Shows the quests and zones of the opposite faction, hidden by default."] =
         "Zeigt die Quests und Zonen der gegnerischen Fraktion an, standardmäßig ausgeblendet.",
     ["Search by title"] = "Nach Titel suchen",
+    ["Filters"] = "Filter",
+    ["Filters (%d)"] = "Filter (%d)",
+    ["Clear filters"] = "Filter zurücksetzen",
     ["Hide low level"] = "Niedrige Stufe ausblenden",
     ["Hide too high"] = "Zu hohe ausblenden",
     ["Hide completed"] = "Abgeschlossene ausblenden",
-    ["Account-wide"] = "Accountweit",
-    ["Counts as completed the quests any of your characters has done (each one is remembered once it logs in)."] =
-        "Zählt die Quests als abgeschlossen, die einer deiner Charaktere erledigt hat (jeder wird gespeichert, sobald er sich einloggt).",
+    ["Consolidate alts"] = "Twinks zusammenfassen",
+    ["Looks at all your characters as one: what any of them has done counts as completed, also for the quests it unlocks."] =
+        "Betrachtet alle deine Charaktere als einen: Was einer von ihnen erledigt hat, zählt als abgeschlossen, auch für die Quests, die es freischaltet.",
+    ["The classes, races, professions and factions of all of them are shown; too low or too high goes by the character you play."] =
+        "Klassen, Völker, Berufe und Fraktionen aller werden angezeigt; zu niedrig oder zu hoch richtet sich nach dem Charakter, den du spielst.",
+    ["Only the characters of your realm go together (never another ruleset's); each one is remembered once it logs in."] =
+        "Nur die Charaktere deines Realms gehören zusammen (nie die eines anderen Regelwerks); jeder wird gespeichert, sobald er sich einloggt.",
     ["Completed by %s"] = "Abgeschlossen von %s",
-    ["Hide repeatable"] = "Wiederholbare ausblenden",
-    ["Hides the repeatable quests, which the game never marks as completed (they don't count in the progress either)."] =
-        "Blendet wiederholbare Quests aus, die das Spiel nie als abgeschlossen markiert (sie zählen auch nicht zum Fortschritt).",
+    ["Hide repeatable done"] = "Erledigte wiederholbare ausblenden",
+    ["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] =
+        "Blendet wiederholbare Quests aus, die du schon einmal abgegeben hast; nie erledigte werden weiter angezeigt.",
     ["Repeatable"] = "Wiederholbar",
     ["No longer available"] = "Nicht mehr verfügbar",
     ["No longer available: you took %s"] = "Nicht mehr verfügbar: du hast %s angenommen",
@@ -124,10 +131,9 @@ ns.AddLocale({ "deDE" }, {
     ["Search quests..."] = "Quests suchen...",
     ["Search quests"] = "Quests suchen",
     ["Quest title"] = "Questtitel",
-    ["Include:"] = "Einbeziehen:",
-    ["Low level"] = "Niedrige Stufe",
-    ["Too high"] = "Zu hoch",
-    ["Done"] = "Erledigt",
+    ["Include low level"] = "Niedrigstufige einbeziehen",
+    ["Include too high"] = "Zu hohe einbeziehen",
+    ["Include completed"] = "Abgeschlossene einbeziehen",
     ["Reward type:"] = "Belohnungsart:",
     ["Any"] = "Beliebig",
     ["Quest"] = "Quest",

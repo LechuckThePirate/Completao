@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Group by" in the Quest Log, Tracked Quests and Quests to Turn In views: the quests can be grouped by zone, level, status (ready to turn in or in progress) or section (dungeons, zones, class quests...). Inside each group they keep the order chosen in the table header, and the groups follow it too when it sorts by the same thing (by level, or by zone in "Where"). A click on a group folds or unfolds it. Each view remembers its own grouping.
+
 ## 1.8.0
 
 - Changed: "Account-wide" is no longer a filter of the tree but an addon-wide setting, "Consolidate alts": the on/off switch in the window's title bar. With it on, the whole addon looks at all your characters as one: what any of them has done counts as completed (also for the quests it unlocks), and the quests, class and race entries, professions and factions of all of them are shown. "Completed by" lists every character who did a quest, each in its class color. The quests too low or too high are still the ones of the character you play, and the Quest Log, Tracked Quests and Quests to Turn In views stay its own. Only the characters of the same realm go together (never a Hardcore one with a normal one). Each character is remembered once it logs in with this version, to know its race, faction and professions; the "Account-wide" setting carries over.

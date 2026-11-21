@@ -51,7 +51,17 @@ end
 --   quests = { { id = 123, name = "fallback", level = 17, minLevel = 15,
 --                requires = { 122 }, faction = "Alliance"|"Horde"|nil,
 --                giver = "NPC (zone)", note = "free text" }, ... } }
+-- An entry is registered once: two generated files can both register the same one (a zone the quest database
+-- now has, and the new quests of Forever that registered it while the database did not). The first one stays,
+-- with its quests, and only takes the fields it lacks (the "new" flag, say) from the later ones.
 function ns.RegisterEntry(d)
+    local old = ns.entries[d.id]
+    if old then
+        for k, v in pairs(d) do
+            if old[k] == nil then old[k] = v end
+        end
+        return
+    end
     d.quests = d.quests or {}
     d.category = d.category or "dungeons"
     ns.entries[d.id] = d

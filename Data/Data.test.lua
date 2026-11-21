@@ -33,6 +33,15 @@ for _, flavor in ipairs(FLAVORS) do
             end
         end)
 
+        it("every entry is listed once, even when two generated files register it", function()
+            local seen = {}
+            for _, d in ipairs(ns.entryList) do
+                assert.is_nil(seen[d.id], d.id)
+                seen[d.id] = true
+                assert.are.equal(d, ns.entries[d.id], d.id)
+            end
+        end)
+
         it("every quest has the expected shape", function()
             for _, d in ipairs(ns.entryList) do
                 local seen = {}
@@ -156,6 +165,41 @@ for _, flavor in ipairs(FLAVORS) do
                 assert.is_nil(books[q.id], q.id)
             end
             assert.is_true(special[172])
+        end) end
+
+        -- their maps and area ids lie past the classic ones (Riverglades: map 2548, area 16591)
+        if flavor.id == "forever" then it("the zones Forever adds have an entry with their quests", function()
+            for area, name in pairs({ [16591] = "Riverglades", [16593] = "Zephras Isle", [16606] = "Darkspear Islands",
+                    [16651] = "Shen'dralas", [616] = "Mount Hyjal" }) do
+                local e = ns.entries["z" .. area]
+                assert.is_truthy(e, name)
+                assert.are.equal(name, e.name)
+                assert.are.equal("zones", e.category, name)
+                assert.are.equal(area, e.area, name)
+                assert.is_true(#e.quests > 10, name)
+            end
+            local riverglades = {}
+            for _, q in ipairs(ns.entries.z16591.quests) do riverglades[q.id] = true end
+            assert.is_true(riverglades[93786]) -- A Message in Blood
+        end) end
+
+        local function entriesOf(id)
+            local found = {}
+            for _, d in ipairs(ns.entryList) do
+                for _, q in ipairs(d.quests) do if q.id == id then found[#found + 1] = d.id end end
+            end
+            table.sort(found)
+            return table.concat(found, " ")
+        end
+
+        if flavor.id == "forever" then it("quests the database files under no zone go to their giver's zone", function()
+            assert.are.equal("z616", entriesOf(90487))  -- Ancient Allies, Mount Hyjal
+            assert.are.equal("z16591", entriesOf(94961)) -- Biting the Hand, Riverglades
+            assert.are.equal("z36", entriesOf(96603))   -- Unstable Magic: its area has no zone, its giver is in Alterac
+            -- a subzone with no parent listed goes to the zone whose map it is on (The Shaper's Terrace, Un'Goro)
+            assert.are.equal("z490", entriesOf(95790))  -- Digestible Research
+            -- one the new quests file already puts in an entry stays only there
+            assert.are.equal("p_crafting", entriesOf(94004)) -- Craftsman's Writ: Elixir of Ogre's Strength
         end) end
 
         it("raid quests are marked as done inside their raid", function()

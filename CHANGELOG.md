@@ -3,6 +3,8 @@
 ## Unreleased
 
 - New: "Group by" in the Quest Log, Tracked Quests and Quests to Turn In views: the quests can be grouped by zone, level, status (ready to turn in or in progress) or section (dungeons, zones, class quests...). Inside each group they keep the order chosen in the table header, and the groups follow it too when it sorts by the same thing (by level, or by zone in "Where"). A click on a group folds or unfolds it. Each view remembers its own grouping.
+- Fixed: the zones Forever adds have their entry in Zones with all their quests: Riverglades (it had none), Darkspear Islands, Shen'dralas and Mount Hyjal, and Zephras Isle now also has the quests the databases list for it. Zephras Isle shows once.
+- Fixed: almost 300 quests of Forever that the databases file under no zone show in the zone of the NPC who gives them (or takes them in): more than a hundred in Mount Hyjal, and others in Riverglades, Shen'dralas, Azshara, Stranglethorn and more. The quests of The Shaper's Terrace show in Un'Goro Crater.
 
 ## 1.8.0
 

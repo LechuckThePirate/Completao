@@ -10,7 +10,7 @@
 //    and continuations (3 steps forward) come along.
 //  * Zones, classes, professions and races get every other quest; the rest of Questie's quest sorts become
 //    the Events and Miscellaneous entries.
-import { writeFileSync, readFileSync } from "node:fs";
+import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { quest, npc, item, object, allIds, tocDir, keyed } from "./questie_db.mjs";
@@ -18,17 +18,19 @@ import { quest, npc, item, object, allIds, tocDir, keyed } from "./questie_db.mj
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 // the client whose data is generated: its name in Questie's files, where its zone tables are in the database
 // package, and the hand fixes that go over the result. The rest is what differs between the expansions:
-//  * maps: the uiMapId ranges of the zones that have a map there
+//  * maps: the uiMapId ranges of the zones that have a map there (the zones Forever adds have maps past 2480,
+//    e.g. Riverglades 2548, and area ids past 16000)
 //  * races: the playable races (client race id, name); raceMasks: the bits of Questie's race mask (all the
 //    races, and each faction's)
 //  * instances / insideAll / areas: the instances and battlegrounds on top of the classic ones (entry id -> area
 //    id), those whose quests are all done inside, and areas Questie's dungeons.lua does not list
 //  * sorts: quest sorts on top of the common ones
+//  * zonelessByNpc: quests Questie files under no zone go to the zone of their NPC (see below)
 const CLASSIC_RACES = [[1, "Human"], [2, "Orc"], [3, "Dwarf"], [4, "Night Elf"], [5, "Undead"], [6, "Tauren"], [7, "Gnome"], [8, "Troll"]];
 const CLASSIC_MASKS = { all: 255, alliance: 77, horde: 178, bits: 8 };
 const FLAVORS = {
     forever: { name: "Forever", zones: ["support", "Forever", "Zones"], overrides: "Data/Forever/Overrides.lua",
-        maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
+        maps: [[1411, 1459], [2480, 9999]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS, zonelessByNpc: true },
     vanilla: { name: "Vanilla", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
         maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
     tbc: { name: "TBC", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
@@ -132,10 +134,16 @@ for (const line of readFileSync(join(ZONES, "dungeons.lua"), "utf8").split(/\r?\
     if (e) entranceOf.set(id, { area: Number(e[1]), x: Number(e[2]), y: Number(e[3]) });
 }
 // zones with a map (the flavor's uiMapId ranges) and their names; subzones -> their zone
-const zoneName = new Map();
+const zoneName = new Map(), areaOfMap = new Map();
 for (const line of readFileSync(join(ZONES, "uiMapIdToAreaId.lua"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),\s*--\s*(.*?)\s*$/);
-    if (m && FLAVOR.maps.some(([lo, hi]) => Number(m[1]) >= lo && Number(m[1]) <= hi) && Number(m[2]) > 0 && Number(m[2]) < 10000) zoneName.set(Number(m[2]), m[3]);
+    if (m) areaOfMap.set(Number(m[1]), Number(m[2]));
+    if (m && FLAVOR.maps.some(([lo, hi]) => Number(m[1]) >= lo && Number(m[1]) <= hi) && Number(m[2]) > 0) zoneName.set(Number(m[2]), m[3]);
+}
+const mapOfArea = new Map();
+for (const line of readFileSync(join(ZONES, "areaIdToUiMapId.lua"), "utf8").split(/\r?\n/)) {
+    const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),/);
+    if (m) mapOfArea.set(Number(m[1]), Number(m[2]));
 }
 for (const bg of [2597, 3820]) zoneName.delete(bg); // Alterac Valley, Eye of the Storm: battlegrounds
 for (const a of FLAVOR.areas ?? []) areaOf.set(a, a); // instances that Questie's dungeons.lua does not list
@@ -143,6 +151,13 @@ const parent = new Map([[9, 12], [132, 1], [188, 141], [154, 85], [363, 14], [22
 for (const line of readFileSync(join(ZONES, "subZoneToParentZone.lua"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),/);
     if (m && !parent.has(Number(m[1]))) parent.set(Number(m[1]), Number(m[2]));
+}
+// the zone entry of an area: itself, its parent zone or, for a subzone that has no parent listed (Forever's
+// The Shaper's Terrace), the zone whose map it is drawn on; null for an instance or an area with no zone
+function zoneOfArea(z) {
+    if (!z || areaOf.has(z)) return null;
+    for (const a of [z, parent.get(z), areaOfMap.get(mapOfArea.get(z))]) if (a && zoneName.has(a)) return a;
+    return null;
 }
 
 // ----------------------------------------------------------------------------------------------------
@@ -516,10 +531,7 @@ for (const [id, q] of quests) {
     if (skill) put(profSet, skill, id);
     const cls = CLASS_SORT[z] ?? CLASS_MASK[classMask(id) ?? 0];
     if (cls) put(classSet, cls, id);
-    else if (z > 0 && !areaOf.has(z)) {
-        const area = zoneName.has(z) ? z : parent.get(z);
-        if (area && zoneName.has(area)) put(zoneSet, area, id);
-    }
+    else if (z > 0 && zoneOfArea(z)) put(zoneSet, zoneOfArea(z), id);
 }
 
 // books: a book lying in the world (an object starts the quest) is handed in to an NPC, and Questie files
@@ -535,6 +547,31 @@ const isBook = (q) => group(q[2], 1).length > 0 && group(q[2], 2).length > 0 && 
 const bookNpcs = new Set();
 for (const [id, q] of quests) if (!placed.has(id) && isBook(q)) for (const n of group(q[2], 1)) bookNpcs.add(n);
 const bookSet = new Set([...quests].filter(([id, q]) => !placed.has(id) && (isBook(q) || group(q[2], 1).some((n) => bookNpcs.has(n)))).map(([id]) => id));
+
+// quests Questie files under no zone (or under an area with no zone) and in no other entry: with
+// zonelessByNpc (Forever, where they are hundreds of real quests of its new content, a hundred of them in
+// Mount Hyjal) they go to the zone of whoever gives them, else of whoever takes them in (the NPC's preferred
+// zone, as for its location). Those with no level are left out: system mail and event rewards. So are the
+// ones the new quests of Forever (ForeverNew.lua) already put in an entry, from the category the game gives
+// them (the crafting quests that have a giver in every zone, say): there they would show twice. Elsewhere
+// the zoneless ones are test and system quests, which stay out.
+const NEW_QUESTS = join(GEN, "ForeverNew.lua");
+const newQuests = new Set(existsSync(NEW_QUESTS)
+    ? [...readFileSync(NEW_QUESTS, "utf8").matchAll(/^\s*\{ id = (\d+),/gm)].map((m) => Number(m[1])) : []);
+const spawnZone = (spawns, preferred) => {
+    const zones = Object.keys(keyed(spawns)).map(Number);
+    return zones.includes(preferred) ? preferred : zones.length ? Math.min(...zones) : null;
+};
+const npcZone = (id) => { const n = npc(id); return n ? spawnZone(n[7], n[9]) : null; };
+const objectZone = (id) => spawnZone(object(id)?.[4]);
+let byNpc = 0;
+if (FLAVOR.zonelessByNpc) for (const [id, q] of quests) {
+    if (placed.has(id) || bookSet.has(id) || newQuests.has(id) || (q[17] ?? 0) < 0 || areaOf.has(q[17]) || !(q[5] > 0)) continue;
+    const where = [...group(q[2], 1).map(npcZone), ...group(q[2], 2).map(objectZone),
+        ...group(q[3], 1).map(npcZone), ...group(q[3], 2).map(objectZone)];
+    const area = where.map(zoneOfArea).find(Boolean);
+    if (area) { put(zoneSet, area, id); byNpc++; }
+}
 
 const zout = [...HEADER];
 const zones = [...zoneSet].map(([area, set]) => ({ area, name: zoneName.get(area), set, range: levelRange(set) }));
@@ -604,4 +641,4 @@ for (const entry of Object.keys(INSTANCE_AREA).sort()) {
 write("Entrances.lua", ent);
 
 console.log("instances:", instSummary.join("  "));
-console.log(`zones: ${zones.length} entries, ${totalZ} quests; classes ${totalC}; professions ${totalP}; races ${totalR}; events/misc ${totalE}`);
+console.log(`zones: ${zones.length} entries, ${totalZ} quests (${byNpc} placed by NPC); classes ${totalC}; professions ${totalP}; races ${totalR}; events/misc ${totalE}`);

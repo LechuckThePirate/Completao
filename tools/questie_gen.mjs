@@ -18,7 +18,8 @@ import { quest, npc, item, object, allIds, tocDir, keyed } from "./questie_db.mj
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 // the client whose data is generated: its name in Questie's files, where its zone tables are in the database
 // package, and the hand fixes that go over the result. The rest is what differs between the expansions:
-//  * maps: the uiMapId ranges of the zones that have a map there
+//  * maps: the uiMapId ranges of the zones that have a map there (the zones Forever adds have maps past 2480,
+//    e.g. Riverglades 2548, and area ids past 16000)
 //  * races: the playable races (client race id, name); raceMasks: the bits of Questie's race mask (all the
 //    races, and each faction's)
 //  * instances / insideAll / areas: the instances and battlegrounds on top of the classic ones (entry id -> area
@@ -28,7 +29,7 @@ const CLASSIC_RACES = [[1, "Human"], [2, "Orc"], [3, "Dwarf"], [4, "Night Elf"],
 const CLASSIC_MASKS = { all: 255, alliance: 77, horde: 178, bits: 8 };
 const FLAVORS = {
     forever: { name: "Forever", zones: ["support", "Forever", "Zones"], overrides: "Data/Forever/Overrides.lua",
-        maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
+        maps: [[1411, 1459], [2480, 9999]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
     vanilla: { name: "Vanilla", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
         maps: [[1411, 1459]], races: CLASSIC_RACES, raceMasks: CLASSIC_MASKS },
     tbc: { name: "TBC", zones: ["support", "Zones"], overrides: "Data/Classic/Overrides.lua",
@@ -135,7 +136,7 @@ for (const line of readFileSync(join(ZONES, "dungeons.lua"), "utf8").split(/\r?\
 const zoneName = new Map();
 for (const line of readFileSync(join(ZONES, "uiMapIdToAreaId.lua"), "utf8").split(/\r?\n/)) {
     const m = line.match(/^\s*\[(\d+)\]\s*=\s*(\d+),\s*--\s*(.*?)\s*$/);
-    if (m && FLAVOR.maps.some(([lo, hi]) => Number(m[1]) >= lo && Number(m[1]) <= hi) && Number(m[2]) > 0 && Number(m[2]) < 10000) zoneName.set(Number(m[2]), m[3]);
+    if (m && FLAVOR.maps.some(([lo, hi]) => Number(m[1]) >= lo && Number(m[1]) <= hi) && Number(m[2]) > 0) zoneName.set(Number(m[2]), m[3]);
 }
 for (const bg of [2597, 3820]) zoneName.delete(bg); // Alterac Valley, Eye of the Storm: battlegrounds
 for (const a of FLAVOR.areas ?? []) areaOf.set(a, a); // instances that Questie's dungeons.lua does not list

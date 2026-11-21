@@ -33,6 +33,20 @@ describe("Entries", function()
         assert.are.equal(1, #ns.entries.c_MAGE.quests)
     end)
 
+    it("registers an entry once: a later registration keeps its quests and only fills the fields it lacks", function()
+        ns.RegisterEntry({ id = "z16593", name = "Zephras Isle", category = "zones", area = 16593, minLevel = 2, maxLevel = 13 })
+        ns.AddQuests("z16593", { { id = 96638, name = "The Adventurer", x = "database" } })
+        ns.RegisterEntry({ id = "z16593", name = "Zephras Isle", category = "zones", area = 16593, minLevel = 2, maxLevel = 12, new = true })
+        ns.AddQuests("z16593", { { id = 96638, name = "The Adventurer", x = "new quests" }, { id = 96646, name = "Camping 101: Cooking" } })
+        assert.are.equal(1, #ns.entryList)
+        local e = ns.entries.z16593
+        assert.are.equal(e, ns.entryList[1])
+        assert.are.equal(13, e.maxLevel)
+        assert.is_true(e.new)
+        assert.are.equal(2, #e.quests)
+        assert.are.equal("database", e.quests[1].x)
+    end)
+
     it("an entry has work while a quest you can see is in your log or available", function()
         ns.RegisterEntry({ id = "dm", name = "The Deadmines" })
         ns.AddQuests("dm", {

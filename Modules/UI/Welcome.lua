@@ -12,11 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Changed: \"Account-wide\" is now \"Consolidate alts\", a switch in the title bar for the whole addon: what any " ..
-        "character of your realm has done counts as completed, and the classes, races and professions of all show.",
-    "- Changed: the filters are in a \"Filters\" drop-down, with \"Clear filters\" on top; the search's too.",
-    "- Changed: \"Hide repeatable done\" only hides the repeatable quests you have already turned in.",
-    "- Fixed: \"Important Heirlooms\" (The Hall of Thanes) shows for the Horde too.",
+    "- New: \"Group by\" in the quest log views: group your quests by zone, level, status or section, in the order " ..
+        "picked in the table header; a click on a group folds it.",
+    "- Fixed: Riverglades and the other new zones of Forever have their own entry with all their quests.",
+    "- Fixed: almost 300 Forever quests with no zone in the databases show in the zone of their NPC (Mount Hyjal, " ..
+        "Riverglades, Shen'dralas...).",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

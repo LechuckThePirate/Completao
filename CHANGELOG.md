@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fixed: the zones Forever adds have their entry in Zones with all their quests: Riverglades (it had none), Darkspear Islands, Shen'dralas and Mount Hyjal, and Zephras Isle now also has the quests the databases list for it. Zephras Isle shows once.
+- Fixed: almost 300 quests of Forever that the databases file under no zone show in the zone of the NPC who gives them (or takes them in): more than a hundred in Mount Hyjal, and others in Riverglades, Shen'dralas, Azshara, Stranglethorn and more. The quests of The Shaper's Terrace show in Un'Goro Crater.
 
 ## 1.8.0
 

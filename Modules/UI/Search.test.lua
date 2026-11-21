@@ -355,6 +355,108 @@ describe("Search", function()
         end)
     end)
 
+    describe("group by", function()
+        -- what the table shows from top to bottom: group names ("# Westfall") and quest ids
+        local function layout()
+            local items = {}
+            for _, f in ipairs(WowMock.frames) do
+                if f._shown and (f.fold or (f.quest and f.whereText)) then items[#items + 1] = f end
+            end
+            table.sort(items, function(a, b) return select(3, a:GetPoint(1)) > select(3, b:GetPoint(1)) end)
+            local out = {}
+            for _, f in ipairs(items) do
+                out[#out + 1] = f.fold and ("# " .. f.text:GetText():match("^(.-)  ")) or f.quest.id
+            end
+            return out
+        end
+        local function groupBy(label)
+            panel.groupButton:Click()
+            WowMock.Find(function(f) return f:IsShown() and f.text and f.text._text == label and f._scripts.OnClick end):Click()
+        end
+        local real
+        before_each(function()
+            real = ns.IsReadyToTurnIn
+            WowMock.log = { { isHeader = true, title = "Westfall" }, { questID = 166, title = "The Defias Brotherhood", level = 22 },
+                { questID = 999998, title = "Zeta", level = 30 },
+                { isHeader = true, title = "Ashenvale" }, { questID = 999999, title = "Unknown Quest", level = 25 },
+                { questID = 999997, title = "Alpha", level = 20 } }
+            for _, id in ipairs({ 166, 999997, 999998, 999999 }) do WowMock.onQuest[id] = true end
+            ns.UI_SetSearchMode(true, "log")
+        end)
+        after_each(function() ns.IsReadyToTurnIn = real end)
+
+        it("is off by default, and only in the log views", function()
+            assert.are.same({ 999997, 166, 999999, 999998 }, layout())
+            assert.is_true(panel.groupButton:IsShown())
+            assert.are.equal("None", panel.groupButton:GetText())
+            ns.UI_SetSearchMode(true, "search")
+            assert.is_false(panel.groupButton:IsShown())
+        end)
+
+        it("by zone keeps the header's order inside each group, also reversed", function()
+            groupBy("Zone")
+            assert.are.equal("Zone", panel.groupButton:GetText())
+            assert.are.same({ "# Ashenvale", 999997, 999999, "# Westfall", 166, 999998 }, layout())
+            panel.head.level:Click() -- level, highest first: the zones stay in their order
+            assert.are.same({ "# Ashenvale", 999999, 999997, "# Westfall", 999998, 166 }, layout())
+            panel.head.where:Click()
+            panel.head.where:Click() -- by zone, reversed: so are the groups
+            assert.are.equal("# Westfall", layout()[1])
+        end)
+
+        it("by level goes the way the Level header does", function()
+            groupBy("Level")
+            assert.are.same({ "# Level 20", 999997, "# Level 22", 166, "# Level 25", 999999, "# Level 30", 999998 }, layout())
+            panel.head.level:Click()
+            assert.are.equal("# Level 30", layout()[1])
+        end)
+
+        it("by status puts the quests ready to turn in first", function()
+            ns.IsReadyToTurnIn = function(id) return id == 999998 end
+            groupBy("Status")
+            assert.are.same({ "# Ready to turn in", 999998, "# In progress", 999997, 166, 999999 }, layout())
+        end)
+
+        it("by section puts the quests the addon doesn't know last", function()
+            groupBy("Section")
+            local shown = layout()
+            assert.are.equal(166, shown[2])
+            assert.are.same({ "# Other", 999997, 999999, 999998 }, { shown[3], shown[4], shown[5], shown[6] })
+        end)
+
+        it("a click on a group folds it and another unfolds it", function()
+            groupBy("Zone")
+            local row = WowMock.Find(function(f) return f:IsShown() and f.fold and f.group == "Ashenvale" end)
+            row:Click()
+            assert.are.same({ "# Ashenvale", "# Westfall", 166, 999998 }, layout())
+            row:Click()
+            assert.are.equal(6, #layout())
+        end)
+
+        it("is saved per view: the tracked quests have their own", function()
+            groupBy("Zone")
+            assert.are.same({ log = "zone" }, ns.char.tableGroup)
+            ns.UI_SetSearchMode(true, "tracked")
+            assert.are.equal("None", panel.groupButton:GetText())
+            ns.UI_SetSearchMode(true, "log")
+            assert.are.equal("Zone", panel.groupButton:GetText())
+            groupBy("None")
+            assert.are.same({}, ns.char.tableGroup)
+        end)
+
+        it("in the tracked view the steps stay under their quest", function()
+            local realSteps = ns.QuestSteps
+            ns.QuestSteps = function(q) return { { kind = "obj", label = "Step of " .. q.id, current = true } }, 1 end
+            ns.UI_SetSearchMode(true, "tracked")
+            groupBy("Zone")
+            ns.QuestSteps = realSteps
+            local step = WowMock.Find(function(f) return f:IsShown() and f.text and f.text._text
+                and f.text._text:find("Step of 999997", 1, true) end)
+            local quest = WowMock.Find(function(f) return f._shown and f.quest and f.whereText and f.quest.id == 999997 end)
+            assert.are.equal(select(3, quest:GetPoint(1)) - 22, select(3, step:GetPoint(1)))
+        end)
+    end)
+
     describe("tracked quests view", function()
         local tracked, saved
         before_each(function()

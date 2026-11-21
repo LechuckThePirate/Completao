@@ -231,4 +231,10 @@ ns.AddLocale({ "frFR" }, {
     ["Shift-click: turn quest helpers off"] = "Maj-clic : désactiver les aides de quête",
     ["Quest helpers: focus window, waypoints and map markers"] = "Aides de quête : fenêtre de suivi, points de passage et marqueurs sur la carte",
     ["Minimap button shown."] = "Bouton de la minicarte affiché.",
+    ["Group by:"] = "Grouper par :",
+    ["Zone"] = "Zone",
+    ["Level %s"] = "Niveau %s",
+    ["Status"] = "État",
+    ["Section"] = "Section",
+    ["Other"] = "Autres",
 })

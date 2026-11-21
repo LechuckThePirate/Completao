@@ -230,4 +230,10 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Shift-click: turn quest helpers off"] = "Mayús-clic: desactivar las ayudas de quest",
     ["Quest helpers: focus window, waypoints and map markers"] = "Ayudas de quest: ventana de foco, waypoints y marcadores en el mapa",
     ["Minimap button shown."] = "Botón del minimapa visible.",
+    ["Group by:"] = "Agrupar por:",
+    ["Zone"] = "Zona",
+    ["Level %s"] = "Nivel %s",
+    ["Status"] = "Estado",
+    ["Section"] = "Sección",
+    ["Other"] = "Otras",
 })

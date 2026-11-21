@@ -119,7 +119,8 @@ local function matchesReward(q)
 end
 
 -- View: "search" (form + results), "log" (the quests in the log, in the same table), "tracked" (the ones
--- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not).
+-- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not). The last three can
+-- group their quests ("Group by").
 local mode = "search"
 
 local function isTracked(id)
@@ -580,6 +581,121 @@ end
 -- the view, the quest log, the client's data: `stale`). The player walking only changes the distances.
 local found, stale = nil, true
 
+-- "Group by" in the log views (saved per view and character): the quests of each group keep the table's order (the
+-- headers), and the groups go in an order of their own, reversed with the header that sorts by the same thing (level by
+-- Level, zone by Where). A click on a group's row folds it (not saved).
+local GROUPS = {
+    { key = "none", label = "None" },
+    { key = "zone", label = "Zone" },
+    { key = "level", label = "Level" },
+    { key = "status", label = "Status" },
+    { key = "section", label = "Section" },
+}
+local GROUP_LABELS = {}
+for _, g in ipairs(GROUPS) do GROUP_LABELS[g.key] = g.label end
+local groups = {} -- the last grouping: { key, name, first, last } (indexes into found), empty when not grouped
+local folded = {} -- "<view>:<group by>:<group key>" = true
+
+local function groupBy()
+    if mode == "search" then return "none" end
+    local saved = ns.char and ns.char.tableGroup and ns.char.tableGroup[mode]
+    return GROUP_LABELS[saved] and saved or "none"
+end
+
+-- A result's group: its key, the name its row shows and what the groups are sorted by.
+local function groupOf(f, by)
+    if by == "zone" then
+        local name = f.zone or (f.whereText ~= "" and f.whereText) or L["Other"]
+        return name, name, name:lower()
+    elseif by == "level" then
+        return f.level, L["Level %s"]:format(f.level > 0 and f.level or "?"), f.level
+    elseif by == "status" then
+        local ready = readyToTurnIn(f.quest)
+        return ready and "ready" or "progress", ready and L["Ready to turn in"] or L["In progress"], ready and 1 or 2
+    end
+    local cat = f.entry and f.entry.category
+    for i, c in ipairs(ns.categories) do
+        if c.id == cat then return cat, c.name, i end
+    end
+    return "other", L["Other"], #ns.categories + 1 -- not in the addon's data
+end
+
+-- Puts the (already sorted) results in group order, so a row's index still points at its result.
+local function groupFound(list)
+    groups = {}
+    local by = groupBy()
+    if by == "none" then return list end
+    local byKey = {}
+    for _, f in ipairs(list) do
+        local key, name, order = groupOf(f, by)
+        local g = byKey[key]
+        if not g then
+            g = { key = key, name = name, order = order, items = {} }
+            byKey[key] = g
+            groups[#groups + 1] = g
+        end
+        g.items[#g.items + 1] = f
+    end
+    local s = sortState()
+    local desc = s.desc and (by == "level" and s.sort == "level" or by == "zone" and s.sort == "where")
+    table.sort(groups, function(a, b)
+        if a.order ~= b.order then
+            if desc then return a.order > b.order end
+            return a.order < b.order
+        end
+        return tostring(a.key) < tostring(b.key)
+    end)
+    local n = 0
+    for _, g in ipairs(groups) do
+        g.first = n + 1
+        for _, f in ipairs(g.items) do
+            n = n + 1
+            list[n] = f
+        end
+        g.last, g.items = n, nil
+        g.fold = mode .. ":" .. by .. ":" .. tostring(g.key)
+    end
+    return list
+end
+
+local groupRows, groupsUsed = {}, 0
+local draw
+local function getGroupRow()
+    groupsUsed = groupsUsed + 1
+    local row = groupRows[groupsUsed]
+    if row then return row end
+    row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
+    row:SetHeight(ROW_H)
+    row:SetBackdrop(BACKDROP)
+    row:SetBackdropColor(0.16, 0.13, 0.03, 0.95)
+    row:SetBackdropBorderColor(0.45, 0.37, 0.08, 1)
+    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    row.toggle = row:CreateTexture(nil, "ARTWORK")
+    row.toggle:SetSize(14, 14)
+    row.toggle:SetPoint("LEFT", 5, 0)
+    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.text:SetPoint("LEFT", 24, 0)
+    row.text:SetPoint("RIGHT", -6, 0)
+    row.text:SetJustifyH("LEFT")
+    row.text:SetWordWrap(false)
+    row:SetScript("OnClick", function(self)
+        folded[self.fold] = not folded[self.fold] or nil
+        draw()
+    end)
+    groupRows[groupsUsed] = row
+    return row
+end
+
+local function fillGroupRow(row, g, y)
+    row.fold, row.group = g.fold, g.key
+    row.toggle:SetTexture(folded[g.fold] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
+    row.text:SetText(("%s  |cffa0a0a0(%d)|r"):format(g.name, g.last - g.first + 1))
+    row:ClearAllPoints()
+    row:SetPoint("TOPLEFT", 0, -y)
+    row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
+    row:Show()
+end
+
 -- Fills a table row with the result found[i], placed y down the table.
 local function fillRow(row, i, y, focusTag)
     local f = found[i]
@@ -635,9 +751,9 @@ local function visibleRange(shown)
     return first, math.min(shown, first + math.ceil(view / ROW_H))
 end
 
-local function draw()
+function draw()
     if not found then return end
-    stepsUsed = 0
+    stepsUsed, groupsUsed = 0, 0
     local shown = math.min(#found, MAX_ROWS)
     panel.count:SetText(#found > MAX_ROWS and L["%d quests (showing the first %d)"]:format(#found, MAX_ROWS)
         or L["%d quests"]:format(#found))
@@ -659,16 +775,25 @@ local function draw()
         end
         height = shown * ROW_H
     else
-        -- the log views: a few quests, each with its steps under it
-        for i = 1, shown do
-            used = used + 1
-            fillRow(getRow(used), i, height, focusTag)
-            height = height + ROW_H
-            if mode ~= "log" then height = height + layoutSteps(found[i].quest, height) end
+        -- the log views: a few quests, each with its steps under it, and the row of each group above its quests
+        for _, g in ipairs(#groups > 0 and groups or { { first = 1, last = shown } }) do
+            if g.fold and g.first <= shown then
+                fillGroupRow(getGroupRow(), g, height)
+                height = height + ROW_H
+            end
+            if not (g.fold and folded[g.fold]) then
+                for i = g.first, math.min(g.last, shown) do
+                    used = used + 1
+                    fillRow(getRow(used), i, height, focusTag)
+                    height = height + ROW_H
+                    if mode ~= "log" then height = height + layoutSteps(found[i].quest, height) end
+                end
+            end
         end
     end
     for i = used + 1, #rows do rows[i]:Hide() end
     for i = stepsUsed + 1, #stepRows do stepRows[i]:Hide() end
+    for i = groupsUsed + 1, #groupRows do groupRows[i]:Hide() end
     panel.content:SetHeight(math.max(1, height))
     panel.empty:SetShown(#found == 0)
 end
@@ -683,7 +808,7 @@ local function refresh(moved)
     if stale or not found then
         stale = false
         readLive()
-        found = sortFound(prepare(mode == "search" and search() or logQuests(mode ~= "log" and mode or nil)))
+        found = groupFound(sortFound(prepare(mode == "search" and search() or logQuests(mode ~= "log" and mode or nil))))
     elseif moved and sortState().sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
         for _, row in ipairs(rows) do
@@ -693,7 +818,7 @@ local function refresh(moved)
         end
         return
     elseif moved then
-        sortFound(found)
+        groupFound(sortFound(found))
     end
     draw()
 end
@@ -820,7 +945,12 @@ function ns.Search_Create(parent)
         if width <= 0 then return end
         -- the log view has no form: the table starts under the title
         for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
-        local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -12
+        local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
+        -- the log views' "Group by", at the right of the title
+        panel.groupButton:SetShown(mode ~= "search")
+        panel.groupLabel:SetShown(mode ~= "search")
+        panel.groupButton:ClearAllPoints()
+        panel.groupButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), 0)
         panel.count:ClearAllPoints()
         panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(28 + h + 6))
         panel.head:ClearAllPoints()
@@ -850,6 +980,22 @@ function ns.Search_Create(parent)
         end)
     end)
     panel.count = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+
+    panel.groupButton = makeDropdown(panel, 130)
+    panel.groupLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    panel.groupLabel:SetPoint("RIGHT", panel.groupButton, "LEFT", -6, 0)
+    panel.groupLabel:SetText(L["Group by:"])
+    panel.updateGroupButton = function() panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]]) end
+    panel.groupButton:SetScript("OnClick", function(self)
+        local options = {}
+        for _, g in ipairs(GROUPS) do options[#options + 1] = { name = L[g.label], key = g.key } end
+        openMenu(self, options, function(opt)
+            ns.char.tableGroup = ns.char.tableGroup or {}
+            ns.char.tableGroup[mode] = opt.key ~= "none" and opt.key or nil
+            panel.updateGroupButton()
+            requestRefresh()
+        end)
+    end)
 
     -- table header, with the same columns as the rows (placeRow)
     local head = CreateFrame("Frame", nil, panel, "BackdropTemplate")
@@ -942,6 +1088,7 @@ function ns.Search_Create(parent)
 
     panel:SetScript("OnShow", function()
         updateDropdowns()
+        panel.updateGroupButton()
         stale = true -- the log may have changed while it was hidden
         refresh()
     end)
@@ -980,6 +1127,7 @@ function ns.Search_SetMode(m)
     panel.title:SetText(L[TITLES[mode]])
     panel.empty:SetText(L[EMPTY[mode]])
     panel.updateSortLabels()
+    panel.updateGroupButton()
     panel.layoutForm()
     requestRefresh()
 end

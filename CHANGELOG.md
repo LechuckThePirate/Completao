@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1
+
+- New: 132 more quests of WoW Forever, from the public quest databases as they are now, many of them in Orgrimmar, Ironforge, Feralas and The Hinterlands.
+- Fixed: on WoW Forever, about 40 quests are listed in a better place (Mount Hyjal, Riverglades, Shen'dralas, Darkspear Islands, class quests and dungeons), and about 60 have their faction or race corrected. Names, levels, steps and the quests some need first are updated too.
+- Data: a few small quest fixes for Classic Era and TBC Anniversary, and the rewards of more Forever quests.
+
 ## 1.9.0
 
 - New: "Group by" in the Quest Log, Tracked Quests and Quests to Turn In views: the quests can be grouped by zone, level, status (ready to turn in or in progress) or section (dungeons, zones, class quests...). Inside each group they keep the order chosen in the table header, and the groups follow it too when it sorts by the same thing (by level, or by zone in "Where"). A click on a group folds or unfolds it. Each view remembers its own grouping.

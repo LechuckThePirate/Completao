@@ -170,6 +170,53 @@ describe("AccountProgress", function()
         _G.C_GameRules = nil
     end)
 
+    describe("when the game gives no realm name (Forever since late November 2026)", function()
+        local realRealm = _G.GetRealmName
+
+        before_each(function()
+            _G.GetRealmName = function() return "" end
+        end)
+
+        after_each(function()
+            _G.GetRealmName = realRealm
+        end)
+
+        it("the alts saved with the realm still go together with the played character", function()
+            StartAddon(ns, altDB({ [990001] = true }))
+            ns.char.consolidateAlts = true
+            assert.are.equal("Altie", ns.DoneByAlt(990001))
+            assert.are.equal(2, #ns.Characters())
+        end)
+
+        it("the played character's copy saved with the realm is its own, not an alt's", function()
+            local db = { chars = { ["Tester-Realm"] = { name = "Tester", realm = "Realm", class = "WARRIOR", done = { [990002] = true },
+                repeated = { [990003] = true } } } }
+            StartAddon(ns, db)
+            ns.char.consolidateAlts = true
+            assert.is_not_nil(CompletaoDB.chars["Tester-"])
+            assert.is_nil(ns.DoneByAlt(990002))
+            assert.are.equal(1, #ns.Characters())
+            assert.is_true(ns.RepeatableDone(990003)) -- what it did then is still its own
+        end)
+
+        it("an alt saved with and without the realm counts once, from its newest copy", function()
+            local db = altDB({ [990001] = true })
+            db.chars["Altie-"] = { name = "Altie", realm = "", class = "MAGE", time = 5, done = { [990001] = true, [990002] = true } }
+            StartAddon(ns, db)
+            ns.char.consolidateAlts = true
+            assert.are.equal(2, #ns.Characters())
+            assert.are.equal("Altie", ns.DoneByAlt(990002))
+            assert.are.equal("Altie", ns.DoneByAltsText(990001))
+        end)
+
+        it("a Hardcore character still goes apart", function()
+            local db = { chars = { ["Brave-Realm"] = { name = "Brave", realm = "Realm", ruleset = "Realm+HC", done = { [990001] = true } } } }
+            StartAddon(ns, db)
+            ns.char.consolidateAlts = true
+            assert.is_nil(ns.DoneByAlt(990001))
+        end)
+    end)
+
     it("the Account-wide filter of 1.7.0 becomes the switch", function()
         StartAddon(ns, nil, { filters = { accountWide = true } })
         assert.is_true(ns.Consolidated())

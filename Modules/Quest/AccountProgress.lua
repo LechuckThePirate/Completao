@@ -28,9 +28,54 @@ local function myRuleset()
     return rulesetOf(GetRealmName and GetRealmName() or nil, hardcore)
 end
 
+-- Since late November 2026 Forever answers GetRealmName() with "", so the characters saved before that carry the realm and
+-- the ones saved after it don't: an unknown realm ("", or "?" when the game gave none) goes with any.
+local function unknownRealm(realm)
+    return realm == nil or realm == "" or realm == "?"
+end
+
+local function realmsMatch(a, b)
+    return unknownRealm(a) or unknownRealm(b) or a == b
+end
+
+local function splitRuleset(ruleset)
+    if ruleset:sub(-3) == "+HC" then return ruleset:sub(1, -4), true end
+    return ruleset, false
+end
+
 -- Whether a saved character is of the played one's ruleset (one saved before it was recorded: by its realm).
 local function sameRuleset(c)
-    return (c.ruleset or rulesetOf(c.realm, false)) == myRuleset()
+    local realm, hardcore = splitRuleset(c.ruleset or rulesetOf(c.realm, false))
+    local myRealm, myHardcore = splitRuleset(myRuleset())
+    return hardcore == myHardcore and realmsMatch(realm, myRealm)
+end
+
+-- Whether a saved copy is of the played character: its key, or the same name saved with the realm the game no longer gives.
+local function isMe(key, c)
+    if key == charKey() then return true end
+    return c.name ~= nil and c.name == UnitName("player") and realmsMatch(c.realm, GetRealmName and GetRealmName() or nil)
+end
+
+-- Whether another copy of the same character (the same name, saved with and without the realm) is newer than this one. The
+-- copies saved before the time was recorded are the oldest.
+local function superseded(key, c, chars)
+    for otherKey, other in pairs(chars) do
+        if otherKey ~= key and other.name == c.name and realmsMatch(other.realm, c.realm)
+            and unknownRealm(other.realm) ~= unknownRealm(c.realm)
+            and ((other.time or 0) > (c.time or 0) or ((other.time or 0) == (c.time or 0) and otherKey > key)) then
+            return true
+        end
+    end
+    return false
+end
+
+-- The other characters of the played one's ruleset, each once (its newest copy): { [key] = record }.
+local function altRecords()
+    local chars, out = ns.db and ns.db.chars or {}, {}
+    for key, c in pairs(chars) do
+        if not isMe(key, c) and sameRuleset(c) and not superseded(key, c, chars) then out[key] = c end
+    end
+    return out
 end
 
 -- The other characters, as profiles for the visibility rules (QuestState.lua): rebuilt when one is recorded.
@@ -52,6 +97,7 @@ local function store()
     me.raceId = select(3, UnitRace("player"))
     me.faction = UnitFactionGroup("player")
     me.ruleset = myRuleset()
+    me.time = time and time() or nil
     alts = nil
     return me
 end
@@ -112,12 +158,12 @@ end
 function ns.RepeatableDone(id)
     if C_QuestLog.IsQuestFlaggedCompleted(id) then return true end
     if not (ns.db and ns.db.chars) then return false end
-    local mine = charKey()
-    local me = ns.db.chars[mine]
-    if me and me.repeated and me.repeated[id] then return true end
+    for key, c in pairs(ns.db.chars) do -- (its copy saved with the realm too)
+        if isMe(key, c) and c.repeated and c.repeated[id] then return true end
+    end
     if not ns.Consolidated() then return false end
-    for key, c in pairs(ns.db.chars) do
-        if key ~= mine and c.repeated and c.repeated[id] and sameRuleset(c) then return true end
+    for _, c in pairs(altRecords()) do
+        if c.repeated and c.repeated[id] then return true end
     end
     return false
 end
@@ -139,12 +185,9 @@ function ns.Characters()
     if not ns.Consolidated() then return list end
     if not alts then
         alts = {}
-        local mine = charKey()
-        for key, c in pairs(ns.db and ns.db.chars or {}) do
-            if key ~= mine and sameRuleset(c) then
-                alts[#alts + 1] = { name = c.name or key, classFile = c.class, classId = c.classId, raceId = c.raceId,
-                    faction = c.faction, skills = c.skills }
-            end
+        for key, c in pairs(altRecords()) do
+            alts[#alts + 1] = { name = c.name or key, classFile = c.class, classId = c.classId, raceId = c.raceId,
+                faction = c.faction, skills = c.skills }
         end
         table.sort(alts, function(a, b) return a.name < b.name end)
     end
@@ -165,9 +208,9 @@ end
 -- name).
 function ns.DoneByAlt(id)
     if not (ns.db and ns.db.chars) then return nil end
-    local mine, best = charKey(), nil
-    for key, c in pairs(ns.db.chars) do
-        if key ~= mine and c.done and c.done[id] and sameRuleset(c) then
+    local best
+    for key, c in pairs(altRecords()) do
+        if c.done and c.done[id] then
             local name = c.name or key
             if not best or name < best then best = name end
         end
@@ -179,9 +222,9 @@ end
 -- or nil when none has.
 function ns.DoneByAltsText(id)
     if not (ns.db and ns.db.chars) then return nil end
-    local mine, list = charKey(), {}
-    for key, c in pairs(ns.db.chars) do
-        if key ~= mine and c.done and c.done[id] and sameRuleset(c) then list[#list + 1] = { name = c.name or key, class = c.class } end
+    local list = {}
+    for key, c in pairs(altRecords()) do
+        if c.done and c.done[id] then list[#list + 1] = { name = c.name or key, class = c.class } end
     end
     if #list == 0 then return nil end
     table.sort(list, function(a, b) return a.name < b.name end)

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: on WoW Forever, since the game stopped giving the realm name, "Consolidate alts" left out the characters that had not logged in since, and could count the character you play, or an alt, twice ("Completed by" could name yourself). An unknown realm now goes with any: all your characters are together again, each once, from its newest copy.
+
 ## 1.9.1
 
 - New: 132 more quests of WoW Forever, from the public quest databases as they are now, many of them in Orgrimmar, Ironforge, Feralas and The Hinterlands.

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.9.2
 
 - Fixed: on WoW Forever, since the game stopped giving the realm name, "Consolidate alts" left out the characters that had not logged in since, and could count the character you play, or an alt, twice ("Completed by" could name yourself). An unknown realm now goes with any: all your characters are together again, each once, from its newest copy.
 

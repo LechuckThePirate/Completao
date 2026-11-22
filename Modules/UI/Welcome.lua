@@ -12,10 +12,9 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: 132 more quests of WoW Forever, many of them in Orgrimmar, Ironforge, Feralas and The Hinterlands.",
-    "- Fixed: about 40 Forever quests are listed in a better place and about 60 have their faction or race " ..
-        "corrected, along with names, levels, steps and the quests some need first.",
-    "- Data: small quest fixes for Classic Era and TBC Anniversary, and the rewards of more Forever quests.",
+    "- Fixed: on WoW Forever, \"Consolidate alts\" puts all your characters together again, each once: since the " ..
+        "game stopped giving the realm name, it left out the ones that had not logged in since, and \"Completed by\" " ..
+        "could name yourself.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

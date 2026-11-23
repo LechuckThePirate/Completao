@@ -146,11 +146,24 @@ function T.SliceColor(parts, r, g, b, a)
 end
 
 -- Parchment (torn, burnt edges) filling `f`; `page`: the lighter sheet made for reading.
+-- A 9-slice: the burnt corners and the rim's width stay as they are however big the sheet gets; only the middle
+-- and the length of the edges stretch. The page (`page`) also has a wide version, used while the sheet is wider
+-- than tall (a maximized quest drawer), so neither is ever stretched much.
 function T.Parchment(f, layer, sublevel, page)
-    local tex = f:CreateTexture(nil, layer or "BACKGROUND", nil, sublevel or 4)
-    tex:SetTexture(T.MEDIA .. (page and "ParchmentPage" or "Parchment"))
-    tex:SetAllPoints()
-    return tex
+    local tall = T.NineSlice(f, T.MEDIA .. (page and "ParchmentPage" or "Parchment"), 256, 512, 44, 40, 0,
+        layer or "BACKGROUND", sublevel or 4, true)
+    if not page then return tall end
+    local wide = T.NineSlice(f, T.MEDIA .. "ParchmentPageWide", 1024, 512, 44, 40, 0, layer or "BACKGROUND", sublevel or 4, true)
+    local function pick()
+        local w, h = f:GetWidth() or 0, f:GetHeight() or 0
+        local isWide = h > 0 and w > h * 1.3
+        for _, tex in ipairs(tall) do tex:SetShown(not isWide) end
+        for _, tex in ipairs(wide) do tex:SetShown(isWide) end
+        f.parchmentWide = isWide
+    end
+    f:HookScript("OnSizeChanged", pick)
+    pick()
+    return tall, wide
 end
 
 -- The gold frame (BorderGold9Slice: 2 px burnished gold, rivets in the corners) drawn around `f` with eight

@@ -400,6 +400,7 @@ function parchment(w, h, seed, burn, page) {
 // 7. Parchment, 256 x 512: the side panel and the quest drawer's page.
 writeTGA("Parchment.tga", parchment(256, 512, 11, true));
 writeTGA("ParchmentPage.tga", parchment(256, 512, 13, true, true));
+writeTGA("ParchmentPageWide.tga", parchment(1024, 512, 17, true, true)); // the same, for a wide sheet
 
 // 8. Parchment band, 512 x 32: the table's header.
 {

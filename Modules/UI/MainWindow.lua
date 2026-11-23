@@ -1660,8 +1660,10 @@ local function createFrame()
 
     -- the side panel is a sheet of parchment with burnt edges (written in ink), from under the header bar; a brass
     -- line where the main area starts
-    local sideBg = body:CreateTexture(nil, "BACKGROUND", nil, 3)
-    sideBg:SetTexture(T.MEDIA .. "ParchmentPage")
+    local sideBg = CreateFrame("Frame", nil, body)
+    sideBg:SetFrameLevel(body:GetFrameLevel()) -- under the list and everything else of the body
+    T.Parchment(sideBg, "BACKGROUND", 3, true)
+    frame.sideParchment = sideBg
     local sideLine = body:CreateTexture(nil, "BORDER")
     sideLine:SetColorTexture(T.rgba("brass"))
     sideLine:SetWidth(1)

@@ -287,6 +287,21 @@ describe("QuestPanel", function()
         assert.matches("Elite: recommended with a group", panelText())
     end)
 
+    it("the page keeps its burnt rim: a 9-slice, and the wide parchment while it is wider than tall", function()
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local page = detail.page
+        page:SetSize(320, 500) -- the drawer
+        WowMock.Fire(page, "OnSizeChanged")
+        assert.is_false(page.parchmentWide)
+        page:SetSize(1000, 500) -- maximized
+        WowMock.Fire(page, "OnSizeChanged")
+        assert.is_true(page.parchmentWide)
+        local wide = WowMock.FindAll(function(f)
+            return f._parent == page and f._kind == "Texture" and f._shown and tostring(f._set.SetTexture and f._set.SetTexture[1]):find("ParchmentPageWide$")
+        end)
+        assert.are.equal(9, #wide) -- corners, edges and middle
+    end)
+
     it("a quest of a chain has a chain icon after its title, a link that opens the chain's tree", function()
         local chained, loose
         for _, q in ipairs(ns.entries.vc.quests) do

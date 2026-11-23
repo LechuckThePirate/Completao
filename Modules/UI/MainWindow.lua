@@ -790,17 +790,17 @@ local function refreshList()
     local listW = sideW() - 26
     local y, hi, ei = 0, 0, 0
 
-    -- collapse / expand the panel
-    sideToggle:ClearAllPoints()
-    sideToggle:SetPoint("TOPLEFT", 0, -y)
-    sideToggle:SetWidth(listW)
-    sideToggle.tex:SetTexture(narrow and "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up"
-        or "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up")
-    sideToggle.tex:ClearAllPoints()
-    sideToggle.tex:SetPoint(narrow and "CENTER" or "LEFT", narrow and 0 or 4, 0)
-    sideToggle.text:SetShown(not narrow)
-    sideToggle.label = narrow and ns.L["Expand menu"] or nil
-    y = y + TOGGLE_H + 4
+    -- expanded, the panel collapses with the double arrow in its top-right corner; collapsed (that corner is under the
+    -- emblem), it expands with the first icon of the strip
+    frame.collapseButton:SetShown(not narrow)
+    sideToggle:SetShown(narrow)
+    if narrow then
+        sideToggle:ClearAllPoints()
+        sideToggle:SetPoint("TOPLEFT", 0, -y)
+        sideToggle:SetWidth(listW)
+        sideToggle.label = ns.L["Expand menu"]
+        y = y + TOGGLE_H + 4
+    end
 
     -- first block: the four views (the global search, the quest log, the tracked quests and the ones to turn in, all in
     -- the same table, Search.lua), the one open marked with a gold bar, each with its count
@@ -1412,6 +1412,13 @@ local function createFrame()
     local sideLine = body:CreateTexture(nil, "BORDER")
     sideLine:SetColorTexture(T.rgba("brass"))
     sideLine:SetWidth(1)
+    -- collapses the side panel: a double arrow in ink in the parchment's top-right corner, its name in the tooltip
+    local collapseButton = T.CreateIconButton(body, nil, 26, ns.L["Collapse menu"])
+    collapseButton.glyphThickness, collapseButton.glyphHover = 2.2, "sienna"
+    T.SetGlyph(collapseButton, "collapseLeft", "CENTER", 0, 0, "ink")
+    collapseButton:SetFrameLevel(body:GetFrameLevel() + 5)
+    collapseButton:SetScript("OnClick", function() ns.UI_SetSideCollapsed(true) end)
+    frame.collapseButton = collapseButton
     local function placeSide()
         local right = mainLeft() - 10
         sideBg:ClearAllPoints()
@@ -1420,6 +1427,8 @@ local function createFrame()
         sideLine:ClearAllPoints()
         sideLine:SetPoint("TOPLEFT", body, "TOPLEFT", right, -BAR_H)
         sideLine:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", right, 0)
+        collapseButton:ClearAllPoints()
+        collapseButton:SetPoint("TOPRIGHT", body, "TOPLEFT", right - 12, -(BAR_H + 10))
     end
     placeSide()
 
@@ -1538,18 +1547,14 @@ local function createFrame()
     end)
     frame.zoneFilter = zoneBox
 
-    -- first row of the side panel: collapses it to the icons, or expands it back
+    -- collapsed, the first row of the strip expands the panel back (a double arrow, its name in the tooltip)
     sideToggle = CreateFrame("Button", nil, frame.listChild)
     sideToggle:SetHeight(TOGGLE_H)
-    sideToggle.tex = sideToggle:CreateTexture(nil, "ARTWORK")
-    sideToggle.tex:SetSize(16, 16)
-    sideToggle.tex:SetVertexColor(T.rgba("ink"))
-    sideToggle.text = T.Text(sideToggle, "small", "inkSoft")
-    sideToggle.text:SetPoint("LEFT", sideToggle.tex, "RIGHT", 4, 0)
-    sideToggle.text:SetText(ns.L["Collapse menu"])
+    sideToggle.glyphThickness, sideToggle.glyphHover = 2.2, "sienna"
+    T.SetGlyph(sideToggle, "expandRight", "CENTER", 0, 0, "ink")
     sideToggle:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
     sideToggle:GetHighlightTexture():SetVertexColor(0, 0, 0, 0.06)
-    sideToggle:SetScript("OnClick", function() ns.UI_SetSideCollapsed(not collapsed()) end)
+    sideToggle:SetScript("OnClick", function() ns.UI_SetSideCollapsed(false) end)
     sideToggle:SetScript("OnEnter", showSideTooltip)
     sideToggle:SetScript("OnLeave", GameTooltip_Hide)
 

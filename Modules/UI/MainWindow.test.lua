@@ -186,12 +186,19 @@ describe("MainWindow", function()
         end)
 
         it("the toggle button collapses and expands, and it is remembered", function()
-            local toggle = WowMock.Find(function(f) return f.tex and f._scripts.OnClick and f.text and f.text._text == "Collapse menu" end)
+            local toggle = ns.UI.collapseButton -- the double arrow in the panel's corner, named in its tooltip
+            assert.are.equal("Collapse menu", toggle.tip)
             toggle:Click()
             assert.is_true(ns.char.sideCollapsed)
             ns = OpenAddon("vc", { selected = "vc", sideCollapsed = true })
             assert.is_false(header("dungeons").text:IsShown())
             assert.are.equal(64 + 26 - 22, lastTopLeftX(ns.UI.treeScroll))
+            -- collapsed, the corner's arrow is gone (under the emblem) and the strip's first icon expands it back
+            assert.is_false(ns.UI.collapseButton:IsShown())
+            local expand = WowMock.Find(function(f) return f._parent == ns.UI.listChild and f.label == "Expand menu" and f:IsShown() end)
+            expand:Click()
+            assert.is_false(ns.char.sideCollapsed)
+            assert.is_true(ns.UI.collapseButton:IsShown())
         end)
     end)
 

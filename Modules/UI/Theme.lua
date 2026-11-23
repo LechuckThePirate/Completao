@@ -391,6 +391,8 @@ local GLYPHS = {
     center = { { -5, 0, -2, 0 }, { 2, 0, 5, 0 }, { 0, -5, 0, -2 }, { 0, 2, 0, 5 }, { -1, -1, 1, 1 }, { -1, 1, 1, -1 } },
     chevronRight = { { -2, 4, 2, 0 }, { 2, 0, -2, -4 } },
     chevronLeft = { { 2, 4, -2, 0 }, { -2, 0, 2, -4 } },
+    collapseLeft = { { -1, 6, -7, 0 }, { -7, 0, -1, -6 }, { 6, 6, 0, 0 }, { 0, 0, 6, -6 } },
+    expandRight = { { 1, 6, 7, 0 }, { 7, 0, 1, -6 }, { -6, 6, 0, 0 }, { 0, 0, -6, -6 } },
     chevronDown = { { -4, 2, 0, -2 }, { 0, -2, 4, 2 } },
     expand = { { 1, 4, 4, 4 }, { 4, 4, 4, 1 }, { -1, -4, -4, -4 }, { -4, -4, -4, -1 }, { -4, -4, 4, 4 } },
     collapse = { { -1, 4, -1, 1 }, { -1, 1, -4, 1 }, { 1, -4, 1, -1 }, { 1, -1, 4, -1 }, { -4, 4, -1, 1 }, { 4, -4, 1, -1 } },
@@ -405,12 +407,12 @@ function T.SetGlyph(b, glyph, anchor, ox, oy, color)
         local l = b.glyphLines[i]
         if not l then
             l = b:CreateLine(nil, "OVERLAY")
-            l:SetThickness(1.5)
+            l:SetThickness(b.glyphThickness or 1.5)
             b.glyphLines[i] = l
         end
         l:SetStartPoint(anchor, b, s[1] + ox, s[2] + oy)
         l:SetEndPoint(anchor, b, s[3] + ox, s[4] + oy)
-        l:SetColorTexture(T.rgba(b.hovered and "goldLight" or b.glyphColor or "muted"))
+        l:SetColorTexture(T.rgba(b.hovered and (b.glyphHover or "goldLight") or b.glyphColor or "muted"))
         l:Show()
     end
     for i = #(GLYPHS[glyph] or {}) + 1, #b.glyphLines do b.glyphLines[i]:Hide() end

@@ -259,4 +259,6 @@ ns.AddLocale({ "deDE" }, {
     ["List"] = "Liste",
     ["The quests as chain trees"] = "Die Quests als Questreihen-Bäume",
     ["The quests as a list, like the search"] = "Die Quests als Liste, wie die Suche",
+    ["Full-screen tree"] = "Baum im Vollbild",
+    ["Exit full screen"] = "Vollbild verlassen",
 })

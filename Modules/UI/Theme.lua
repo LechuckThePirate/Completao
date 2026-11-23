@@ -290,6 +290,12 @@ function T.SetActionIcon(tex, kind)
     tex:SetTexCoord(i / 5, (i + 1) / 5, 0, 1)
 end
 
+-- The same icons as inline text ("|T...|t"), for a line of text or a link in it.
+function T.ActionIconText(kind, size)
+    local i = ACTION_INDEX[kind] or 0
+    return ("|T%sActionIcons:%d:%d:0:0:320:64:%d:%d:0:64|t"):format(T.MEDIA, size, size, i * 64, (i + 1) * 64)
+end
+
 -- A plate with rivets: "wood" (a wooden plate in bronze, the primary actions) or "stone" (dark stone in iron, the
 -- rest); gold text with a shadow and the action's icon on the left (T.SetActionIcon). Lighter on hover; disabled,
 -- grey and dim. The texture is a 3-slice: its ends keep their shape, the middle stretches.

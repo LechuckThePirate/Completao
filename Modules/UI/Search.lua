@@ -398,6 +398,23 @@ local function getRow(i)
     row.xp:SetJustifyH("RIGHT")
     row.xp:SetWordWrap(false)
     row.money = T.Text(row, "data", "muted")
+    -- a quest of a chain: a chain icon right after its title, which opens that chain's tree
+    row.chain = CreateFrame("Button", nil, row)
+    row.chain:SetSize(14, 14)
+    row.chain.tex = row.chain:CreateTexture(nil, "ARTWORK")
+    row.chain.tex:SetAllPoints()
+    T.SetActionIcon(row.chain.tex, "chain")
+    row.chain:SetScript("OnClick", function(self)
+        local q = self:GetParent().quest
+        if q and q.entryId then ns.UI_OpenQuest(q.entryId, q.id) end
+    end)
+    row.chain:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(L["View chain"])
+        GameTooltip:Show()
+    end)
+    row.chain:SetScript("OnLeave", GameTooltip_Hide)
+    row.chain:Hide()
     row.money:SetJustifyH("RIGHT")
     row.money:SetWordWrap(false)
     row.icons = {}
@@ -781,6 +798,16 @@ local function fillRow(row, i, y, focusTag)
         row:SetBackdropBorderColor(0, 0, 0, 0)
     end
     row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
+    -- the chain icon goes right after the title (which gives it room when it is cut)
+    local chained = q.entryId ~= nil and ns.IsInChain(q)
+    row.chain:SetShown(chained)
+    if chained then
+        row.name:SetWidth(math.max(20, cols.name - 18))
+        row.chain:ClearAllPoints()
+        row.chain:SetPoint("LEFT", row, "LEFT", cols.nameX + math.min(row.name:GetStringWidth(), cols.name - 18) + 3, 0)
+    else
+        row.name:SetWidth(cols.name)
+    end
     row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
     row.level:SetText(q.level or q.minLevel or "?")
     row.whereText = f.whereText

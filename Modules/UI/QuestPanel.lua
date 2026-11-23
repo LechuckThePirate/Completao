@@ -396,7 +396,9 @@ local function render()
     local q = current
     local status = ns.QuestStatus(q)
     local c = ns.STATUS_COLORS[status]
-    detail.title:SetText(ns.QuestTitle(q.id, q.name))
+    -- a quest of a chain: a chain icon after its title, a link to that chain's tree
+    local chained = q.entryId ~= nil and ns.IsInChain(q)
+    detail.title:SetText(ns.QuestTitle(q.id, q.name) .. (chained and ("  |Hcompletao:chain|h" .. T.ActionIconText("chain", 18) .. "|h") or ""))
     detail.meta:SetTextColor(inkRGB(c[1], c[2], c[3])) -- the status says its color
     local meta = { ns.STATUS_LABELS[status] }
     local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
@@ -507,6 +509,18 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     detail.page = CreateFrame("Frame", nil, detail)
     detail.page:SetPoint("TOPLEFT", 6, -30)
     T.Parchment(detail.page, "BACKGROUND", 2, true)
+    -- the chain icon after the title: a click opens the quest's chain
+    detail.page:SetHyperlinksEnabled(true)
+    detail.page:SetScript("OnHyperlinkClick", function(_, link)
+        if link == "completao:chain" and current and current.entryId then ns.UI_OpenQuest(current.entryId, current.id) end
+    end)
+    detail.page:SetScript("OnHyperlinkEnter", function(self, link)
+        if link ~= "completao:chain" then return end
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:SetText(L["View chain"])
+        GameTooltip:Show()
+    end)
+    detail.page:SetScript("OnHyperlinkLeave", GameTooltip_Hide)
 
     detail.title = T.Text(detail.page, "title", "ink")
     detail.title:SetShadowOffset(0, 0)

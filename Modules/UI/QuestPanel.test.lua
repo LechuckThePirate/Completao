@@ -287,6 +287,26 @@ describe("QuestPanel", function()
         assert.matches("Elite: recommended with a group", panelText())
     end)
 
+    it("a quest of a chain has a chain icon after its title, a link that opens the chain's tree", function()
+        local chained, loose
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if ns.IsInChain(q) then chained = chained or q else loose = loose or q end
+        end
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local function title()
+            return WowMock.Find(function(f) return f._parent == detail.page and f._kind == "FontString" and f._set.SetWordWrap end)._text
+        end
+        if loose then
+            ns.Detail_Show(loose)
+            assert.is_nil(title():find("|Hcompletao:chain|h", 1, true))
+        end
+        ns.Detail_Show(chained)
+        assert.matches("|Hcompletao:chain|h", title(), 1, true)
+        detail.page._scripts.OnHyperlinkClick(detail.page, "completao:chain")
+        assert.is_true(ns.UI_InChainView())
+        assert.are.equal(chained.id, ns.Detail_Current().id)
+    end)
+
     it("where it starts and ends: a pin instead of the coordinates, and a click on it marks the spot on the map", function()
         local q = ns.FindQuestDef(166)
         assert.is_true(q.start.x > 0)
@@ -294,7 +314,7 @@ describe("QuestPanel", function()
         local text = panelText()
         assert.is_nil(text:find(("(%.1f, %.1f)"):format(q.start.x, q.start.y), 1, true))
         assert.matches("|Hcompletao:pin:1|h", text, 1, true)
-        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick end)
+        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick and f._parent and f._parent._kind == "ScrollFrame" end)
         content._scripts.OnHyperlinkClick(content, "completao:pin:1")
         assert.are.equal((q.start.npc or "Starts") .. "@" .. tostring(q.start.x), maps[#maps])
     end)

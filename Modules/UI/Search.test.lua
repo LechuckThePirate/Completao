@@ -290,6 +290,22 @@ describe("Search", function()
         assert.is_true(ShownRows()[1].money:IsShown())
     end)
 
+    it("a quest of a chain has a chain icon right after its title, which opens the chain's tree", function()
+        ns.UI_SetSearchMode(true, "search")
+        local chainedRow, looseRow
+        for _, r in ipairs(ShownRows()) do
+            if r.entry and ns.IsInChain(r.quest) then chainedRow = chainedRow or r else looseRow = looseRow or r end
+        end
+        assert.is_not_nil(chainedRow)
+        assert.is_true(chainedRow.chain:IsShown())
+        if looseRow then assert.is_false(looseRow.chain:IsShown()) end
+        local id = chainedRow.quest.id
+        chainedRow.chain:Click()
+        assert.is_false(ns.UI_IsSearchMode())
+        assert.is_true(ns.UI_InChainView())
+        assert.are.equal(id, ns.Detail_Current().id)
+    end)
+
     it("remembers the table's order between sessions", function()
         panel.head.dist:Click()
         panel.head.dist:Click() -- distance, reversed

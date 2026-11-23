@@ -563,6 +563,67 @@ describe("MainWindow", function()
         assert.matches("NodeGold$", ShownNodes()[parent].frameFile)
     end)
 
+    describe("the tree on the whole screen", function()
+        it("takes the screen without the side panel, the list or the hint, and goes back as it was", function()
+            ns.UI.viewSwitch.list:Click() -- even from the List view: it is always the tree
+            local before = ns.UI:GetPoint(1)
+            ns.UI.fullButton:Click()
+            assert.is_true(ns.UI_IsTreeFullscreen())
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            assert.is_false(ns.UI.searchPanel:IsShown())
+            assert.is_false(ns.UI.listScroll:IsShown())
+            assert.is_false(ns.UI.collapseButton:IsShown())
+            assert.is_false(ns.UI.viewSwitch:IsShown())
+            assert.is_true(ns.UI.filtersButton:IsShown()) -- the toolbar stays
+            local x
+            for _, p in ipairs(ns.UI.treeScroll._points) do if p[1] == "TOPLEFT" then x = p[#p - 1] end end
+            assert.are.equal(10, x) -- the tree starts at the window's left edge
+            ns.UI.fullButton:Click()
+            assert.is_false(ns.UI_IsTreeFullscreen())
+            assert.are.equal(before, (ns.UI:GetPoint(1))) -- where it was
+            assert.are.equal(1, ns.UI:GetNumPoints()) -- and one anchor again, not stretched over the screen
+            assert.is_true(ns.UI.listScroll:IsShown())
+            assert.is_true(ns.UI_IsListMode())
+        end)
+
+        it("closing the window leaves the full screen", function()
+            ns.UI_SetTreeFullscreen(true)
+            ns.UI:Hide()
+            assert.is_false(ns.UI_IsTreeFullscreen())
+        end)
+    end)
+
+    it("a drag that starts on a quest moves the view, and its release is no click", function()
+        ns.UI_Refresh()
+        local id, node = next((ShownNodes()))
+        node._scripts.OnMouseDown(node, "LeftButton")
+        node._scripts.OnDragStart(node)
+        node._scripts.OnDragStop(node)
+        node._scripts.OnClick(node, "LeftButton") -- the release
+        assert.is_nil(ns.Detail_Current())
+        node._scripts.OnMouseDown(node, "LeftButton") -- a press without moving is a click
+        node._scripts.OnClick(node, "LeftButton")
+        assert.are.equal(id, ns.Detail_Current().id)
+    end)
+
+    it("a tree smaller than the view sits in its middle", function()
+        local scroll = ns.UI.treeScroll
+        local holder = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)
+        local canvas = WowMock.Find(function(f) return f._parent == holder and f._kind == "Frame" end)
+        scroll:SetSize(800, 600)
+        canvas:SetSize(400, 200)
+        ns.UI_SetZoom(1)
+        assert.are.equal(800, holder:GetWidth())
+        local _, _, _, x, y = canvas:GetPoint(1)
+        assert.are.equal(200, x)
+        assert.are.equal(-200, y)
+        canvas:SetSize(1200, 900) -- bigger than the view: from the top-left corner
+        ns.UI_SetZoom(1)
+        _, _, _, x, y = canvas:GetPoint(1)
+        assert.are.equal(0, x)
+        assert.are.equal(0, y)
+    end)
+
     describe("Chains only, and the Tree | List switch", function()
         local function loose()
             for _, q in ipairs(ns.entries.vc.quests) do

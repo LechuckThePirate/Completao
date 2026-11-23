@@ -43,8 +43,12 @@ local function sideW() return collapsed() and COLLAPSED_W or LIST_W end
 -- the main area takes its room (SCROLL_W) instead of leaving a gap. Set by refreshList, which knows the list's
 -- height.
 local SCROLL_W = 22
+local fullscreen = false -- the tree on the whole screen (ns.UI_SetTreeFullscreen)
 local sideScrolls = false
-local function mainLeft() return sideW() + 30 - (sideScrolls and 0 or SCROLL_W) end
+local function mainLeft()
+    if fullscreen then return 14 end -- no side panel
+    return sideW() + 30 - (sideScrolls and 0 or SCROLL_W)
+end
 local function treeLeft() return mainLeft() - 4 end
 local treeBarUpdate -- re-checks whether the tree needs its scroll bar (see createFrame)
 -- wide enough by default for the side panel, the tree and the quest drawer side by side
@@ -57,10 +61,20 @@ local frame, canvas, emptyText
 -- The scroll child. The canvas inside it is scaled by the zoom, but the client limits the scroll to the
 -- child's own size (it ignores the scale), so the holder is kept at the size the canvas has on screen.
 local holder
+-- A tree smaller than the view sits in its middle: the holder is at least as big as the view, with the canvas
+-- centered in it (offX, offY: where the canvas starts, in the view's units). Bigger, it starts at the top-left.
+local offX, offY = 0, 0
 local function syncHolder()
     if not holder then return end
     local scale = canvas:GetScale() or 1
-    holder:SetSize(math.max(1, canvas:GetWidth() * scale), math.max(1, canvas:GetHeight() * scale))
+    local cw, ch = canvas:GetWidth() * scale, canvas:GetHeight() * scale
+    local view = frame and frame.treeScroll
+    local w = math.max(cw, view and view:GetWidth() or 0)
+    local h = math.max(ch, view and view:GetHeight() or 0)
+    holder:SetSize(math.max(1, w), math.max(1, h))
+    offX, offY = (w - cw) / 2, (h - ch) / 2
+    canvas:ClearAllPoints()
+    canvas:SetPoint("TOPLEFT", holder, "TOPLEFT", offX / scale, -offY / scale)
 end
 local openedWithLog = false -- the quest log opened the window (see the end)
 -- Global search (Search.lua): with searchMode, the main area shows the form and the results table
@@ -105,6 +119,11 @@ local function showNodeTooltip(btn)
 end
 
 local function onNodeClick(self, button)
+    -- the release that ends a drag of the view is no click
+    if self.dragged then
+        self.dragged = false
+        return
+    end
     if button == "RightButton" then
         ns.QuestMenu(self, self.quest)
         return
@@ -178,6 +197,11 @@ local function getNodeButton(i)
         end)
         icon:SetScript("OnLeave", GameTooltip_Hide)
         icon:SetScript("OnClick", function(self, button) onNodeClick(self:GetParent(), button) end)
+        -- a drag from the icon is a drag of the whole quest: it moves the view
+        icon:RegisterForDrag("LeftButton")
+        icon:SetScript("OnMouseDown", function(self) self:GetParent().dragged = false end)
+        icon:SetScript("OnDragStart", function(self) self:GetParent():GetScript("OnDragStart")(self:GetParent()) end)
+        icon:SetScript("OnDragStop", function() if frame.stopPan then frame.stopPan() end end)
         icon:Hide()
         b.icons[k] = icon
     end
@@ -197,6 +221,15 @@ local function getNodeButton(i)
     b:SetScript("OnLeave", GameTooltip_Hide)
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:SetScript("OnClick", onNodeClick)
+    -- dragging from a quest moves the view, as from the background; the release that ends it is no click
+    b:RegisterForDrag("LeftButton")
+    b:SetScript("OnMouseDown", function(self) self.dragged = false end)
+    b:SetScript("OnDragStart", function(self)
+        self.dragged = true
+        GameTooltip:Hide()
+        if frame.startPan then frame.startPan() end
+    end)
+    b:SetScript("OnDragStop", function() if frame.stopPan then frame.stopPan() end end)
     nodeButtons[i] = b
     return b
 end
@@ -248,7 +281,7 @@ local focusChain
 -- "List" (Tree | List in the toolbar, saved per character): the entry's quests in the table instead of the tree. The
 -- chain view is always a tree.
 local function listMode()
-    return ns.char ~= nil and ns.char.entryView == "list" and not focusChain
+    return ns.char ~= nil and ns.char.entryView == "list" and not focusChain and not fullscreen
 end
 
 -- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
@@ -896,7 +929,7 @@ local function refreshList()
 
     -- expanded, the panel collapses with the double arrow in its top-right corner; collapsed (that corner is under the
     -- emblem), it expands with the first icon of the strip
-    frame.collapseButton:SetShown(not narrow)
+    frame.collapseButton:SetShown(not narrow and not fullscreen)
     sideToggle:SetShown(narrow)
     if narrow then
         sideToggle:ClearAllPoints()
@@ -1045,7 +1078,9 @@ function ns.UI_Refresh()
     local d = ns.entries[selectedId]
     if focusChain and not d then focusChain = nil end
     local list = listMode()
-    for _, w in ipairs(treeWidgets) do w:SetShown(not list or w.keepInList == true) end
+    for _, w in ipairs(treeWidgets) do
+        w:SetShown((not list or w.keepInList == true) and not (fullscreen and w.hideFull))
+    end
     frame.viewSwitch.Update()
     if frame.chainBack:IsShown() ~= (focusChain ~= nil) then
         frame.chainBack:SetShown(focusChain ~= nil)
@@ -1084,6 +1119,41 @@ function ns.UI_SetEntryView(kind)
     ns.char.entryView = kind == "list" and "list" or nil
     focusChain = nil
     ns.UI_Refresh()
+end
+
+-- The tree on the whole screen: the window takes the screen, with no side panel, list or hints; the toolbar stays (the
+-- filters, and the way back from a chain). Again (or closing the window) puts it back as it was.
+function ns.UI_SetTreeFullscreen(on)
+    if not frame then return end
+    on = on and true or false
+    if on == fullscreen then return end
+    if on then
+        if frame.minimized then ns.UI_SetMinimized(false) end
+        local point, _, relPoint, x, y = frame:GetPoint()
+        frame.beforeFull = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight() }
+        searchMode = false
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 16, -16)
+        frame:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -16, 16)
+    else
+        local g = frame.beforeFull
+        frame:ClearAllPoints()
+        if g then
+            frame:SetSize(g.w, g.h)
+            frame:SetPoint(g.point, UIParent, g.relPoint, g.x, g.y)
+        else
+            frame:SetSize(DEFAULT_W, DEFAULT_H)
+            frame:SetPoint("CENTER")
+        end
+    end
+    fullscreen = on
+    T.SetGlyph(frame.fullButton, on and "collapse" or "expand")
+    ns.UI_ApplySideWidth()
+    ns.UI_Refresh()
+end
+
+function ns.UI_IsTreeFullscreen()
+    return fullscreen
 end
 
 -- The List view is on show (the tree's area holds the table).
@@ -1343,7 +1413,9 @@ local function createFrame()
     end
     frame:EnableMouse(true)
     frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", frame.StartMoving)
+    frame:SetScript("OnDragStart", function(self)
+        if not fullscreen then self:StartMoving() end -- on the whole screen it stays put
+    end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         saveGeometry()
@@ -1355,6 +1427,7 @@ local function createFrame()
         if clickThrough then setClickThrough(false) end
         openedWithLog = false
         if self.minimized then ns.UI_SetMinimized(false) end -- opens whole next time
+        if fullscreen then ns.UI_SetTreeFullscreen(false) end -- and at its own size
     end)
     frame:Hide()
 
@@ -1816,6 +1889,10 @@ local function createFrame()
 
     -- everything that starts where the side panel ends moves with it when it collapses or expands
     function ns.UI_ApplySideWidth()
+        -- on the whole screen, no side panel
+        listScroll:SetShown(not fullscreen)
+        sideBg:SetShown(not fullscreen)
+        sideLine:SetShown(not fullscreen)
         toolbarLeft = mainLeft()
         placeSide()
         placeRight()
@@ -1836,6 +1913,8 @@ local function createFrame()
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
     treeWidgets[#treeWidgets + 1] = frame.filtersButton
     treeWidgets[#treeWidgets + 1] = frame.viewSwitch
+    -- hidden with the tree on the whole screen: the hint and the Tree | List switch (it is always the tree there)
+    hint.hideFull, frame.viewSwitch.hideFull = true, true
     -- kept in the List view: the title, the search box, the filters and the Tree | List switch
     frame.header.keepInList, searchBox.keepInList, frame.filtersButton.keepInList, frame.viewSwitch.keepInList = true, true, true, true
 
@@ -1845,7 +1924,7 @@ local function createFrame()
     syncHolder()
 
     local function maxScroll(self)
-        return math.max(0, canvas:GetWidth() * zoom - self:GetWidth()), math.max(0, canvas:GetHeight() * zoom - self:GetHeight())
+        return math.max(0, holder:GetWidth() - self:GetWidth()), math.max(0, holder:GetHeight() - self:GetHeight())
     end
     local function scrollTo(self, x, y)
         local maxX, maxY = maxScroll(self)
@@ -1872,7 +1951,7 @@ local function createFrame()
     function frame.scrollToQuest(id)
         local p = nodePos[id]
         if not p then return end
-        local cx, cy = (p.x + NODE_W / 2) * zoom, (p.y + NODE_H / 2) * zoom
+        local cx, cy = offX + (p.x + NODE_W / 2) * zoom, offY + (p.y + NODE_H / 2) * zoom
         scrollTo(treeScroll, cx - treeScroll:GetWidth() / 2, cy - treeScroll:GetHeight() / 2)
     end
 
@@ -1881,13 +1960,14 @@ local function createFrame()
         newZoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, newZoom))
         if newZoom == zoom then return end
         local x, y = treeScroll:GetHorizontalScroll(), treeScroll:GetVerticalScroll()
-        local contentX, contentY = (x + cx) / zoom, (y + cy) / zoom
+        -- the point of the tree under (cx, cy), in the canvas' own units (the centering margin left out)
+        local contentX, contentY = (x + cx - offX) / zoom, (y + cy - offY) / zoom
         zoom = newZoom
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
         syncHolder()
         treeBarUpdate()
-        scrollTo(treeScroll, contentX * zoom - cx, contentY * zoom - cy)
+        scrollTo(treeScroll, offX + contentX * zoom - cx, offY + contentY * zoom - cy)
         showZoom()
     end
     local function zoomAtCenter(newZoom)
@@ -1932,7 +2012,7 @@ local function createFrame()
 
     -- Zoom controls in the tree's bottom-right corner: center, -, the zoom (a click goes back to 100 %), +.
     local zoomBar = T.CreateStyledFrame(body, "Frame", "slate", "brass")
-    zoomBar:SetSize(4 * 22 + 18, 24)
+    zoomBar:SetSize(5 * 22 + 18, 24)
     zoomBar:SetPoint("BOTTOMRIGHT", treeScroll, "BOTTOMRIGHT", -6, 6)
     zoomBar:SetFrameLevel(treeScroll:GetFrameLevel() + 20)
     local centerButton = T.CreateIconButton(zoomBar, "center", 20, ns.L["Center on my current quest"])
@@ -1960,11 +2040,20 @@ local function createFrame()
     local zoomIn = T.CreateIconButton(zoomBar, "plus", 20, ns.L["Zoom in"])
     zoomIn:SetPoint("LEFT", zoomReset, "RIGHT", 2, 0)
     zoomIn:SetScript("OnClick", function() zoomAtCenter(zoom * ZOOM_STEP) end)
+    -- the tree on the whole screen (and back)
+    local fullButton = T.CreateIconButton(zoomBar, "expand", 20, function()
+        return fullscreen and ns.L["Exit full screen"] or ns.L["Full-screen tree"]
+    end)
+    fullButton:SetPoint("LEFT", zoomIn, "RIGHT", 2, 0)
+    fullButton:SetScript("OnClick", function() ns.UI_SetTreeFullscreen(not fullscreen) end)
+    frame.fullButton = fullButton
+    treeScroll:HookScript("OnSizeChanged", syncHolder) -- a smaller or bigger view centers the tree again
     frame.zoomBar, frame.centerOnCurrent = zoomBar, centerOnCurrent
     treeWidgets[#treeWidgets + 1] = zoomBar
     showZoom()
 
-    -- Drag the background with the left button to move the view.
+    -- Drag with the left button to move the view: from the background, or from a quest (frame.startPan; a press that
+    -- moves is a drag, one that doesn't is the quest's click).
     local dragger = CreateFrame("Frame", nil, treeScroll)
     dragger:Hide()
     dragger:SetScript("OnUpdate", function(self)
@@ -1976,12 +2065,14 @@ local function createFrame()
     end)
     treeScroll:EnableMouse(true)
     treeScroll:RegisterForDrag("LeftButton")
-    treeScroll:SetScript("OnDragStart", function(self)
+    function frame.startPan()
         dragger.startX, dragger.startY = GetCursorPosition()
-        dragger.startH, dragger.startV = self:GetHorizontalScroll(), self:GetVerticalScroll()
+        dragger.startH, dragger.startV = treeScroll:GetHorizontalScroll(), treeScroll:GetVerticalScroll()
         dragger:Show()
-    end)
-    treeScroll:SetScript("OnDragStop", function() dragger:Hide() end)
+    end
+    function frame.stopPan() dragger:Hide() end
+    treeScroll:SetScript("OnDragStart", frame.startPan)
+    treeScroll:SetScript("OnDragStop", frame.stopPan)
     treeScroll:SetScript("OnHide", function() dragger:Hide() end)
 
     emptyText = canvas:CreateFontString(nil, "OVERLAY", "GameFontDisable")

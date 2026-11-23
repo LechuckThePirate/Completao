@@ -8,6 +8,9 @@
 - New: chain trees read top to bottom and draw each quest as a stone plate with a halo in its status color (the one in your log pulses); locked quests show a padlock and stay readable, and connections go gold where you have already been, with an arrow down into each quest. Zoom buttons and "Center on my current quest" sit in the tree's corner.
 - New: a Tree | List switch next to the filters: List shows the entry's quests in a table (status, level, zone, distance, XP, rewards, sortable), handy for big zones; it is remembered per character.
 - New: "Chains only" in the tree's filters hides the loose quests (the ones in your log stay).
+- New: a button in the tree's corner puts the tree on the whole screen, without the side panel or the list; again (or closing the window) puts it back.
+- New: a tree smaller than the view is drawn in its middle, and dragging from a quest moves the view too (a click without moving still opens it).
+- New: quests of a chain show a chain icon after their name, in the tables and in their details; a click on it opens that chain.
 - New: picking a quest of a chain shows that chain alone, with its name in the title; "Back to all quests" returns to the whole tree.
 - New: in a quest's details, where it starts and ends has a map pin to click instead of the coordinates.
 - Changed: next to the quest drawer, the table hides its least needed columns (rewards, money, XP...) so quest titles stay readable.

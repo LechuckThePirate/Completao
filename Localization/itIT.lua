@@ -259,4 +259,6 @@ ns.AddLocale({ "itIT" }, {
     ["List"] = "Elenco",
     ["The quests as chain trees"] = "Le missioni come alberi di catene",
     ["The quests as a list, like the search"] = "Le missioni come elenco, come la ricerca",
+    ["Full-screen tree"] = "Albero a schermo intero",
+    ["Exit full screen"] = "Esci dallo schermo intero",
 })

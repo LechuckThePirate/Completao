@@ -9,6 +9,7 @@ local T = ns.Theme
 -- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
 -- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
+local GROUP_H, GROUP_GAP = 28, 8 -- a group's header row, and the space above it (but the first one)
 local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 190
 local MAX_ROWS = 300
 
@@ -742,15 +743,27 @@ local function getGroupRow()
     local row = groupRows[groupsUsed]
     if row then return row end
     row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
-    row:SetHeight(ROW_H)
+    row:SetHeight(GROUP_H)
     row:SetBackdrop(BACKDROP)
-    T.Style(row, "slate", "brass")
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    row.toggle = row:CreateTexture(nil, "ARTWORK")
+    -- a band of parchment, as the table's header, with a dark brass frame and a sienna bar on its left: nothing
+    -- else in the table looks like it
+    T.Style(row, "obsidian", "gold")
+    row.band = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.band:SetTexture(T.MEDIA .. "ParchmentBar")
+    row.band:SetPoint("TOPLEFT", 1, -1)
+    row.band:SetPoint("BOTTOMRIGHT", -1, 1)
+    row.mark = row:CreateTexture(nil, "ARTWORK")
+    row.mark:SetPoint("TOPLEFT", 1, -1)
+    row.mark:SetPoint("BOTTOMLEFT", 1, 1)
+    row.mark:SetWidth(4)
+    row.mark:SetColorTexture(T.rgba("sienna"))
+    row:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.12)
+    row.toggle = CreateFrame("Frame", nil, row)
     row.toggle:SetSize(14, 14)
-    row.toggle:SetPoint("LEFT", 5, 0)
-    row.text = T.Text(row, "heading", "gold")
-    row.text:SetPoint("LEFT", 24, 0)
+    row.toggle:SetPoint("LEFT", 12, 0)
+    row.text = T.Text(row, "title", "ink")
+    row.text:SetPoint("LEFT", 32, 0)
     row.text:SetPoint("RIGHT", -6, 0)
     row.text:SetJustifyH("LEFT")
     row.text:SetWordWrap(false)
@@ -764,8 +777,8 @@ end
 
 local function fillGroupRow(row, g, y)
     row.fold, row.group = g.fold, g.key
-    row.toggle:SetTexture(folded[g.fold] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-    row.text:SetText(("%s  |cffa0a0a0(%d)|r"):format(g.name, g.last - g.first + 1))
+    T.SetGlyph(row.toggle, folded[g.fold] and "chevronRight" or "chevronDown", "CENTER", 0, 0, "ink")
+    row.text:SetText(("%s  |cff5a3e22(%d)|r"):format(g.name, g.last - g.first + 1))
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", 0, -y)
     row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
@@ -868,8 +881,9 @@ function draw()
         -- the log views: a few quests, each with its steps under it, and the row of each group above its quests
         for _, g in ipairs(#groups > 0 and groups or { { first = 1, last = shown } }) do
             if g.fold and g.first <= shown then
+                if height > 0 then height = height + GROUP_GAP end -- air above every group but the first
                 fillGroupRow(getGroupRow(), g, height)
-                height = height + ROW_H
+                height = height + GROUP_H + 2
             end
             if not (g.fold and folded[g.fold]) then
                 for i = g.first, math.min(g.last, shown) do

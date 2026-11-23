@@ -461,6 +461,22 @@ describe("Search", function()
             assert.are.same({ "# Other", 999997, 999999, 999998 }, { shown[3], shown[4], shown[5], shown[6] })
         end)
 
+        it("a group's header stands out: taller than a quest row, on a parchment band, with air above all but the first", function()
+            groupBy("Zone")
+            local headers = WowMock.FindAll(function(f) return f:IsShown() and f.fold end)
+            assert.is_true(#headers >= 2)
+            table.sort(headers, function(a, b) return select(3, a:GetPoint(1)) > select(3, b:GetPoint(1)) end)
+            for _, h in ipairs(headers) do
+                assert.is_true(h._h > 22) -- taller than a row
+                assert.matches("ParchmentBar$", h.band._set.SetTexture[1])
+                assert.is_true(h.mark:IsShown())
+            end
+            -- the second header leaves a gap after the quests above it that the first one does not
+            local firstY, secondY = select(3, headers[1]:GetPoint(1)), select(3, headers[2]:GetPoint(1))
+            assert.are.equal(0, firstY)
+            assert.is_true(-secondY > 28 + 22 + 8) -- header + a quest row + the gap, at least
+        end)
+
         it("a click on a group folds it and another unfolds it", function()
             groupBy("Zone")
             local row = WowMock.Find(function(f) return f:IsShown() and f.fold and f.group == "Ashenvale" end)

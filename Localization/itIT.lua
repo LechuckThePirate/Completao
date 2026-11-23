@@ -252,4 +252,11 @@ ns.AddLocale({ "itIT" }, {
     ["Abandon"] = "Abbandona",
     ["Unfocus"] = "Rilascia",
     ["Back to all quests"] = "Torna a tutte",
+    ["Chains only"] = "Solo catene",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
+        "Nasconde le missioni isolate, quelle che nessuna missione della zona precede o segue; quelle del tuo registro restano.",
+    ["Tree"] = "Albero",
+    ["List"] = "Elenco",
+    ["The quests as chain trees"] = "Le missioni come alberi di catene",
+    ["The quests as a list, like the search"] = "Le missioni come elenco, come la ricerca",
 })

@@ -6,6 +6,8 @@
 - New: the side panel puts the four views first, each with a count (quests in the log, tracked, ready to turn in), and a filter box to find a zone, dungeon or class by name; every entry shows a thin bar of how much of it is done.
 - New: a quest's details open in a drawer on the right, on parchment, so the table or the tree stays in sight beside it; its actions are plates with one word and an icon (Focus, Waypoint, Chain, Open, Map, Abandon), the full action in their tooltip.
 - New: chain trees read top to bottom and draw each quest as a stone plate with a halo in its status color (the one in your log pulses); locked quests show a padlock and stay readable, and connections go gold where you have already been, with an arrow down into each quest. Zoom buttons and "Center on my current quest" sit in the tree's corner.
+- New: a Tree | List switch next to the filters: List shows the entry's quests in a table (status, level, zone, distance, XP, rewards, sortable), handy for big zones; it is remembered per character.
+- New: "Chains only" in the tree's filters hides the loose quests (the ones in your log stay).
 - New: picking a quest of a chain shows that chain alone, with its name in the title; "Back to all quests" returns to the whole tree.
 - New: in a quest's details, where it starts and ends has a map pin to click instead of the coordinates.
 - Changed: next to the quest drawer, the table hides its least needed columns (rewards, money, XP...) so quest titles stay readable.

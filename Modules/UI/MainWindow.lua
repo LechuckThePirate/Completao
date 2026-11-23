@@ -214,6 +214,12 @@ local searchBox
 -- goes back to the whole tree.
 local focusChain
 
+-- "List" (Tree | List in the toolbar, saved per character): the entry's quests in the table instead of the tree. The
+-- chain view is always a tree.
+local function listMode()
+    return ns.char ~= nil and ns.char.entryView == "list" and not focusChain
+end
+
 -- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
 -- data: size (number of quests), allDone (all done; loose done quests included), started (some done or in
 -- the log), allLow (all low level) and headsTooHigh (every quest the chain starts with -- those with no
@@ -349,6 +355,8 @@ local function makeFilter(d)
         if not ns.QuestVisible(q, d) then return false end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
+        -- "Chains only": the quests no quest of the entry leads to or follows are left out (the ones in the log stay)
+        if f.chainsOnly and not onQuest and not ns.IsInChain(q) then return false end
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
         if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
         -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
@@ -716,6 +724,18 @@ local function getHeaderButton(i)
     b.icon = b:CreateTexture(nil, "ARTWORK")
     b.icon:SetSize(16, 16)
     b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    -- a thin frame of ink around the icon, as if drawn on the page
+    b.iconFrame = b:CreateTexture(nil, "BORDER")
+    b.iconFrame:SetPoint("TOPLEFT", b.icon, "TOPLEFT", -1, 1)
+    b.iconFrame:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, -1)
+    b.iconFrame:SetColorTexture(T.rgba("ink", 0.85))
+    -- collapsed: the section you are on gets a sienna bar on its left
+    b.mark = b:CreateTexture(nil, "ARTWORK")
+    b.mark:SetPoint("TOPLEFT")
+    b.mark:SetPoint("BOTTOMLEFT")
+    b.mark:SetWidth(3)
+    b.mark:SetColorTexture(T.rgba("sienna"))
+    b.mark:Hide()
     b.text = T.Text(b, "heading", "ink")
     b:SetScript("OnClick", onHeaderClick)
     b:SetScript("OnEnter", showSideTooltip)
@@ -858,14 +878,18 @@ local function refreshList()
         h.text:ClearAllPoints()
         if narrow then
             h.icon:SetPoint("CENTER", 0, 0)
-            -- the section of the entry you are on
+            h.icon:SetSize(22, 22)
+            -- the section of the entry you are on: a darker band and the sienna bar, on the parchment itself
             local on = current and current.category == cat.id and not searchMode
-            h:SetBackdropColor(T.rgba(on and "card" or "slate"))
-            h:SetBackdropBorderColor(T.rgba(on and "gold" or "brass"))
+            h:SetBackdropColor(0, 0, 0, on and 0.14 or 0)
+            h:SetBackdropBorderColor(0, 0, 0, 0)
+            h.mark:SetShown(on)
             h.divider:Hide()
             T.SetGlyph(h, nil)
         else
             h.icon:SetPoint("LEFT", 6, 0)
+            h.icon:SetSize(16, 16)
+            h.mark:Hide()
             h.text:SetPoint("LEFT", 28, 0)
             h:SetBackdropColor(T.rgba("slate", 0))
             h:SetBackdropBorderColor(0, 0, 0, 0)
@@ -928,15 +952,17 @@ function ns.UI_Refresh()
     if searchMode then
         for _, w in ipairs(treeWidgets) do w:Hide() end
         frame.chainBack:Hide()
+        frame.placeSearchPanel()
         frame.searchPanel:Show()
         ns.Search_Refresh()
         ns.Detail_Layout() -- with a quest's panel open, the table ends above it
         return
     end
-    frame.searchPanel:Hide()
-    for _, w in ipairs(treeWidgets) do w:Show() end
     local d = ns.entries[selectedId]
     if focusChain and not d then focusChain = nil end
+    local list = listMode()
+    for _, w in ipairs(treeWidgets) do w:SetShown(not list or w.keepInList == true) end
+    frame.viewSwitch.Update()
     if frame.chainBack:IsShown() ~= (focusChain ~= nil) then
         frame.chainBack:SetShown(focusChain ~= nil)
         frame.layoutToolbar() -- it takes its place in the toolbar, or gives it back
@@ -944,8 +970,41 @@ function ns.UI_Refresh()
     -- in the chain view the title says which chain: its first quest
     local head = focusChain and chainHead(d, focusChain)
     frame.header:SetText(d and (ns.EntryName(d) .. (head and ("  -  " .. ns.QuestTitle(head.id, head.name)) or "")) or "")
+    frame.placeSearchPanel()
+    if list then
+        -- the List view: the entry's quests in the table, under the toolbar
+        frame.searchPanel:Show()
+        if ns.Search_Mode() ~= "entry" then ns.Search_SetMode("entry") else ns.Search_Refresh() end
+        ns.Detail_Layout()
+        ns.Detail_Refresh()
+        return
+    end
+    frame.searchPanel:Hide()
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
+end
+
+-- The quests of the entry on show that its filters let through: the List view's rows (Search.lua).
+function ns.UI_EntryQuests()
+    local d = ns.entries[selectedId]
+    if not d then return {} end
+    local visible, out = makeFilter(d), {}
+    for _, q in ipairs(d.quests) do
+        if visible(q) then out[#out + 1] = { quest = q, entry = d } end
+    end
+    return out
+end
+
+-- Tree | List (the toolbar's switch): saved per character; picking one leaves the chain view.
+function ns.UI_SetEntryView(kind)
+    ns.char.entryView = kind == "list" and "list" or nil
+    focusChain = nil
+    ns.UI_Refresh()
+end
+
+-- The List view is on show (the tree's area holds the table).
+function ns.UI_IsListMode()
+    return frame ~= nil and not searchMode and listMode()
 end
 
 -- Collapses the side panel to its icons (or expands it back); remembered with the settings.
@@ -1466,6 +1525,8 @@ local function createFrame()
                 tip = ns.L["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] },
             { key = "otherFaction", label = ns.L["Show other faction"],
                 tip = ns.L["Shows the quests and zones of the opposite faction, hidden by default."] },
+            { key = "chainsOnly", label = ns.L["Chains only"],
+                tip = ns.L["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] },
         },
         get = function(key) return ns.char.filters[key] end,
         set = function(key, on) ns.char.filters[key] = on end,
@@ -1477,6 +1538,40 @@ local function createFrame()
     toolbarItems[#toolbarItems + 1] = { frame = filtersButton, w = 110, h = 24, dy = 1 }
     frame.filtersButton, frame.filtersMenu, frame.clearFilters = filtersButton, filtersButton.menu, filtersButton.clear
     frame.updateFilters = filtersButton.Update
+
+    -- Tree | List: how the entry's quests are shown (saved per character); the chain view is always a tree
+    local switchBox = CreateFrame("Frame", nil, body)
+    switchBox:SetSize(128, 22)
+    local function viewButton(kind, label, tip, x)
+        local b = CreateFrame("Button", nil, switchBox, "BackdropTemplate")
+        b:SetSize(64, 22)
+        b:SetPoint("LEFT", x, 0)
+        b.kind, b.tip = kind, tip
+        b.text = T.Text(b, "small")
+        b.text:SetPoint("CENTER")
+        b.text:SetText(label)
+        b:SetScript("OnClick", function() ns.UI_SetEntryView(kind) end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+            GameTooltip:SetText(self.tip)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", GameTooltip_Hide)
+        return b
+    end
+    switchBox.tree = viewButton("tree", ns.L["Tree"], ns.L["The quests as chain trees"], 0)
+    switchBox.list = viewButton("list", ns.L["List"], ns.L["The quests as a list, like the search"], 64)
+    function switchBox.Update()
+        local list = listMode()
+        for _, b in ipairs({ switchBox.tree, switchBox.list }) do
+            local on = (b.kind == "list") == list
+            T.Style(b, on and "card" or "obsidian", on and "gold" or "brass")
+            b.text:SetTextColor(T.rgba(on and "gold" or "muted"))
+        end
+    end
+    switchBox.Update()
+    toolbarItems[#toolbarItems + 1] = { frame = switchBox, w = 128, h = 24, dy = 1 }
+    frame.viewSwitch = switchBox
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
     local hint = T.Text(body, "small", "locked")
@@ -1514,8 +1609,10 @@ local function createFrame()
         b.mark:SetWidth(3)
         b.mark:SetColorTexture(T.rgba("sienna"))
         local tex = b:CreateTexture(nil, "ARTWORK")
-        tex:SetSize(14, 14)
+        tex:SetSize(16, 16)
         tex:SetTexture(icon)
+        -- the magnifier is white: in ink, like the writing around it
+        if kind == "search" then tex:SetVertexColor(T.rgba("ink")) end
         local text = T.Text(b, "heading", "ink")
         text:SetPoint("LEFT", tex, "RIGHT", 7, 0)
         text:SetText(label)
@@ -1559,8 +1656,13 @@ local function createFrame()
     sideToggle:SetScript("OnLeave", GameTooltip_Hide)
 
     frame.searchPanel = ns.Search_Create(body)
-    frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
-    frame.searchPanel:SetPoint("BOTTOMRIGHT", -(8 + drawerInset()), 30)
+    -- the table: under the title in the search and log views; under the tree's toolbar in an entry's List view
+    function frame.placeSearchPanel()
+        frame.searchPanel:ClearAllPoints()
+        frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -((not searchMode and listMode()) and (ns.TREE_TOP or top) or top))
+        frame.searchPanel:SetPoint("BOTTOMRIGHT", -(8 + drawerInset()), 30)
+    end
+    frame.placeSearchPanel()
 
     local treeScroll = CreateFrame("ScrollFrame", nil, body, "UIPanelScrollFrameTemplate")
     treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
@@ -1599,6 +1701,7 @@ local function createFrame()
         local h = ns.FlowLayout(body, toolbarItems, toolbarLeft, top + 28, width, 10, 2, true)
         ns.TREE_TOP = top + 28 + h + 8
         treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
+        frame.placeSearchPanel()
         ns.Detail_Layout()
     end
     layoutToolbar()
@@ -1622,9 +1725,7 @@ local function createFrame()
         placeRight()
         listScroll:SetWidth(sideW() - 22)
         frame.listChild:SetWidth(sideW() - 26)
-        frame.searchPanel:ClearAllPoints()
-        frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
-        frame.searchPanel:SetPoint("BOTTOMRIGHT", -(8 + drawerInset()), 30)
+        frame.placeSearchPanel()
         ns.Detail_SetOffset(treeLeft())
         layoutToolbar()
     end
@@ -1638,6 +1739,9 @@ local function createFrame()
     -- what is hidden while the search is open
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
     treeWidgets[#treeWidgets + 1] = frame.filtersButton
+    treeWidgets[#treeWidgets + 1] = frame.viewSwitch
+    -- kept in the List view: the title, the search box, the filters and the Tree | List switch
+    frame.header.keepInList, searchBox.keepInList, frame.filtersButton.keepInList, frame.viewSwitch.keepInList = true, true, true, true
 
     -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))

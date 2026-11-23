@@ -526,6 +526,79 @@ describe("MainWindow", function()
         end)
     end)
 
+    describe("Chains only, and the Tree | List switch", function()
+        local function loose()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if not ns.IsInChain(q) and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
+        end
+        local function inChain()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if ns.IsInChain(q) and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
+        end
+
+        it("Chains only hides the loose quests and keeps the chains", function()
+            local single, chainQuest = loose(), inChain()
+            assert.is_not_nil(single)
+            ns.UI_Refresh()
+            assert.is_not_nil(ShownNodes()[single.id])
+            ns.char.filters.chainsOnly = true
+            ns.UI_Refresh()
+            assert.is_nil(ShownNodes()[single.id])
+            assert.is_not_nil(ShownNodes()[chainQuest.id])
+            WowMock.onQuest[single.id] = true -- unless it is in the log
+            ns.UI_Refresh()
+            assert.is_not_nil(ShownNodes()[single.id])
+        end)
+
+        it("List shows the entry's quests in the table under the toolbar, and it is remembered", function()
+            ns.UI.viewSwitch.list:Click()
+            assert.are.equal("list", ns.char.entryView)
+            assert.is_true(ns.UI_IsListMode())
+            assert.is_true(ns.UI.searchPanel:IsShown())
+            assert.are.equal("entry", ns.Search_Mode())
+            assert.is_false(ns.UI.treeScroll:IsShown())
+            assert.is_true(ns.UI.filtersButton:IsShown()) -- the toolbar stays
+            local rows = ShownRows()
+            assert.is_true(#rows > 0)
+            for _, r in ipairs(rows) do assert.are.equal("vc", r.entry.id) end
+            ns.UI.viewSwitch.tree:Click()
+            assert.is_nil(ns.char.entryView)
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            assert.is_false(ns.UI.searchPanel:IsShown())
+        end)
+
+        it("the List view follows the filters, and the chain view is a tree; Back goes to the list again", function()
+            ns.UI.viewSwitch.list:Click()
+            ns.char.filters.chainsOnly = true
+            ns.UI_Refresh()
+            local single = loose()
+            for _, r in ipairs(ShownRows()) do assert.are_not.equal(single.id, r.quest.id) end
+            ns.char.filters.chainsOnly = nil
+            local q
+            for _, c in ipairs(ns.entries.vc.quests) do
+                if #ns.ParentsOf(c) > 0 and ns.QuestVisible(c, ns.entries.vc) then q = c break end
+            end
+            ns.UI_OpenQuest("vc", q.id)
+            assert.is_true(ns.UI_InChainView())
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            ns.UI.chainBack:Click()
+            assert.is_true(ns.UI_IsListMode())
+            assert.is_true(ns.UI.searchPanel:IsShown())
+        end)
+
+        it("collapsed, the section you are on is marked on the parchment, with no dark box", function()
+            ns.UI_SetSideCollapsed(true)
+            local h = WowMock.Find(function(f) return f.cat and f.cat.id == "dungeons" and f:IsShown() end)
+            assert.is_true(h.mark:IsShown())
+            assert.are.equal(0, select(4, h:GetBackdropBorderColor()))
+            local other = WowMock.Find(function(f) return f.cat and f.cat.id == "zones" and f:IsShown() end)
+            assert.is_false(other.mark:IsShown())
+            assert.are.equal(0, select(4, other:GetBackdropColor()))
+        end)
+    end)
+
     describe("the chain view", function()
         local function chained()
             for _, q in ipairs(ns.entries.vc.quests) do
@@ -603,8 +676,8 @@ describe("MainWindow", function()
             local _, filtersTo, _, filtersX, filtersY = ns.UI.filtersButton:GetPoint(1)
             assert.are.equal(filtersTo, backTo) -- placed like the toolbar's own controls
             assert.are_not.equal(ns.UI.treeScroll, backTo)
-            assert.are.equal(filtersY, backY) -- on the same line
-            assert.is_true(backX > filtersX) -- after the filters
+            -- after the filters (and the Tree | List switch): on their line, or on the next one when it doesn't fit
+            assert.is_true(backY < filtersY or (backY == filtersY and backX > filtersX))
             ns.UI.chainBack:Click() -- and gone with the chain view
             assert.is_false(ns.UI.chainBack:IsShown())
         end)

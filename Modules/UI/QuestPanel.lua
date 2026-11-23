@@ -462,7 +462,7 @@ local function layout()
         detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -8, 8)
         detail:SetWidth(DRAWER_W)
         -- the tree only belongs to the tree view: under a table (search, log, tracked) it would show through it
-        treeScroll:SetShown(not ns.UI_IsSearchMode())
+        treeScroll:SetShown(not ns.UI_IsSearchMode() and not (ns.UI_IsListMode and ns.UI_IsListMode()))
         treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(right + inset), 30)
     end
     -- the table (search, log, tracked) ends at the drawer too

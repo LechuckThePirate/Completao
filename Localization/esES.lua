@@ -252,4 +252,11 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Abandon"] = "Abandonar",
     ["Unfocus"] = "Desenfocar",
     ["Back to all quests"] = "Volver a todas",
+    ["Chains only"] = "Solo cadenas",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
+        "Oculta las quests sueltas, las que no vienen de otra quest de la zona ni llevan a ninguna; las de tu registro se quedan.",
+    ["Tree"] = "Árbol",
+    ["List"] = "Lista",
+    ["The quests as chain trees"] = "Las quests como árboles de cadenas",
+    ["The quests as a list, like the search"] = "Las quests como lista, igual que la búsqueda",
 })

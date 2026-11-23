@@ -252,4 +252,11 @@ ns.AddLocale({ "deDE" }, {
     ["Abandon"] = "Abbrechen",
     ["Unfocus"] = "Lösen",
     ["Back to all quests"] = "Zurück zu allen",
+    ["Chains only"] = "Nur Questreihen",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
+        "Blendet einzelne Quests aus, die keiner Quest der Zone folgen und zu keiner führen; die in deinem Questlog bleiben.",
+    ["Tree"] = "Baum",
+    ["List"] = "Liste",
+    ["The quests as chain trees"] = "Die Quests als Questreihen-Bäume",
+    ["The quests as a list, like the search"] = "Die Quests als Liste, wie die Suche",
 })

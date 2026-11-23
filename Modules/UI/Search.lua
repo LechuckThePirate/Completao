@@ -174,6 +174,15 @@ local function logQuests(only)
     return found
 end
 
+-- The List view of an entry: its quests that the tree's filters let through (MainWindow.lua gives them).
+local function entryQuests()
+    local found = {}
+    for _, e in ipairs(ns.UI_EntryQuests and ns.UI_EntryQuests() or {}) do
+        found[#found + 1] = { quest = e.quest, entry = e.entry }
+    end
+    return found
+end
+
 -- Whether a quest is in the log, and its title in the client's language. The clients whose C_QuestLog lacks them get
 -- them from QuestLogCompat, which scans the whole log for every quest asked: there the log is read once per search.
 local isOnQuest, titleOf
@@ -648,7 +657,7 @@ local groups = {} -- the last grouping: { key, name, first, last } (indexes into
 local folded = {} -- "<view>:<group by>:<group key>" = true
 
 local function groupBy()
-    if mode == "search" then return "none" end
+    if mode == "search" or mode == "entry" then return "none" end
     local saved = ns.char and ns.char.tableGroup and ns.char.tableGroup[mode]
     return GROUP_LABELS[saved] and saved or "none"
 end
@@ -755,7 +764,7 @@ local function fillRow(row, i, y, focusTag)
         placeRow(row)
         row.placedFor = cols.gen
     end
-    if mode == "search" then
+    if mode == "search" or mode == "entry" then
         setSearchIcon(row.status, q)
     else
         setStatusIcon(row.status, readyToTurnIn(q) and "ready" or "progress")
@@ -821,7 +830,7 @@ function draw()
     end
     local focusTag = ns.FocusTag()
     local used, height = 0, 0
-    if mode == "search" then
+    if mode == "search" or mode == "entry" then
         local first, last = visibleRange(shown)
         for i = first, last do
             used = used + 1
@@ -857,12 +866,16 @@ local function refresh(moved)
     if moved then
         moveGen = moveGen + 1
         -- the log views are short, and their steps follow the player (the spots the game gives): done again
-        if mode ~= "search" then stale = true end
+        if mode ~= "search" and mode ~= "entry" then stale = true end
     end
     if stale or not found then
         stale = false
         readLive()
-        found = groupFound(sortFound(prepare(mode == "search" and search() or logQuests(mode ~= "log" and mode or nil))))
+        local list
+        if mode == "search" then list = search()
+        elseif mode == "entry" then list = entryQuests()
+        else list = logQuests(mode ~= "log" and mode or nil) end
+        found = groupFound(sortFound(prepare(list)))
     elseif moved and sortState().sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
         for _, row in ipairs(rows) do
@@ -987,14 +1000,19 @@ function ns.Search_Create(parent)
         for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
         local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
         -- the log views' "Group by", at the right of the title
-        panel.groupButton:SetShown(mode ~= "search")
-        panel.groupLabel:SetShown(mode ~= "search")
+        local grouped = mode ~= "search" and mode ~= "entry"
+        panel.groupButton:SetShown(grouped)
+        panel.groupLabel:SetShown(grouped)
         panel.groupButton:ClearAllPoints()
         panel.groupButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), 0)
         panel.count:ClearAllPoints()
-        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(28 + h + 6))
         panel.head:ClearAllPoints()
-        panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -(28 + h + 22))
+        -- the entry's list sits under the tree's toolbar (its own title, search and filters): no title of its own, the
+        -- count right above the table
+        panel.title:SetShown(mode ~= "entry")
+        local top = mode == "entry" and 18 or 28 + h + 22
+        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(top - 16))
+        panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -top)
         panel.head:SetPoint("RIGHT", panel, "RIGHT", -barInset, 0)
     end
     panel.typeButton:SetScript("OnClick", function(self)
@@ -1119,7 +1137,7 @@ function ns.Search_Create(parent)
     panel.scroll:SetScript("OnSizeChanged", function() requestRefresh(true) end)
     -- other rows come into view: filled again from the same results
     panel.scroll:HookScript("OnVerticalScroll", function()
-        if panel:IsShown() and mode == "search" then draw() end
+        if panel:IsShown() and (mode == "search" or mode == "entry") then draw() end
     end)
     ns.AutoScrollBar(panel.scroll, function(has)
         barInset = has and 24 or 0
@@ -1159,8 +1177,9 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
-local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In" }
-local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.",
+-- "entry": the quests of the entry on show in the main window, as a table (its "List" view, MainWindow.lua).
+local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In", entry = "" }
+local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.", entry = "No quests match the filters.",
     tracked = "No quests are being tracked.", turnin = "No quests are ready to turn in." }
 
 -- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked;

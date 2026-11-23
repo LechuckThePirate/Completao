@@ -48,17 +48,22 @@ local function inkRGB(r, g, b)
     return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
 end
 
-local function describeLocation(loc)
+-- Where a quest starts or ends: who and in which zone, and, when the spot is known, a pin after it (a link in the
+-- text: a click marks it on the map) instead of the coordinates. pinLinks holds the spots of the text on show.
+local PIN = "|T" .. T.MEDIA .. "ActionIcons:16:16:0:-2:320:64:0:64:0:64|t"
+local pinLinks = {}
+
+local function pinLink(loc, label)
+    if not (loc.x and loc.x > 0 and ns.CanShowMap(loc)) then return "" end
+    pinLinks[#pinLinks + 1] = { loc = loc, label = label }
+    return ("  |Hcompletao:pin:%d|h%s|h"):format(#pinLinks, PIN)
+end
+
+local function describeLocation(loc, label)
     local zone = loc.area and C_Map.GetAreaInfo(loc.area)
-    local where
-    if loc.x and loc.x > 0 then
-        where = ("%s (%.1f, %.1f)"):format(zone or "?", loc.x, loc.y)
-    elseif zone then
-        where = zone
-    else
-        where = L["Inside the instance"]
-    end
-    return loc.npc and (loc.npc .. " - " .. where) or where
+    local where = zone or (loc.x and loc.x > 0 and "?") or L["Inside the instance"]
+    local text = loc.npc and (loc.npc .. " - " .. where) or where
+    return text .. pinLink(loc, loc.npc or label)
 end
 
 -- The quest's steps (ns.QuestSteps, Modules/Quest) for the waypoint button, the map and the panel's list.
@@ -100,6 +105,7 @@ end
 
 local function buildText(q)
     local parts = {}
+    pinLinks = {}
     local function section(title, body)
         parts[#parts + 1] = T.code("gold") .. title .. "|r\n" .. body
     end
@@ -142,16 +148,16 @@ local function buildText(q)
         section(L["Instance"], (inside and ns.EntryName(inside) or "?") .. " -- " .. L["done inside the instance"])
     end
     if q.start then
-        section(L["Starts"], describeLocation(q.start))
+        section(L["Starts"], describeLocation(q.start, L["Starts"]))
     else
         local body = L["Unknown location (it may start inside the instance, or it is not in the database yet)."]
         local entry = ns.entries[q.entryId]
         if entry and entry.entrance then
-            body = body .. "\n" .. L["Instance entrance: %s"]:format(describeLocation(entry.entrance))
+            body = body .. "\n" .. L["Instance entrance: %s"]:format(describeLocation(entry.entrance, L["Instance"]))
         end
         section(L["Starts"], body)
     end
-    if q.finish then section(L["Ends"], describeLocation(q.finish)) end
+    if q.finish then section(L["Ends"], describeLocation(q.finish, L["Ends"])) end
     if q.note then section(L["Notes"], q.note) end
     -- the long description, at the end: the story is read after the practical parts
     local desc = ns.QuestDescription(q)
@@ -534,6 +540,19 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     detail.text:SetJustifyV("TOP")
     detail.text:SetWordWrap(true)
     if detail.text.SetSpacing then detail.text:SetSpacing(2) end
+    -- the pins in the text (where it starts and ends): a click marks the spot on the map
+    detail.content:SetHyperlinksEnabled(true)
+    detail.content:SetScript("OnHyperlinkClick", function(_, link)
+        local pin = pinLinks[tonumber(link:match("^completao:pin:(%d+)$") or 0)]
+        if pin then ns.ShowOnMap(pin.loc, pin.label) end
+    end)
+    detail.content:SetScript("OnHyperlinkEnter", function(self, link)
+        if not link:find("^completao:pin:") then return end
+        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+        GameTooltip:SetText(L["Show on map"])
+        GameTooltip:Show()
+    end)
+    detail.content:SetScript("OnHyperlinkLeave", GameTooltip_Hide)
     detail.scroll:SetScript("OnSizeChanged", function() if current then relayout() end end)
     ns.AutoScrollBar(detail.scroll, function(has)
         scrollBar = has

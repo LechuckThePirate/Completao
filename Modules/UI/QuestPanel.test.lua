@@ -287,6 +287,18 @@ describe("QuestPanel", function()
         assert.matches("Elite: recommended with a group", panelText())
     end)
 
+    it("where it starts and ends: a pin instead of the coordinates, and a click on it marks the spot on the map", function()
+        local q = ns.FindQuestDef(166)
+        assert.is_true(q.start.x > 0)
+        ns.Detail_Show(q)
+        local text = panelText()
+        assert.is_nil(text:find(("(%.1f, %.1f)"):format(q.start.x, q.start.y), 1, true))
+        assert.matches("|Hcompletao:pin:1|h", text, 1, true)
+        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick end)
+        content._scripts.OnHyperlinkClick(content, "completao:pin:1")
+        assert.are.equal((q.start.npc or "Starts") .. "@" .. tostring(q.start.x), maps[#maps])
+    end)
+
     it("on the parchment every color is a dark ink: the section titles in sienna, no light color left", function()
         local q = ns.FindQuestDef(166)
         WowMock.level = 30 -- below the quest's level range, so the recommended level gets a color too

@@ -12,9 +12,13 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- Fixed: on WoW Forever, \"Consolidate alts\" puts all your characters together again, each once: since the " ..
-        "game stopped giving the realm name, it left out the ones that had not logged in since, and \"Completed by\" " ..
-        "could name yourself.",
+    "- New in 2.0: a whole new look, with a side panel on parchment, quests drawn as stone plates in chain trees that " ..
+        "read top to bottom, and a drawer for the quest's details.",
+    "- New: a list view for big zones, one set of filters for every view (with a line that says which are on), " ..
+        "and one chain shown alone with a way back.",
+    "- New: a lighter focus window with an arrow, the distance and a bar behind each objective, and preferences in four tabs.",
+    "- Fixed: distances in meters or yards by your region, like TomTom; quests that need another zone's quest say so.",
+    "- Fixed: \"Consolidate alts\" puts all your characters together again, each once.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

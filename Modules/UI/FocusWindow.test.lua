@@ -964,7 +964,7 @@ describe("FocusWindow", function()
             WowMock.superTrackedQuest = 999003
             ns.Prefs_Toggle()
             local checks = WowMock.FindAll(function(f)
-                return f._kind == "CheckButton" and f._parent == CompletaoPreferencesFrame
+                return f._kind == "CheckButton" and f._parent and f._parent._parent == CompletaoPreferencesFrame -- (on the tabs' pages)
             end)
             local check = checks[10] -- (see Preferences.test.lua for the order)
             assert.is_false(check:GetChecked())

@@ -260,4 +260,7 @@ ns.AddLocale({ "ptBR" }, {
     ["The quests as a list, like the search"] = "As missões como lista, como a busca",
     ["Full-screen tree"] = "Árvore em tela cheia",
     ["Exit full screen"] = "Sair da tela cheia",
+    ["Interface & Opacity"] = "Interface e opacidade",
+    ["Tracker & Waypoints"] = "Rastreador e waypoints",
+    ["Profile / Data"] = "Perfil / dados",
 })

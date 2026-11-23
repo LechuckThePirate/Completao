@@ -15,6 +15,7 @@
 - New: in a quest's details, where it starts and ends has a map pin to click instead of the coordinates.
 - Changed: next to the quest drawer, the table hides its least needed columns (rewards, money, XP...) so quest titles stay readable.
 - New: the focused quest window is lighter: no heavy border, its title bar (padlock, Auto, close) only shows with the mouse over it, an arrow and the distance point to the step the waypoint is on, a thin bar behind each objective shows how far along it is, and "Also here" folds away with a click.
+- New: the preferences come in four tabs (General, Interface & Opacity, Tracker & Waypoints, Profile / Data) with filled sliders, and the maintenance buttons (reset window, zoom, filters; what's new) at the foot.
 - New: the search table shows each quest's status icon, with a parchment header and alternate row shading.
 
 ## 1.9.2

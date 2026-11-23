@@ -261,4 +261,7 @@ ns.AddLocale({ "deDE" }, {
     ["The quests as a list, like the search"] = "Die Quests als Liste, wie die Suche",
     ["Full-screen tree"] = "Baum im Vollbild",
     ["Exit full screen"] = "Vollbild verlassen",
+    ["Interface & Opacity"] = "Oberfläche & Deckkraft",
+    ["Tracker & Waypoints"] = "Tracker & Wegpunkte",
+    ["Profile / Data"] = "Profil / Daten",
 })

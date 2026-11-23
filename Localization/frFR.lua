@@ -262,4 +262,7 @@ ns.AddLocale({ "frFR" }, {
     ["The quests as a list, like the search"] = "Les quêtes en liste, comme la recherche",
     ["Full-screen tree"] = "Arbre en plein écran",
     ["Exit full screen"] = "Quitter le plein écran",
+    ["Interface & Opacity"] = "Interface et opacité",
+    ["Tracker & Waypoints"] = "Suivi et waypoints",
+    ["Profile / Data"] = "Profil / données",
 })

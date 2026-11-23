@@ -261,4 +261,7 @@ ns.AddLocale({ "itIT" }, {
     ["The quests as a list, like the search"] = "Le missioni come elenco, come la ricerca",
     ["Full-screen tree"] = "Albero a schermo intero",
     ["Exit full screen"] = "Esci dallo schermo intero",
+    ["Interface & Opacity"] = "Interfaccia e opacità",
+    ["Tracker & Waypoints"] = "Tracker e waypoint",
+    ["Profile / Data"] = "Profilo / dati",
 })

@@ -261,4 +261,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["The quests as a list, like the search"] = "Las quests como lista, igual que la búsqueda",
     ["Full-screen tree"] = "Árbol a pantalla completa",
     ["Exit full screen"] = "Salir de pantalla completa",
+    ["Interface & Opacity"] = "Interfaz y opacidad",
+    ["Tracker & Waypoints"] = "Rastreador y waypoints",
+    ["Profile / Data"] = "Perfil / datos",
 })

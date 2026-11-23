@@ -4,11 +4,12 @@ describe("QuestPanel", function()
     local ns, waypoints, maps
 
     local function panelText()
-        local t = WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("|cffffd100Requirements|r", 1, true) end)
-        return t and t._text or ""
+        -- what the panel says, before it is inked for the parchment
+        local d = WowMock.Find(function(f) return f.layoutButtons end)
+        return d and d.rawText or ""
     end
     local function wayButton()
-        return WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("^Waypoint: ") and f._scripts.OnClick end)
+        return WowMock.Find(function(f) return type(f.tip) == "string" and f.tip:find("^Waypoint: ") and f._scripts.OnClick end)
     end
 
     before_each(function()
@@ -169,7 +170,7 @@ describe("QuestPanel", function()
 
         it("not started: the button goes to the missing requirement", function()
             ns.Detail_Show(q)
-            assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton():GetText())
+            assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton().tip)
         end)
 
         it("in progress: to the first unfinished objective, with progress in the list", function()
@@ -177,7 +178,7 @@ describe("QuestPanel", function()
             WowMock.onQuest[900001] = true
             WowMock.objectives[900001] = { { text = "Tough Wolf Meat: 3/8", finished = false, numFulfilled = 3, numRequired = 8 } }
             ns.Detail_Show(q)
-            assert.are.equal("Waypoint: Tough Wolf Meat", wayButton():GetText())
+            assert.are.equal("Waypoint: Tough Wolf Meat", wayButton().tip)
             assert.matches("Tough Wolf Meat  3/8", panelText())
             wayButton():Click()
             assert.are.equal("Tough Wolf Meat@30", waypoints[#waypoints])
@@ -191,7 +192,7 @@ describe("QuestPanel", function()
             WowMock.FindButton("Show on map"):Click()
             assert.are.equal("Tough Wolf Meat@30", maps[#maps])
             -- picking the start in the dropdown makes the map follow it
-            local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
+            local arrow = WowMock.Find(function(f) return f.stepsMenu and f._scripts.OnClick end)
             arrow:Click()
             local option = WowMock.Find(function(f)
                 return f.text and type(f.text._text) == "string" and f.text._text:find("Start: Giver", 1, true) and f._scripts.OnClick
@@ -216,7 +217,7 @@ describe("QuestPanel", function()
 
         it("picking another step in the dropdown sets the waypoint and survives a refresh", function()
             ns.Detail_Show(q)
-            local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
+            local arrow = WowMock.Find(function(f) return f.stepsMenu and f._scripts.OnClick end)
             arrow:Click()
             local option = WowMock.Find(function(f)
                 return f.text and type(f.text._text) == "string" and f.text._text:find("Start: Giver", 1, true) and f._scripts.OnClick
@@ -224,7 +225,7 @@ describe("QuestPanel", function()
             option:Click()
             assert.are.equal("Start: Giver@10", waypoints[#waypoints])
             ns.Detail_Refresh()
-            assert.are.equal("Waypoint: Start: Giver", wayButton():GetText())
+            assert.are.equal("Waypoint: Start: Giver", wayButton().tip)
         end)
     end)
 
@@ -284,6 +285,90 @@ describe("QuestPanel", function()
         WowMock.tagInfo[5] = { 1, "Elite" }
         ns.Detail_Show({ id = 5, name = "v" })
         assert.matches("Elite: recommended with a group", panelText())
+    end)
+
+    it("the page keeps its burnt rim: a 9-slice, and the wide parchment while it is wider than tall", function()
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local page = detail.page
+        page:SetSize(320, 500) -- the drawer
+        WowMock.Fire(page, "OnSizeChanged")
+        assert.is_false(page.parchmentWide)
+        page:SetSize(1000, 500) -- maximized
+        WowMock.Fire(page, "OnSizeChanged")
+        assert.is_true(page.parchmentWide)
+        local wide = WowMock.FindAll(function(f)
+            return f._parent == page and f._kind == "Texture" and f._shown and tostring(f._set.SetTexture and f._set.SetTexture[1]):find("ParchmentPageWide$")
+        end)
+        assert.are.equal(9, #wide) -- corners, edges and middle
+    end)
+
+    it("a quest that needs another one (of another zone) says so in red, with a link to it that opens its tree", function()
+        WowMock.faction = "Horde"
+        local plague = ns.FindQuestDef(95216) -- The New Plague, in Ruins of Lordaeron; needs A Recipe For Death (3/3)
+        assert.is_not_nil(plague)
+        assert.are.same({ 451 }, plague.requires)
+        local status, reasons = ns.QuestStatus(plague)
+        assert.are.equal("locked", status)
+        assert.matches("^Requires: A Recipe For Death %(3/3%)", reasons[1])
+        ns.Detail_Show(plague)
+        local text = panelText()
+        assert.is_truthy(text:find("|cffff5555Requires: |Hcompletao:quest:451|hA Recipe For Death (3/3)", 1, true))
+        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick and f._parent and f._parent._kind == "ScrollFrame" end)
+        content._scripts.OnHyperlinkClick(content, "completao:quest:451")
+        assert.are.equal(451, ns.Detail_Current().id)
+        assert.are.equal("z130", ns.char.selected) -- its own zone's tree, the chain
+        assert.is_true(ns.UI_InChainView())
+        -- done: green, no "Requires"
+        WowMock.done[451] = true
+        ns.Detail_Show(plague)
+        assert.is_truthy(panelText():find("|cff33cc33|Hcompletao:quest:451|hA Recipe For Death", 1, true))
+        assert.is_nil(panelText():find("Requires: |Hcompletao", 1, true))
+    end)
+
+    it("a quest of a chain has a chain icon after its title, a link that opens the chain's tree", function()
+        local chained, loose
+        for _, q in ipairs(ns.entries.vc.quests) do
+            if ns.IsInChain(q) then chained = chained or q else loose = loose or q end
+        end
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local function title()
+            return WowMock.Find(function(f) return f._parent == detail.page and f._kind == "FontString" and f._set.SetWordWrap end)._text
+        end
+        if loose then
+            ns.Detail_Show(loose)
+            assert.is_nil(title():find("|Hcompletao:chain|h", 1, true))
+        end
+        ns.Detail_Show(chained)
+        assert.matches("|Hcompletao:chain|h", title(), 1, true)
+        detail.page._scripts.OnHyperlinkClick(detail.page, "completao:chain")
+        assert.is_true(ns.UI_InChainView())
+        assert.are.equal(chained.id, ns.Detail_Current().id)
+    end)
+
+    it("where it starts and ends: a pin instead of the coordinates, and a click on it marks the spot on the map", function()
+        local q = ns.FindQuestDef(166)
+        assert.is_true(q.start.x > 0)
+        ns.Detail_Show(q)
+        local text = panelText()
+        assert.is_nil(text:find(("(%.1f, %.1f)"):format(q.start.x, q.start.y), 1, true))
+        assert.matches("|Hcompletao:pin:1|h", text, 1, true)
+        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick and f._parent and f._parent._kind == "ScrollFrame" end)
+        content._scripts.OnHyperlinkClick(content, "completao:pin:1")
+        assert.are.equal((q.start.npc or "Starts") .. "@" .. tostring(q.start.x), maps[#maps])
+    end)
+
+    it("on the parchment every color is a dark ink: the section titles in sienna, no light color left", function()
+        local q = ns.FindQuestDef(166)
+        WowMock.level = 30 -- below the quest's level range, so the recommended level gets a color too
+        ns.Detail_Show(q)
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local shown = detail.text._text
+        assert.matches("|cff7a3510", shown) -- the headings
+        for code in shown:gmatch("|c%x%x(%x%x%x%x%x%x)") do
+            local r, g, b = tonumber(code:sub(1, 2), 16), tonumber(code:sub(3, 4), 16), tonumber(code:sub(5, 6), 16)
+            assert.is_true(0.3 * r + 0.59 * g + 0.11 * b < 120, code) -- dark enough to read on parchment
+        end
+        assert.are_not.equal(shown, detail.rawText) -- what it says is the same, only its colors change
     end)
 
     it("the long description goes last, when there is one", function()

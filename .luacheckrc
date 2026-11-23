@@ -26,7 +26,7 @@ read_globals = {
     "C_Texture", "C_Timer", "C_TradeSkillUI", "time",
     "CLOSE", "CreateFrame", "CreateVector2D", "Enum", "GameFontHighlightSmall", "GameTooltip", "GameTooltip_Hide", "GetAddOnMetadata",
     "GetCoinTextureString", "GetBuildInfo", "AddQuestWatch", "Questie", "QuestieLoader", "IsQuestFlaggedCompleted", "GetQuestLogTitle", "GetNumQuestLogEntries", "GetQuestLogSelection", "SelectQuestLogEntry", "QuestPOIGetIconInfo",
-    "GetCursorPosition", "GetFactionInfoByID", "GetInstanceInfo", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
+    "GetCursorPosition", "GetCurrentRegion", "GetScreenWidth", "GetScreenHeight", "Screenshot", "GetCVar", "SetCVar", "GetPlayerFacing", "GetFactionInfoByID", "GetInstanceInfo", "GetItemIcon", "GetItemInfo", "GetItemInfoInstant", "GetLocale",
     "IsMouseButtonDown", "GetQuestDifficultyColor", "GetQuestGreenRange", "GetQuestLogQuestText", "GetUnitSpeed", "InCombatLockdown", "UnitAffectingCombat", "UnitOnTaxi", "GetProfessions", "GetProfessionInfo", "GetNumSkillLines", "GetSkillLineInfo", "HandleModifiedItemClick",
     "BreakUpLargeNumbers", "IsControlKeyDown", "IsShiftKeyDown", "ITEM_QUALITY_COLORS", "LOCALIZED_CLASS_NAMES_MALE",
     "Minimap", "OpenQuestLog", "OpenWorldMap", "QuestDifficultyColors", "QuestLogFrame", "QuestLog_SetSelection",

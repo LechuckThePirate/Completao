@@ -1,6 +1,7 @@
 local _, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
+local T = ns.Theme
 
 -- Focus window: a small floating window for the one quest being focused on (right click on a quest in Tracked Quests,
 -- or the Focus button in a quest's details). It shows the quest's status icon ("?" ready to turn in, "..."
@@ -21,16 +22,15 @@ local PAD, LINE_H, HEADER_H, ICON = 8, 16, 20, 16
 local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it (and the Auto button beside it)
 local BAR_SIDE = 5 + 2 * LOCK_SIZE + 4 -- room the padlock and the Auto button take at the left of the title bar
-local TOP = TITLE_H + 6 -- where the quest's icon and title start
+local TOP = 8 -- where the quest's icon and title start: right at the top, the title bar floats above the window
+local ARROW_ROOM = 78 -- the direction arrow and the distance, at the right of the title
 local WIDTH_MIN, WIDTH_MAX = 200, 420
 local CHECK_W = 16 -- room for the check before a done objective
-local BACKDROP = {
-    bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true, tileSize = 16, edgeSize = 12,
-    insets = { left = 3, right = 3, top = 3, bottom = 3 },
-}
-local COLORS = { done = "ff808080", target = "ffffd100", todo = "ffffffff", hint = "ff9d9d9d" }
+-- no heavy border: translucent obsidian and a fine brass edge
+local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
+local COLORS = { done = "ff64748b", target = "ffd4af37", todo = "ffe2e8f0", hint = "ff94a3b8" }
+local PLUS = "|TInterface\\Buttons\\UI-PlusButton-Up:12:12|t "
+local MINUS = "|TInterface\\Buttons\\UI-MinusButton-Up:12:12|t "
 
 local frame, lines = nil, {}
 local ready = false   -- the quest log is loaded (see Focus_Init): before, a quest not in it isn't gone yet
@@ -143,10 +143,12 @@ local function create()
     frame:SetFrameStrata("MEDIUM")
     frame:SetClampedToScreen(true)
     frame:SetBackdrop(BACKDROP)
-    frame:SetBackdropColor(0, 0, 0, 0.75)
-    frame:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+    frame:SetBackdropColor(T.rgba("obsidian", 0.82))
+    frame:SetBackdropBorderColor(T.rgba("brass", 0.9))
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    -- the title bar floats above the window: its strip counts as part of it, so it can be dragged by it
+    frame:SetHitRectInsets(0, 0, -TITLE_H, 0)
     frame:RegisterForDrag("LeftButton")
     -- a click on the window (not a drag) opens the main window on the tracked quests; dragging also ends in a
     -- mouse-up, so that one doesn't count
@@ -179,13 +181,14 @@ local function create()
     end)
     frame:SetScript("OnLeave", GameTooltip_Hide)
 
-    -- title bar: what the window is, and the close button
+    -- title bar: what the window is, the padlock, Auto and the close button. It floats above the window and only
+    -- shows with the mouse over it (see the fading at the end); the quest is shown straight away.
     frame.bar = frame:CreateTexture(nil, "BACKGROUND")
-    frame.bar:SetPoint("TOPLEFT", 3, -3)
-    frame.bar:SetPoint("TOPRIGHT", -3, -3)
+    frame.bar:SetPoint("BOTTOMLEFT", frame, "TOPLEFT", 0, -1)
+    frame.bar:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", 0, -1)
     frame.bar:SetHeight(TITLE_H)
-    frame.bar:SetColorTexture(0.25, 0.2, 0.05, 0.9)
-    frame.barText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    frame.bar:SetColorTexture(T.rgba("slate", 0.95))
+    frame.barText = T.Text(frame, "small", "gold")
     frame.barText:SetPoint("CENTER", frame.bar, "CENTER", 0, 0)
     frame.barText:SetText(L["Focused Quest"])
 
@@ -197,17 +200,15 @@ local function create()
     frame.title:SetJustifyH("LEFT")
     frame.title:SetWordWrap(false)
 
-    local okClose, close = pcall(CreateFrame, "Button", nil, frame, "UIPanelCloseButton")
-    if not okClose or not close then close = CreateFrame("Button", nil, frame) end
-    close:SetSize(TITLE_H + 6, TITLE_H + 6)
-    close:SetPoint("TOPRIGHT", 1, 1)
+    local close = T.CreateIconButton(frame, "close", TITLE_H - 2, CLOSE or L["Close"])
+    close:SetPoint("RIGHT", frame.bar, "RIGHT", -2, 0)
     close:SetScript("OnClick", function() ns.Focus_Clear() end) -- closes the window for good
     frame.close = close
 
     -- padlock at the top left: locked, the window can't be moved (everything else works as always)
     local lock = CreateFrame("Button", nil, frame)
     lock:SetSize(LOCK_SIZE, LOCK_SIZE)
-    lock:SetPoint("TOPLEFT", 5, -4)
+    lock:SetPoint("LEFT", frame.bar, "LEFT", 4, 0)
     lock:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
     lock:SetScript("OnClick", function()
         ns.char.focusLocked = (not ns.char.focusLocked) or nil
@@ -242,9 +243,53 @@ local function create()
     auto:SetScript("OnLeave", GameTooltip_Hide)
     frame.auto = auto
 
+    -- the direction to the step the waypoint is on, and how far it is, at the right of the title
+    frame.arrow = frame:CreateTexture(nil, "OVERLAY")
+    frame.arrow:SetSize(28, 28)
+    frame.arrow:SetPoint("TOPRIGHT", -PAD + 2, -TOP + 5)
+    frame.arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
+    frame.arrow:SetVertexColor(1, 0.86, 0.12) -- a bright yellow, to see it at a glance
+    frame.arrow:Hide()
+    frame.dist = T.Text(frame, "data", "muted")
+    frame.dist:SetPoint("RIGHT", frame.arrow, "LEFT", -3, 0)
+    frame.dist:SetJustifyH("RIGHT")
+
+    -- the title bar fades in with the mouse over the window (or over the bar itself) and out when it leaves; the
+    -- arrow turns with the player
+    frame.chrome = { frame.bar, frame.barText, close, lock, auto }
+    local chromeAlpha, sinceArrow = 0, 0
+    for _, part in ipairs(frame.chrome) do part:SetAlpha(0) end
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        local want = (ns.shotsChrome or self:IsMouseOver(TITLE_H + 2, 0, 0, 0)) and 1 or 0
+        if chromeAlpha ~= want then
+            chromeAlpha = want > chromeAlpha and math.min(want, chromeAlpha + elapsed * 6) or math.max(want, chromeAlpha - elapsed * 3)
+            for _, part in ipairs(self.chrome) do part:SetAlpha(chromeAlpha) end
+        end
+        sinceArrow = sinceArrow + elapsed
+        if sinceArrow < 0.05 then return end
+        sinceArrow = 0
+        ns.Focus_UpdateArrow()
+    end)
+
     applyPosition()
     applyMouse(inCombat())
     frame:Hide()
+end
+
+-- The arrow at the right of the title: which way the step the waypoint is on lies from where the player faces, and
+-- how far. No arrow where the game doesn't tell the facing (inside instances) or the spot can't be placed.
+function ns.Focus_UpdateArrow()
+    if not frame then return end
+    local loc = frame.targetLoc
+    local bearing = loc and ns.BearingTo(loc)
+    local facing = GetPlayerFacing and GetPlayerFacing()
+    if bearing and facing then
+        frame.arrow:SetRotation(bearing - facing)
+        frame.arrow:Show()
+    else
+        frame.arrow:Hide()
+    end
+    frame.dist:SetText(loc and ns.FormatDistance(ns.DistanceTo(loc)) or "")
 end
 
 -- A line of the list (created as needed): a button with the check, the text and the strike-through line over
@@ -258,10 +303,19 @@ local function getLine(i)
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     button:EnableMouse(mouseOn)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    -- the lines cover most of the window: a drag that starts on one moves the window, as on its background
+    button:RegisterForDrag("LeftButton")
+    button:SetScript("OnDragStart", function() frame:GetScript("OnDragStart")(frame) end)
+    button:SetScript("OnDragStop", function() frame:GetScript("OnDragStop")(frame) end)
     button:SetScript("OnClick", function(self, which)
         if which == "RightButton" then ns.Focus_ChooseQuest(frame) return end
         ns.PopupMenu_Hide()
         local step = self.step
+        if step and step.toggle then -- "Also here": folds or unfolds the list (remembered)
+            ns.char.focusAlsoFolded = (not ns.char.focusAlsoFolded) or nil
+            ns.Focus_Refresh()
+            return
+        end
         if step and step.opens then ns.UI_OpenTracked() return end -- the "no quest focused" hint
         if not (step and step.loc) then return end
         if ns.CanWaypoint(step.loc) then
@@ -280,6 +334,10 @@ local function getLine(i)
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
     line.button = button
+    -- an objective's progress, as a thin translucent bar behind its line (amber; green once done)
+    line.fill = button:CreateTexture(nil, "BACKGROUND")
+    line.fill:SetHeight(LINE_H - 3)
+    line.fill:Hide()
     line.check = button:CreateTexture(nil, "ARTWORK")
     line.check:SetSize(CHECK_W - 4, CHECK_W - 4)
     line.check:SetPoint("LEFT", button, "LEFT", 0, 0)
@@ -308,6 +366,7 @@ local function setLine(i, l)
     line.text:SetPoint("LEFT", line.button, "LEFT", line.offset, 0)
     line.text:SetText(("|c%s%s|r"):format(l.color or COLORS[l.kind], l.text))
     line.strike:SetShown(l.struck)
+    line.frac = l.frac
     line.button:Show()
     return line
 end
@@ -380,6 +439,15 @@ local function hexColor(r, g, b)
     return ("ff%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5))
 end
 
+-- How far along an objective is, 0-1 ("3/7" in its progress; done is all of it), or nil when it doesn't say.
+local function progressOf(s)
+    if s.done then return 1 end
+    local have, need = tostring(s.progress or ""):match("(%d+)%s*/%s*(%d+)")
+    have, need = tonumber(have), tonumber(need)
+    if have and need and need > 0 then return math.min(1, have / need) end
+    return nil
+end
+
 -- What the lines say: the objectives, or the turn-in once the quest is ready. Each carries its step, for the
 -- click; the one the waypoint is on is in gold. Under them, "Also here:" and the other quests that have
 -- something to do by the same spot (`related`, see relatedQuests).
@@ -401,14 +469,17 @@ local function buildLines(q, steps, isReady, related, here)
                 out[#out + 1] = {
                     text = s.label .. (s.progress and (" " .. s.progress) or ""),
                     kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
-                    loc = canShow(place(s)), label = s.label, tag = tag,
+                    loc = canShow(place(s)), label = s.label, tag = tag, frac = progressOf(s),
                 }
             end
         end
     end
     if related and #related > 0 then
-        out[#out + 1] = { text = here and L["Also here:"] or L["Also there:"], kind = "hint", struck = false, flush = true }
-        for _, e in ipairs(related) do
+        -- a header that folds the list (remembered); folded, it says how many quests it holds
+        local folded = ns.char and ns.char.focusAlsoFolded
+        out[#out + 1] = { text = (folded and PLUS or MINUS) .. (here and L["Also here:"] or L["Also there:"])
+            .. (folded and (" (" .. #related .. ")") or ""), kind = "hint", struck = false, flush = true, toggle = true }
+        for _, e in ipairs(folded and {} or related) do
             local r, g, b = ns.QuestLevelColorRGB(e.q.level or e.q.minLevel)
             out[#out + 1] = { text = ns.QuestPrefix(e.q) .. ns.QuestTitle(e.q.id, e.q.name), kind = "todo", struck = false,
                 flush = true, color = hexColor(r, g, b) }
@@ -417,7 +488,7 @@ local function buildLines(q, steps, isReady, related, here)
                 local tag = e.q.id .. ":" .. i
                 out[#out + 1] = { text = s.label .. (s.progress and (" " .. s.progress) or ""),
                     kind = s.done and "done" or tag == focusTag and "target" or "todo", struck = s.done and true or false,
-                    loc = canShow(place(s)), label = s.label, tag = tag }
+                    loc = canShow(place(s)), label = s.label, tag = tag, frac = progressOf(s) }
             end
         end
     end
@@ -458,7 +529,8 @@ local function draw(iconKind, title, r, g, b, content)
     frame.title:SetText(title)
     frame.title:SetTextColor(r, g, b)
 
-    local width = math.max(indent + frame.title:GetStringWidth(), frame.barText:GetStringWidth() + 2 * math.max(BAR_SIDE, TITLE_H + 6))
+    local width = math.max(indent + frame.title:GetStringWidth() + ARROW_ROOM,
+        frame.barText:GetStringWidth() + 2 * math.max(BAR_SIDE, TITLE_H + 6))
     for i, l in ipairs(content) do
         local line = setLine(i, l)
         width = math.max(width, line.offset + line.text:GetStringWidth())
@@ -466,12 +538,21 @@ local function draw(iconKind, title, r, g, b, content)
     for i = #content + 1, #lines do lines[i].button:Hide() end
     width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
     frame:SetSize(width, TOP + HEADER_H + 4 + #content * LINE_H + PAD)
-    frame.title:SetWidth(width - 2 * PAD - indent)
+    frame.title:SetWidth(width - 2 * PAD - indent - ARROW_ROOM)
     for i in ipairs(content) do
         local line = lines[i]
         line.button:SetWidth(width - 2 * PAD)
         line.text:SetWidth(width - 2 * PAD - line.offset)
         line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - line.offset))
+        if line.frac then
+            line.fill:ClearAllPoints()
+            line.fill:SetPoint("LEFT", line.button, "LEFT", line.offset - 2, 0)
+            line.fill:SetWidth(math.max(0.001, (width - 2 * PAD - line.offset + 2) * line.frac))
+            line.fill:SetColorTexture(T.rgba(line.frac >= 1 and "ready" or "active", line.frac >= 1 and 0.16 or 0.3))
+            line.fill:SetShown(line.frac > 0)
+        else
+            line.fill:Hide()
+        end
     end
     frame:Show()
 end
@@ -479,6 +560,8 @@ end
 -- Nothing focused: the window says so, and how to choose another quest.
 local function drawIdle()
     draw(nil, L["No quest focused"], 0.62, 0.62, 0.62, { { text = L["Click to choose another."], kind = "hint", struck = false, opens = true } })
+    frame.targetLoc = nil
+    ns.Focus_UpdateArrow()
 end
 
 -- Autofocus (Preferences): the focus picks its quest by itself, by how near each tracked quest's next step is
@@ -878,6 +961,8 @@ function ns.Focus_Refresh(force)
     relatedSpot, relatedHere = #related > 0 and spot or nil, isNear(spot)
     draw(isReady and "ready" or "progress", ns.QuestPrefix(q) .. ns.QuestTitle(id, q.name), r, g, b,
         buildLines(q, steps, isReady, related, relatedHere))
+    frame.targetLoc = spot
+    ns.Focus_UpdateArrow()
 end
 
 -- "Focusing here sets Blizzard's tracker" (Preferences, on unless switched off): a quest focused here, by the

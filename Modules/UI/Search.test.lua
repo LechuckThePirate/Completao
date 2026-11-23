@@ -65,14 +65,31 @@ describe("Search", function()
         assert.is_true(#rows < 10)
     end)
 
-    it("completed quests only show with Include completed", function()
+    it("a line under the form names the filters in force, none by default; a click on it opens them", function()
+        local summary = panel.summary
+        assert.is_false(summary:IsShown()) -- the same filters as in every view, all off to begin with
+        panel.filters.checks.hideLow:SetChecked(true); panel.filters.checks.hideLow:Click()
+        assert.is_true(summary:IsShown())
+        assert.matches("Filters: Hide low level", summary.text._text, 1, true)
+        panel.filters.checks.itemsOnly:SetChecked(true); panel.filters.checks.itemsOnly:Click()
+        assert.matches("Hide low level  |  Only quests with item rewards", summary.text._text, 1, true)
+        assert.is_false(panel.filters.menu:IsShown())
+        summary:Click()
+        assert.is_true(panel.filters.menu:IsShown())
+        panel.filters.clear._scripts.OnClick(panel.filters.clear)
+        assert.is_false(summary:IsShown())
+    end)
+
+    it("completed quests are hidden with Hide completed, in the search's own filters", function()
         typeText("defias brother")
         WowMock.done[166] = true
         ns.Search_Refresh()
-        assert.is_nil(ids(ShownRows())[166])
-        local doneCheck = panel.filters.checks.done
+        assert.is_true(ids(ShownRows())[166]) -- nothing hidden by default
+        local doneCheck = panel.filters.checks.hideDone
         doneCheck:SetChecked(true); doneCheck:Click()
-        assert.is_true(ids(ShownRows())[166])
+        assert.is_true(ns.char.viewFilters.search.hideDone)
+        assert.is_nil(ns.char.filters.hideDone) -- not the tree's
+        assert.is_nil(ids(ShownRows())[166])
     end)
 
     it("the reward type is picked inside the Filters drop-down, counts as a filter and Clear filters takes it off", function()
@@ -269,6 +286,54 @@ describe("Search", function()
         assert.is_true(reads < 20) -- a scan per quest would be thousands
     end)
 
+    it("a narrow table (the quest drawer beside it) hides the least needed columns, and the title stays readable", function()
+        ns.UI_SetSearchMode(true, "search")
+        local search = ns.UI.searchPanel
+        local head = search.head
+        search.scroll:SetWidth(380)
+        ns.Search_Refresh()
+        assert.is_false(head.rewards:IsShown())
+        assert.is_false(head.money:IsShown())
+        assert.is_false(head.xp:IsShown())
+        assert.is_false(head.where:IsShown())
+        assert.is_true(head.dist:IsShown()) -- the last to go
+        assert.is_true(head.name:GetWidth() >= 190)
+        assert.is_false(ShownRows()[1].money:IsShown())
+        search.scroll:SetWidth(900) -- wide again: every column comes back
+        ns.Search_Refresh()
+        for _, column in ipairs({ "rewards", "money", "xp", "where", "dist" }) do
+            assert.is_true(head[column]:IsShown(), column)
+        end
+        assert.is_true(ShownRows()[1].money:IsShown())
+    end)
+
+    it("a quest of a chain has a chain icon right after its title, which opens the chain's tree", function()
+        ns.UI_SetSearchMode(true, "search")
+        local chainedRow, looseRow
+        for _, r in ipairs(ShownRows()) do
+            if r.entry and ns.IsInChain(r.quest) then chainedRow = chainedRow or r else looseRow = looseRow or r end
+        end
+        assert.is_not_nil(chainedRow)
+        assert.is_true(chainedRow.chain:IsShown())
+        if looseRow then assert.is_false(looseRow.chain:IsShown()) end
+        local id = chainedRow.quest.id
+        chainedRow.chain:Click()
+        assert.is_false(ns.UI_IsSearchMode())
+        assert.is_true(ns.UI_InChainView())
+        assert.are.equal(id, ns.Detail_Current().id)
+    end)
+
+    it("the table has the quest tree's background: the runic sigil over a dark veil, and translucent rows", function()
+        ns.UI_SetSearchMode(true, "search")
+        local sheet = ns.UI.searchPanel
+        assert.matches("TreeSigil$", sheet.sigil._set.SetTexture[1])
+        assert.are.equal("ADD", sheet.sigil._set.SetBlendMode[1])
+        assert.are.equal(ns.UI.treeSigil._set.SetTexture[1], sheet.sigil._set.SetTexture[1]) -- the same as the tree's
+        for _, r in ipairs(ShownRows()) do
+            assert.is_true(select(4, r:GetBackdropColor()) < 0.8, "a row the sigil shows through")
+        end
+    end)
+
     it("remembers the table's order between sessions", function()
         panel.head.dist:Click()
         panel.head.dist:Click() -- distance, reversed
@@ -291,7 +356,7 @@ describe("Search", function()
     end)
 
     local function chainButton()
-        return WowMock.Find(function(f) return f._text == "View chain" and f._scripts.OnClick and f:IsShown() end)
+        return WowMock.Find(function(f) return f.tip == "View chain" and f._scripts.OnClick and f:IsShown() end)
     end
 
     it("clicking a result shows its details below the table, without leaving it", function()
@@ -330,11 +395,31 @@ describe("Search", function()
             ns.UI_SetSearchMode(true, "log")
         end)
 
-        it("lists the quests in the log, without the form", function()
+        it("lists the quests in the log, with the same title box and filters as the search", function()
             local rows = ShownRows()
             assert.are.equal(2, #rows)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown())
+            assert.is_false(panel.summary:IsShown()) -- no filter on
         end)
+
+        it("the title box searches only this view; each view keeps its own text, and the search its own", function()
+            typeText("defias")
+            assert.are.same({ [166] = true }, ids(ShownRows())) -- the log, narrowed
+            typeText("zzzz")
+            assert.are.equal(0, #ShownRows())
+            assert.are.equal("No quests match the search.", panel.empty._text) -- not "your log is empty"
+            typeText("defias")
+            WowMock.log[#WowMock.log + 1] = { questID = 167, title = "Other", level = 20 }
+            ns.UI_SetSearchMode(true, "tracked") -- another view: nothing typed there
+            assert.are.equal("", panel.box:GetText())
+            ns.UI_SetSearchMode(true, "log")
+            assert.are.equal("defias", panel.box:GetText()) -- the log kept its text
+            ns.UI_SetSearchMode(true, "search") -- and the search is not narrowed by it
+            assert.are.equal("", panel.box:GetText())
+            assert.is_true(#ShownRows() > 50)
+        end)
+
 
         it("is the played character's own, whatever Consolidate alts says", function()
             CompletaoDB.chars["Altie-Realm"] = { name = "Altie", realm = "Realm", done = { [166] = true, [167] = true } }
@@ -424,6 +509,22 @@ describe("Search", function()
             assert.are.same({ "# Other", 999997, 999999, 999998 }, { shown[3], shown[4], shown[5], shown[6] })
         end)
 
+        it("a group's header stands out: taller than a quest row, on a parchment band, with air above all but the first", function()
+            groupBy("Zone")
+            local headers = WowMock.FindAll(function(f) return f:IsShown() and f.fold end)
+            assert.is_true(#headers >= 2)
+            table.sort(headers, function(a, b) return select(3, a:GetPoint(1)) > select(3, b:GetPoint(1)) end)
+            for _, h in ipairs(headers) do
+                assert.is_true(h._h > 22) -- taller than a row
+                assert.matches("ParchmentBar$", h.band._set.SetTexture[1])
+                assert.is_true(h.mark:IsShown())
+            end
+            -- the second header leaves a gap after the quests above it that the first one does not
+            local firstY, secondY = select(3, headers[1]:GetPoint(1)), select(3, headers[2]:GetPoint(1))
+            assert.are.equal(0, firstY)
+            assert.is_true(-secondY > 28 + 22 + 8) -- header + a quest row + the gap, at least
+        end)
+
         it("a click on a group folds it and another unfolds it", function()
             groupBy("Zone")
             local row = WowMock.Find(function(f) return f:IsShown() and f.fold and f.group == "Ashenvale" end)
@@ -431,6 +532,23 @@ describe("Search", function()
             assert.are.same({ "# Ashenvale", "# Westfall", 166, 999998 }, layout())
             row:Click()
             assert.are.equal(6, #layout())
+        end)
+
+        it("Expand all and Collapse all fold every group at once, and are there only while grouped", function()
+            assert.is_false(panel.expandAll:IsShown()) -- not grouped yet
+            assert.is_false(panel.collapseAll:IsShown())
+            groupBy("Zone")
+            assert.is_true(panel.expandAll:IsShown())
+            assert.is_true(panel.collapseAll:IsShown())
+            local all = #layout()
+            panel.collapseAll:Click()
+            local folded = layout()
+            assert.is_true(#folded < all)
+            for _, entry in ipairs(folded) do assert.is_true(type(entry) == "string", "only headers: " .. tostring(entry)) end
+            panel.expandAll:Click()
+            assert.are.equal(all, #layout())
+            ns.UI_SetSearchMode(true, "search") -- no grouping there
+            assert.is_false(panel.expandAll:IsShown())
         end)
 
         it("is saved per view: the tracked quests have their own", function()
@@ -503,16 +621,16 @@ describe("Search", function()
             ns.flavor = nil
         end)
 
-        it("the search table has no status icons", function()
+        it("the search table shows each result's status too", function()
             ns.UI_SetSearchMode(true, "search")
-            assert.is_false(ShownRows()[1].status:IsShown())
+            assert.is_true(ShownRows()[1].status:IsShown())
         end)
 
         it("lists only the quests of the log that are being tracked, without the form", function()
             local rows = ShownRows()
             assert.are.equal(1, #rows)
             assert.are.equal(999999, rows[1].quest.id)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown()) -- (the same box and filters as in every view)
             assert.are.equal("tracked", ns.Search_Mode())
         end)
 
@@ -540,7 +658,7 @@ describe("Search", function()
             end
             assert.are.equal(1, #labels)
             assert.matches("3/10", labels[1])
-            assert.matches("ffd100", labels[1]) -- the current step is in gold
+            assert.matches("d4af37", labels[1]) -- the current step is in gold
             assert.is_true(#buttons >= 1)
             local kill
             for _, b in ipairs(buttons) do if b.title == "Kill boars" then kill = b end end
@@ -554,7 +672,7 @@ describe("Search", function()
             ns.Search_Refresh()
             local marked = WowMock.Find(function(f) return f._kind == "Button" and f.tag == focusTag and f.mark:IsShown() end)
             assert.is_not_nil(marked)
-            assert.are.same({ 1, 0.82, 0, 1 }, { ShownRows()[1]:GetBackdropBorderColor() })
+            assert.are.same({ ns.Theme.rgba("gold") }, { ShownRows()[1]:GetBackdropBorderColor() })
             ns.FocusTag = function() return nil end
             ns.Search_Refresh()
             assert.is_false(marked.mark:IsShown())
@@ -648,7 +766,7 @@ describe("Search", function()
             assert.are.equal(2, #rows)
             assert.are.equal(168, rows[1].quest.id)
             assert.are.equal(166, rows[2].quest.id)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown())
             assert.is_not_nil(WowMock.Find(function(f) return f:IsShown() and type(f._text) == "string" and f._text:find("Turn in: 168", 1, true) end))
             -- its own order changes with the headers but is not saved over the other tables'
             panel.head.dist:Click()
@@ -693,6 +811,7 @@ describe("Search", function()
         end)
 
         it("shows the quest's reward items in its row", function()
+            panel.scroll._w = 900 -- wide enough for the rewards column
             typeText("defias brother")
             local row
             for _, r in ipairs(ShownRows()) do if r.quest.id == 166 then row = r end end

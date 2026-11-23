@@ -78,6 +78,25 @@ function ns.DistanceTo(loc)
     return d
 end
 
+-- (math.atan2 is the game's Lua 5.1; later ones, where the tests may run, take both arguments in math.atan)
+local atan2 = math.atan2 or function(y, x) return math.atan(y, x) end -- luacheck: ignore 143
+
+-- Which way a location lies from the player: radians counterclockwise from north, as the game counts the player's
+-- facing (GetPlayerFacing), so (bearing - facing) is how far to turn. nil when it can't be told. The world's
+-- coordinates grow to the north (x) and to the west (y).
+function ns.BearingTo(loc)
+    local map = ns.ResolveMap(loc)
+    if not map then return nil end
+    local playerMap, px, py = ns.PlayerPosition()
+    if not playerMap then return nil end
+    local c1, x1, y1 = worldPos(playerMap, px, py)
+    local c2, x2, y2 = worldPos(map, loc.x / 100, loc.y / 100)
+    if not (c1 and c2 and c1 == c2) then return nil end
+    local north, west = x2 - x1, y2 - y1
+    if north == 0 and west == 0 then return nil end
+    return atan2(west, north)
+end
+
 -- Distance in yards between two locations, or nil when it can't be told (no coordinates for one, or they are
 -- on different continents).
 function ns.DistanceBetween(a, b)
@@ -91,19 +110,23 @@ function ns.DistanceBetween(a, b)
     return d
 end
 
--- Distances read in meters unless the client is in a yards locale (US and UK English); the game gives
--- them in yards. ns.char.distanceUnit = "yd" | "m" forces one.
+-- The game gives distances in yards. They are shown in meters except in the US region (as the game does with its own
+-- waypoint, and as TomTom does in Europe); where the client can't tell the region, by its language (US and UK English
+-- read in yards). The preferences' "Distance units" forces one: ns.char.distanceUnit = "yd" | "m"; nil is automatic.
 local YARD = 0.9144
+local REGION_US = 1
+function ns.UseMetric()
+    local unit = ns.char and ns.char.distanceUnit
+    if unit then return unit == "m" end
+    local region = GetCurrentRegion and GetCurrentRegion()
+    if region and region > 0 then return region ~= REGION_US end
+    local locale = GetLocale()
+    return locale ~= "enUS" and locale ~= "enGB"
+end
+
 function ns.FormatDistance(yards)
     if not yards then return "" end
-    local unit = ns.char and ns.char.distanceUnit
-    local metric
-    if unit then
-        metric = unit == "m"
-    else
-        local locale = GetLocale()
-        metric = locale ~= "enUS" and locale ~= "enGB"
-    end
+    local metric = ns.UseMetric()
     local d = metric and yards * YARD or yards
     local small, big = metric and "%d m" or "%d yd", metric and "%.1f km" or "%.1fk yd"
     return d < 1000 and small:format(math.floor(d)) or big:format(d / 1000)
@@ -190,6 +213,9 @@ function ns.ShowOnMap(loc, title)
         ns.Print(ns.L["No map location available for this quest giver."])
         return false
     end
+    -- the map opens under our window when this covers the screen (the tree on the whole screen, a maximized quest page):
+    -- put it back to its normal size so the map is seen
+    if ns.UI_RestoreForMap then ns.UI_RestoreForMap() end
     if hasCoords(loc) then ns.SetWaypoint(loc, title) else ns.ClearMapPin() end
     local opened = false
     if OpenWorldMap then

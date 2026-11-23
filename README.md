@@ -159,7 +159,8 @@ tools/         data generators (tools/local/ is git-ignored)
 ```
 
 - `images/` -- source icon artwork (unprocessed) and the screenshots of the
-  CurseForge page (`images/screencaps/`). The addon icon is cut from it into
+  CurseForge page (`images/screencaps/`), which `/completao shots` takes in game and
+  `node tools/shots.mjs` crops (see the comment at the top of that file). The addon icon is cut from it into
   `Icons/Completao.png`.
 - `.github/workflows/ci.yml` -- tests and luacheck on every push.
   `release.yml` -- manual (`workflow_dispatch` only) release pipeline via

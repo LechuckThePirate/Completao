@@ -30,7 +30,7 @@ describe("MainWindow", function()
     it("lists the sections, with battlegrounds, events and miscellaneous after the classic ones", function()
         local seen = {}
         for _, f in ipairs(WowMock.frames) do
-            local name = type(f._text) == "string" and f._text:match("^[+-] (%a[%a ]+) %(%d+%)$")
+            local name = f.cat and f._shown and f.text._text:match("^(%a[%a ]+) %(%d+%)$")
             if name then seen[#seen + 1] = name end
         end
         assert.are.same({ "Dungeons", "Raids", "Battlegrounds", "Zones", "Class Quests", "Professions", "Races",
@@ -41,7 +41,7 @@ describe("MainWindow", function()
         local function openSections()
             local n = 0
             for _, f in ipairs(WowMock.frames) do
-                if f:IsShown() and type(f._text) == "string" and f._text:match("^%- %a[%a ]+ %(%d+%)$") then n = n + 1 end
+                if f.cat and f.open and f:IsShown() then n = n + 1 end
             end
             return n
         end
@@ -186,12 +186,19 @@ describe("MainWindow", function()
         end)
 
         it("the toggle button collapses and expands, and it is remembered", function()
-            local toggle = WowMock.Find(function(f) return f.tex and f._scripts.OnClick and f.text and f.text._text == "Collapse menu" end)
+            local toggle = ns.UI.collapseButton -- the double arrow in the panel's corner, named in its tooltip
+            assert.are.equal("Collapse menu", toggle.tip)
             toggle:Click()
             assert.is_true(ns.char.sideCollapsed)
             ns = OpenAddon("vc", { selected = "vc", sideCollapsed = true })
             assert.is_false(header("dungeons").text:IsShown())
             assert.are.equal(64 + 26 - 22, lastTopLeftX(ns.UI.treeScroll))
+            -- collapsed, the corner's arrow is gone (under the emblem) and the strip's first icon expands it back
+            assert.is_false(ns.UI.collapseButton:IsShown())
+            local expand = WowMock.Find(function(f) return f._parent == ns.UI.listChild and f.label == "Expand menu" and f:IsShown() end)
+            expand:Click()
+            assert.is_false(ns.char.sideCollapsed)
+            assert.is_true(ns.UI.collapseButton:IsShown())
         end)
     end)
 
@@ -519,16 +526,367 @@ describe("MainWindow", function()
         end)
     end)
 
-    it("selecting a quest highlights its chain and dims the rest", function()
-        local q = ns.entries.vc.quests[1]
-        ns.UI_OpenQuest("vc", q.id)
-        local nodes = ShownNodes()
-        local dimmed = false
-        for id, b in pairs(nodes) do
-            if id ~= q.id and b:GetAlpha() < 0.5 then dimmed = true end
+    it("a node's frame, halo and subtitle follow its state, and the walked path is a rail of runes", function()
+        local child, parent
+        local vc = ns.entries.vc
+        for _, q in ipairs(vc.quests) do
+            for _, p in ipairs(ns.ParentsOf(q)) do
+                local def = ns.FindQuestDef(p)
+                if not child and def and def.entryId == "vc" and ns.QuestVisible(def, vc) and ns.QuestVisible(q, vc) then
+                    child, parent = q, p
+                end
+            end
         end
-        assert.are.equal(q.id, ns.Detail_Current().id)
-        assert.is_true(dimmed)
+        ns.char.filters = {} -- every quest of the tree on show
+        WowMock.done[parent] = true
+        ns.UI_Refresh()
+        local nodes = ShownNodes()
+        assert.matches("NodeBronze$", nodes[parent].frameFile)
+        assert.are.equal("Completed", nodes[parent].sub._text)
+        assert.is_true(nodes[parent].glowFrame:IsShown())
+        local runes = WowMock.Find(function(f)
+            return f._kind == "Texture" and f._shown and f._set.SetTexture and tostring(f._set.SetTexture[1]):find("RailRunes$")
+        end)
+        assert.is_not_nil(runes)
+        WowMock.done[parent] = nil
+        ns.UI_Refresh()
+        local locked
+        for _, b in pairs(ShownNodes()) do
+            if b.status == "locked" then locked = b end
+        end
+        assert.is_not_nil(locked)
+        assert.matches("NodeLocked$", locked.frameFile) -- rusty iron in chains, no halo
+        assert.is_false(locked.glowFrame:IsShown())
+        assert.are.equal("Locked", locked.sub._text)
+        ns.Detail_Show(ns.FindQuestDef(parent)) -- the quest whose details are open: gold
+        ns.UI_Refresh()
+        assert.matches("NodeGold$", ShownNodes()[parent].frameFile)
+    end)
+
+    describe("the tree on the whole screen", function()
+        it("takes the screen without the side panel, the list or the hint, and goes back as it was", function()
+            ns.UI.viewSwitch.list:Click() -- even from the List view: it is always the tree
+            local before = ns.UI:GetPoint(1)
+            ns.UI.fullButton:Click()
+            assert.is_true(ns.UI_IsTreeFullscreen())
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            assert.is_false(ns.UI.searchPanel:IsShown())
+            assert.is_false(ns.UI.listScroll:IsShown())
+            assert.is_false(ns.UI.collapseButton:IsShown())
+            assert.is_false(ns.UI.viewSwitch:IsShown())
+            assert.is_true(ns.UI.filtersButton:IsShown()) -- the toolbar stays
+            local x
+            for _, p in ipairs(ns.UI.treeScroll._points) do if p[1] == "TOPLEFT" then x = p[#p - 1] end end
+            assert.are.equal(10, x) -- the tree starts at the window's left edge
+            ns.UI.fullButton:Click()
+            assert.is_false(ns.UI_IsTreeFullscreen())
+            assert.are.equal(before, (ns.UI:GetPoint(1))) -- where it was
+            assert.are.equal(1, ns.UI:GetNumPoints()) -- and one anchor again, not stretched over the screen
+            assert.is_true(ns.UI.listScroll:IsShown())
+            assert.is_true(ns.UI_IsListMode())
+        end)
+
+        it("opening the world map (a pin, \"Map\") puts the window back to normal, or the map would open under it", function()
+            ns.UI_SetTreeFullscreen(true)
+            ns.Detail_Show(ns.entries.vc.quests[1])
+            assert.is_true(ns.UI_IsTreeFullscreen())
+            local opened
+            _G.OpenWorldMap = function(map) opened = map end
+            ns.ResolveZone = function() return 1429 end
+            ns.SetWaypoint = function() end
+            ns.ShowOnMap({ x = 10, y = 10, map = 1429 }, "Somewhere")
+            _G.OpenWorldMap = nil
+            assert.are.equal(1429, opened)
+            assert.is_false(ns.UI_IsTreeFullscreen())
+            assert.is_true(ns.UI.treeScroll:IsShown() or ns.Detail_Current() ~= nil)
+            assert.are.equal(1, ns.UI:GetNumPoints()) -- the window at its own place and size, not stretched over the screen
+        end)
+
+        it("closing the window leaves the full screen", function()
+            ns.UI_SetTreeFullscreen(true)
+            ns.UI:Hide()
+            assert.is_false(ns.UI_IsTreeFullscreen())
+        end)
+    end)
+
+    it("a line under the toolbar names the filters that are on, and is not there with none", function()
+        local line = ns.UI.filterSummary
+        ns.char.filters = {}
+        ns.UI_Refresh()
+        assert.is_false(line:IsShown())
+        local topBefore = ns.TREE_TOP
+        ns.char.filters.hideLow, ns.char.filters.hideDone = true, true
+        ns.UI_Refresh()
+        assert.is_true(line:IsShown())
+        assert.matches("Filters: Hide low level  |  Hide completed", line.text._text, 1, true)
+        assert.is_true(ns.TREE_TOP > topBefore) -- the tree starts under the line
+        ns.UI_SetSearchMode(true, "log")
+        assert.is_false(line:IsShown()) -- not over the tables
+    end)
+
+    it("a drag that starts on a quest moves the view, and its release is no click", function()
+        ns.UI_Refresh()
+        local id, node = next((ShownNodes()))
+        node._scripts.OnMouseDown(node, "LeftButton")
+        node._scripts.OnDragStart(node)
+        node._scripts.OnDragStop(node)
+        node._scripts.OnClick(node, "LeftButton") -- the release
+        assert.is_nil(ns.Detail_Current())
+        node._scripts.OnMouseDown(node, "LeftButton") -- a press without moving is a click
+        node._scripts.OnClick(node, "LeftButton")
+        assert.are.equal(id, ns.Detail_Current().id)
+    end)
+
+    it("connections never run over a quest: they go through the gaps between them", function()
+        WowMock.level = 60
+        ns.char.filters = {}
+        local function rect(f)
+            local p = f._points[#f._points]
+            return p[4], -p[5], f._w or 0, f._h or 0 -- x, y (down), width, height on the canvas
+        end
+        local checked = 0
+        for _, d in ipairs(ns.entryList) do
+            if d.category == "zones" or d.category == "dungeons" then
+                ns.UI_OpenQuest(d.id, d.quests[1] and d.quests[1].id or 0)
+                ns.UI_LeaveChain()
+                ns.Detail_Hide()
+                ns.UI_Refresh()
+                local boxes = {}
+                for _, b in pairs((ShownNodes())) do
+                    local x, y = rect(b)
+                    boxes[#boxes + 1] = { x = x + 6, y = y + 6, w = 204 - 12, h = 80 - 12 } -- inside the frame (a rail ends on its edge)
+                end
+                for _, t in ipairs(WowMock.FindAll(function(f)
+                    return f._kind == "Texture" and f._shown and f._set.SetTexture
+                        and tostring(f._set.SetTexture[1]):find("Rail[RI][ur][no]") and f._points and #f._points > 0
+                end)) do
+                    local x, y, w, h = rect(t)
+                    for _, box in ipairs(boxes) do
+                        local overlaps = x < box.x + box.w and box.x < x + w and y < box.y + box.h and box.y < y + h
+                        assert.is_false(overlaps, ("%s: a rail over a quest at %d,%d"):format(d.id, box.x, box.y))
+                    end
+                    checked = checked + 1
+                end
+            end
+        end
+        assert.is_true(checked > 100)
+    end)
+
+    it("a locked node whose requirement is in another zone says which, in red, instead of just Locked", function()
+        WowMock.Reset()
+        WowMock.faction = "Horde"
+        WowMock.race = { "Undead", "Scourge", 5 }
+        ns = OpenAddon("rol")
+        ns.char.filters = {}
+        ns.UI_Refresh()
+        local node = ShownNodes()[95216]
+        assert.is_not_nil(node)
+        assert.are.equal("locked", node.status)
+        assert.matches("^Requires: A Recipe For Death %(3/3%)", node.sub._text)
+        WowMock.done[451] = true
+        ns.UI_Refresh()
+        assert.are_not.equal("locked", ShownNodes()[95216].status)
+        assert.is_nil(ShownNodes()[95216].sub._text:find("Requires", 1, true))
+    end)
+
+    it("a tree smaller than the view sits in its middle", function()
+        local scroll = ns.UI.treeScroll
+        local holder = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)
+        local canvas = WowMock.Find(function(f) return f._parent == holder and f._kind == "Frame" end)
+        scroll:SetSize(800, 600)
+        canvas:SetSize(400, 200)
+        ns.UI_SetZoom(1)
+        assert.are.equal(800, holder:GetWidth())
+        local _, _, _, x, y = canvas:GetPoint(1)
+        assert.are.equal(200, x)
+        assert.are.equal(-200, y)
+        canvas:SetSize(1200, 900) -- bigger than the view: from the top-left corner
+        ns.UI_SetZoom(1)
+        _, _, _, x, y = canvas:GetPoint(1)
+        assert.are.equal(0, x)
+        assert.are.equal(0, y)
+    end)
+
+    describe("Chains only, and the Tree | List switch", function()
+        local function loose()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if not ns.IsInChain(q) and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
+        end
+        local function inChain()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if ns.IsInChain(q) and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
+        end
+
+        it("Chains only hides the loose quests and keeps the chains", function()
+            local single, chainQuest = loose(), inChain()
+            assert.is_not_nil(single)
+            ns.UI_Refresh()
+            assert.is_not_nil(ShownNodes()[single.id])
+            ns.char.filters.chainsOnly = true
+            ns.UI_Refresh()
+            assert.is_nil(ShownNodes()[single.id])
+            assert.is_not_nil(ShownNodes()[chainQuest.id])
+            WowMock.onQuest[single.id] = true -- the ones in the log too: they are not part of a chain
+            ns.UI_Refresh()
+            assert.is_nil(ShownNodes()[single.id])
+        end)
+
+        it("List shows the entry's quests in the table under the toolbar, and it is remembered", function()
+            ns.UI.viewSwitch.list:Click()
+            assert.are.equal("list", ns.char.entryView)
+            assert.is_true(ns.UI_IsListMode())
+            assert.is_true(ns.UI.searchPanel:IsShown())
+            assert.are.equal("entry", ns.Search_Mode())
+            assert.is_false(ns.UI.treeScroll:IsShown())
+            assert.is_true(ns.UI.filtersButton:IsShown()) -- the toolbar stays
+            local rows = ShownRows()
+            assert.is_true(#rows > 0)
+            for _, r in ipairs(rows) do assert.are.equal("vc", r.entry.id) end
+            ns.UI.viewSwitch.tree:Click()
+            assert.is_nil(ns.char.entryView)
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            assert.is_false(ns.UI.searchPanel:IsShown())
+        end)
+
+        it("in the List view the toolbar's search box narrows the list to this entry's quests only", function()
+            ns.UI.viewSwitch.list:Click()
+            local all = #ShownRows()
+            local box = WowMock.Find(function(f) return f._kind == "EditBox" and f.Instructions
+                and f.Instructions._text == "Search by title" end)
+            local name = ShownRows()[1].quest.name:sub(1, 6):lower()
+            box:SetText(name)
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, true) end
+            local rows = ShownRows()
+            assert.is_true(#rows >= 1 and #rows <= all)
+            for _, r in ipairs(rows) do
+                assert.are.equal("vc", r.entry.id) -- never another zone's quests
+                assert.matches(name, r.quest.name:lower(), 1, true)
+            end
+        end)
+
+        it("the List view follows the filters, and the chain view is a tree; Back goes to the list again", function()
+            ns.UI.viewSwitch.list:Click()
+            ns.char.filters.chainsOnly = true
+            ns.UI_Refresh()
+            local single = loose()
+            for _, r in ipairs(ShownRows()) do assert.are_not.equal(single.id, r.quest.id) end
+            ns.char.filters.chainsOnly = nil
+            local q
+            for _, c in ipairs(ns.entries.vc.quests) do
+                if #ns.ParentsOf(c) > 0 and ns.QuestVisible(c, ns.entries.vc) then q = c break end
+            end
+            ns.UI_OpenQuest("vc", q.id)
+            assert.is_true(ns.UI_InChainView())
+            assert.is_true(ns.UI.treeScroll:IsShown())
+            ns.UI.chainBack:Click()
+            assert.is_true(ns.UI_IsListMode())
+            assert.is_true(ns.UI.searchPanel:IsShown())
+        end)
+
+        it("collapsed, the section you are on is marked on the parchment, with no dark box", function()
+            ns.UI_SetSideCollapsed(true)
+            local h = WowMock.Find(function(f) return f.cat and f.cat.id == "dungeons" and f:IsShown() end)
+            assert.is_true(h.mark:IsShown())
+            assert.are.equal(0, select(4, h:GetBackdropBorderColor()))
+            local other = WowMock.Find(function(f) return f.cat and f.cat.id == "zones" and f:IsShown() end)
+            assert.is_false(other.mark:IsShown())
+            assert.are.equal(0, select(4, other:GetBackdropColor()))
+        end)
+    end)
+
+    describe("the chain view", function()
+        local function chained()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if #ns.ParentsOf(q) > 0 and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
+        end
+        local function count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
+        local function topY(b)
+            local y
+            for _, p in ipairs(b._points) do if p[1] == "TOPLEFT" then y = p[#p] end end
+            return y
+        end
+
+        it("picking a quest of a chain shows that chain alone, with the way back and its name in the title", function()
+            ns.UI_Refresh()
+            local all = count((ShownNodes()))
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local nodes = ShownNodes()
+            assert.is_true(ns.UI_InChainView())
+            assert.is_true(count(nodes) > 1 and count(nodes) < all)
+            assert.is_not_nil(nodes[q.id])
+            for _, parent in ipairs(ns.ParentsOf(q)) do
+                if ns.FindQuestDef(parent) and ns.FindQuestDef(parent).entryId == "vc" then assert.is_not_nil(nodes[parent]) end
+            end
+            assert.is_true(ns.UI.chainBack:IsShown())
+            assert.matches("  %-  ", ns.UI.header:GetText())
+        end)
+
+        it("Back shows the whole tree again, the chosen quest's path lit and the rest dimmed", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local inChain = count((ShownNodes()))
+            ns.UI.chainBack:Click()
+            assert.is_false(ns.UI_InChainView())
+            assert.is_false(ns.UI.chainBack:IsShown())
+            assert.are.equal(q.id, ns.Detail_Current().id)
+            local nodes = ShownNodes()
+            assert.is_true(count(nodes) > inChain)
+            local dimmed = false
+            for id, b in pairs(nodes) do
+                if id ~= q.id and b:GetAlpha() < 0.6 then dimmed = true end
+            end
+            assert.is_true(dimmed)
+        end)
+
+        it("a click on a quest of a chain in the tree opens the chain view; another entry leaves it", function()
+            ns.UI_Refresh()
+            local q = chained()
+            local node = (ShownNodes())[q.id]
+            node._scripts.OnClick(node, "LeftButton")
+            assert.is_true(ns.UI_InChainView())
+            assert.are.equal(q.id, ns.Detail_Current().id)
+            local other = WowMock.Find(function(f) return f.entry and f.entry.id ~= "vc" and f:IsShown() end)
+            other:Click()
+            assert.is_false(ns.UI_InChainView())
+        end)
+
+        it("survives the late notice of the search box emptied by the addon; typing in it leaves the chain view", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local box = WowMock.Find(function(f) return f._kind == "EditBox" and f.Instructions
+                and f.Instructions._text == "Search by title" end)
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, false) end -- the game tells of SetText("") later
+            assert.is_true(ns.UI_InChainView())
+            box:SetText("wolf")
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, true) end
+            assert.is_false(ns.UI_InChainView())
+        end)
+
+        it("Back sits in the toolbar after the filters, not over the tree", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local _, backTo, _, backX, backY = ns.UI.chainBack:GetPoint(1)
+            local _, filtersTo, _, filtersX, filtersY = ns.UI.filtersButton:GetPoint(1)
+            assert.are.equal(filtersTo, backTo) -- placed like the toolbar's own controls
+            assert.are_not.equal(ns.UI.treeScroll, backTo)
+            -- after the filters (and the Tree | List switch): on their line, or on the next one when it doesn't fit
+            assert.is_true(backY < filtersY or (backY == filtersY and backX > filtersX))
+            ns.UI.chainBack:Click() -- and gone with the chain view
+            assert.is_false(ns.UI.chainBack:IsShown())
+        end)
+
+        it("reads top to bottom: a quest sits below the quest it requires", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local nodes = ShownNodes()
+            for _, parent in ipairs(ns.ParentsOf(q)) do
+                if nodes[parent] then assert.is_true(topY(nodes[q.id]) < topY(nodes[parent])) end
+            end
+        end)
     end)
 
     it("the search replaces the tree and picking an entry closes it", function()
@@ -604,7 +962,7 @@ describe("MainWindow", function()
             assert.are.equal(-32, right())
         end)
 
-        it("the quest details panel under it ends where the tree does", function()
+        it("the quest drawer sits on the right edge, and the tree ends at its left with or without its bar", function()
             local detail = WowMock.Find(function(f) return f.layoutButtons end)
             local function detailRight()
                 local x
@@ -615,12 +973,17 @@ describe("MainWindow", function()
             -- its real content, so the height is set after it, not before:
             -- how tall the Deadmines tree really is changes with the data.
             ns.UI_OpenQuest("vc", ns.entries.vc.quests[1].id)
+            assert.are.equal(340, detail:GetWidth())
             canvas:SetHeight(200)
             rangeChanged()
             assert.are.equal(-8, detailRight())
+            assert.are.equal(-(8 + 348), right())
             canvas:SetHeight(900)
             rangeChanged()
-            assert.are.equal(-32, detailRight())
+            assert.are.equal(-8, detailRight())
+            assert.are.equal(-(32 + 348), right())
+            ns.Detail_Hide() -- closed, the tree takes the room back
+            assert.are.equal(-32, right())
         end)
     end)
 
@@ -747,7 +1110,7 @@ describe("MainWindow", function()
     describe("click-through", function()
         local function tick() ns.UI._scripts.OnUpdate(ns.UI, 0.1) end
         local function anyChild()
-            return WowMock.Find(function(f) return f._kind == "Button" and f._parent == ns.UI and f._scripts.OnClick end)
+            return WowMock.Find(function(f) return f._kind == "Button" and f._parent == ns.UI.headerBar and f._scripts.OnClick end)
         end
         before_each(function()
             ns.UI:EnableMouse(true)

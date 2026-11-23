@@ -218,10 +218,11 @@ end
 function WowMock.FindByText(text)
     return WowMock.Find(function(f) return f._text == text end)
 end
+-- A button by its label or, failing that, by its tooltip (.tip: the plates say one word and the whole action on hover).
 function WowMock.FindButton(textPart)
-    return WowMock.Find(function(f)
-        return type(f._text) == "string" and f._text:find(textPart, 1, true) and f._scripts.OnClick ~= nil
-    end)
+    local function has(s) return type(s) == "string" and s:find(textPart, 1, true) ~= nil end
+    return WowMock.Find(function(f) return has(f._text) and f._scripts.OnClick ~= nil end)
+        or WowMock.Find(function(f) return has(f.tip) and f._scripts.OnClick ~= nil end)
 end
 
 UIParent = WowMock.NewFrame("Frame", "UIParent")
@@ -282,6 +283,7 @@ GetRealmName = function() return "Realm" end
 BreakUpLargeNumbers = function(n) return tostring(n) end
 GetCoinTextureString = function(c) return c .. "c" end
 GetTime = function() return WowMock.time or 0 end
+time = os.time -- the game's own (os.time)
 HandleModifiedItemClick = function(link) WowMock.linked = link end
 GetQuestGreenRange = function() return 8 end
 

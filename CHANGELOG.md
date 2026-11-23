@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.0.0
+
+- New: `/completao shots [entry id]` takes the screenshots of the CurseForge page by itself (main window, chain, details, full-screen tree, list, search, log, tracked, focus window, each preferences tab, minimap button, TomTom arrow and map marker); after a `/reload`, `node tools/shots.mjs` crops them into `images/screencaps/`.
+- New: a whole new look for the main window ("Cartographic Codex"): dark obsidian with a fine gold frame, a header with the compass medallion, the title plate and your overall progress, and a side panel on burnt parchment.
+- New: the side panel puts the four views first, each with a count (quests in the log, tracked, ready to turn in), and a filter box to find a zone, dungeon or class by name; every entry shows a thin bar of how much of it is done.
+- New: a quest's details open in a drawer on the right, on parchment, so the table or the tree stays in sight beside it; its actions are plates with one word and an icon (Focus, Waypoint, Chain, Open, Map, Abandon), the full action in their tooltip.
+- New: chain trees read top to bottom and draw each quest as a stone plate with a halo in its status color (the one in your log pulses); locked quests show a padlock and stay readable, and connections go gold where you have already been, with an arrow down into each quest. Zoom buttons and "Center on my current quest" sit in the tree's corner.
+- New: a Tree | List switch next to the filters: List shows the entry's quests in a table (status, level, zone, distance, XP, rewards, sortable), handy for big zones; it is remembered per character.
+- New: "Chains only" in the tree's filters hides the loose quests.
+- New: a button in the tree's corner puts the tree on the whole screen, without the side panel or the list; again (or closing the window) puts it back.
+- New: a tree smaller than the view is drawn in its middle, and dragging from a quest moves the view too (a click without moving still opens it).
+- New: quests of a chain show a chain icon after their name, in the tables and in their details; a click on it opens that chain.
+- Changed: the same filters in every view (the tree, the zone list, the search, the quest log, the tracked quests and the ones to turn in): the same options, in the same words ("Hide low level", "Hide completed"...) and the same meaning, plus the reward type and "only with item rewards", which were only in the search. Each view keeps its own (changing "Chains only" in one does not touch the others) unless "Same filters in every view" is ticked in the preferences (Profile / Data); "Show other faction" is always one for all. A line under the toolbar says which filters are on, and a click on it opens them.
+- New: the quest log, tracked and to-turn-in tables have their own title box, which searches only that view; the zone list uses the toolbar's box, which only reaches that zone.
+- Fixed: distances read in meters outside the US region (and in yards in it), as the game's waypoint and TomTom do, whatever the client's language; before, an English client in Europe read yards. A "Distance units" setting in the preferences (General) forces meters or yards.
+- New: a quest that needs another one from a different zone or dungeon says so: its node reads "Requires: <quest>" in red, and its details list it in red as a link (with a chain icon) that opens that quest's tree. "The New Plague" now requires "A Recipe For Death (3/3)".
+- New: picking a quest of a chain shows that chain alone, with its name in the title; "Back to all quests" returns to the whole tree.
+- New: in a quest's details, where it starts and ends has a map pin to click instead of the coordinates.
+- Changed: next to the quest drawer, the table hides its least needed columns (rewards, money, XP...) so quest titles stay readable.
+- New: the focused quest window is lighter: no heavy border, its title bar (padlock, Auto, close) only shows with the mouse over it, an arrow and the distance point to the step the waypoint is on, a thin bar behind each objective shows how far along it is, and "Also here" folds away with a click.
+- New: the preferences come in four tabs (General, Interface & Opacity, Tracker & Waypoints, Profile / Data) with filled sliders, and the maintenance buttons (reset window, zoom, filters; what's new) at the foot.
+- New: the search table shows each quest's status icon, with a parchment header and alternate row shading.
+
 ## 1.9.2
 
 - Fixed: on WoW Forever, since the game stopped giving the realm name, "Consolidate alts" left out the characters that had not logged in since, and could count the character you play, or an alt, twice ("Completed by" could name yourself). An unknown realm now goes with any: all your characters are together again, each once, from its newest copy.

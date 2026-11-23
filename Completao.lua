@@ -115,6 +115,8 @@ SlashCmdList.COMPLETAO = function(msg)
         ns.Focus_TargetReport()
     elseif msg == "here" then
         ns.Focus_HereReport()
+    elseif msg:match("^shots") then
+        ns.Shots_Run(msg:match("^shots%s+(%S+)")) -- the screenshots of the CurseForge page (tools/shots.mjs crops them)
     elseif msg == "changelog" or msg == "whatsnew" then
         ns.Welcome_Show()
     elseif msg:match("^fade") then

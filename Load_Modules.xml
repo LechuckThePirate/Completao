@@ -13,6 +13,7 @@
     <Script file="Modules\UI\Preferences.lua"/>
     <Script file="Modules\UI\Welcome.lua"/>
     <Script file="Modules\UI\MinimapButton.lua"/>
+    <Script file="Modules\UI\Shots.lua"/>
     <Script file="Modules\API\API.lua"/>
     <Script file="Completao.lua"/>
 </Ui>

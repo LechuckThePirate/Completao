@@ -1,6 +1,7 @@
 local _, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
+local T = ns.Theme
 
 -- Global search ("Search quests..." in the side panel): a form in the window's main area and the results
 -- in a table below. It searches every section at once, among the quests meant for this character (class,
@@ -8,31 +9,50 @@ local L = ns.L
 -- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
 -- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
-local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 150
+local GROUP_H, GROUP_GAP = 28, 8 -- a group's header row, and the space above it (but the first one)
+local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 190
 local MAX_ROWS = 300
 
--- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
--- then fewer reward icons are shown and last "Where" is dropped.
-local STATUS_W = 20 -- the quest's status icon before its title (quest log and tracked views)
+-- Table columns by width: the title keeps at least MIN_NAME_W, so it always reads. When it doesn't fit (a narrow
+-- window, or the quest drawer open beside the table) the other columns give way, the least needed first: "Where"
+-- narrows, fewer reward icons, no rewards, no money, no XP, no "Where", and last no distance. A dropped column is
+-- hidden, header and rows alike (a width of 0).
+local STATUS_W = 20 -- the quest's status icon before its title
 local cols = { width = 0 }
 local function computeColumns(width, status)
     if cols.width == width and cols.status == status then return false end
     local gap = 6
     local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
-    local function nameW() return width - 6 - status - LEVEL_W - DIST_W - XP_W - MONEY_W - where - icons * (ICON + 2) - 6 * gap end
-    if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
-    if nameW() < MIN_NAME_W then icons = 3 end
-    if nameW() < MIN_NAME_W then where = 0 end
+    local dist, xp, money = DIST_W, XP_W, MONEY_W
+    local function used(w) return w > 0 and (w + gap) or 0 end
+    local function nameW()
+        return width - 6 - status - gap - (LEVEL_W + gap) - used(where) - used(dist) - used(xp) - used(money)
+            - icons * (ICON + 2)
+    end
+    local giveWay = {
+        function() where = math.max(90, where - (MIN_NAME_W - nameW())) end,
+        function() icons = math.min(icons, 3) end,
+        function() icons = 0 end,
+        function() money = 0 end,
+        function() xp = 0 end,
+        function() where = 0 end,
+        function() dist = 0 end,
+    }
+    for _, step in ipairs(giveWay) do
+        if nameW() >= MIN_NAME_W then break end
+        step()
+    end
     cols.width, cols.icons, cols.where, cols.status = width, icons, where, status
+    cols.dist, cols.xp, cols.money = dist, xp, money
     cols.gen = (cols.gen or 0) + 1
     cols.name = math.max(40, nameW())
     cols.nameX = 6 + status
     cols.levelX = cols.nameX + cols.name + gap
     cols.whereX = cols.levelX + LEVEL_W + gap
-    cols.distX = cols.whereX + (where > 0 and (where + gap) or 0)
-    cols.xpX = cols.distX + DIST_W + gap
-    cols.moneyX = cols.xpX + XP_W + gap
-    cols.iconsX = cols.moneyX + MONEY_W + gap
+    cols.distX = cols.whereX + used(where)
+    cols.xpX = cols.distX + used(dist)
+    cols.moneyX = cols.xpX + used(xp)
+    cols.iconsX = cols.moneyX + used(money)
     return true
 end
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
@@ -41,7 +61,7 @@ local panel
 -- room the table's scroll bar takes (it only shows when the rows don't fit)
 local barInset = 0
 local state = {
-    text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
+    text = "",
     sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "xp" | "money", by the header
 }
 local rows = {}
@@ -54,74 +74,21 @@ local function xpString(xp)
     return BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or tostring(xp)
 end
 
--- An item's class and subclass, with their names in the client's language. This is "instant" client
--- information (the item doesn't need to be cached).
-local itemClassCache = {}
-local function itemClass(id)
-    local c = itemClassCache[id]
-    if c == nil then
-        c = false
-        local f = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
-        if f then
-            local _, typeName, subName, _, icon, classID, subclassID = f(id)
-            if classID then
-                c = { class = classID, sub = subclassID, typeName = typeName, subName = subName, icon = icon }
-            end
-        end
-        itemClassCache[id] = c
-    end
-    return c or nil
-end
+local itemClass = ns.RewardItemClass -- (Filters.lua)
 
 local function rewardIds(r)
     return ns.RewardItemIds(r)
-end
-
--- Reward types present in the data: { {id, name, subs = { {id, name} }} }, by name.
-local rewardTypes
-local function getRewardTypes()
-    if rewardTypes then return rewardTypes end
-    local byClass = {}
-    for _, r in pairs(ns.REWARDS or {}) do
-        for _, id in ipairs(rewardIds(r)) do
-            local c = itemClass(id)
-            if c and c.typeName then
-                local t = byClass[c.class]
-                if not t then
-                    t = { id = c.class, name = c.typeName, subs = {}, seen = {} }
-                    byClass[c.class] = t
-                end
-                if c.sub and c.subName and not t.seen[c.sub] then
-                    t.seen[c.sub] = true
-                    t.subs[#t.subs + 1] = { id = c.sub, name = c.subName }
-                end
-            end
-        end
-    end
-    rewardTypes = {}
-    for _, t in pairs(byClass) do
-        table.sort(t.subs, function(a, b) return a.name < b.name end)
-        rewardTypes[#rewardTypes + 1] = t
-    end
-    table.sort(rewardTypes, function(a, b) return a.name < b.name end)
-    return rewardTypes
-end
-
-local function matchesReward(q)
-    if not state.class then return true end
-    local r = ns.REWARDS and ns.REWARDS[q.id]
-    if not r then return false end
-    for _, id in ipairs(rewardIds(r)) do
-        local c = itemClass(id)
-        if c and c.class == state.class and (not state.subclass or c.sub == state.subclass) then return true end
-    end
-    return false
 end
 
 -- View: "search" (form + results), "log" (the quests in the log, in the same table), "tracked" (the ones
 -- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not). The last three can
 -- group their quests ("Group by").
 local mode = "search"
+
+-- The title typed in the box of each table view (the quest log, the tracked quests, the ones to turn in): a search in one
+-- only reaches that view's quests, and each view keeps its own text. (The search view keeps it in `state`; an entry's
+-- list uses the tree's own box, in the main window, which already limits it to the entry.)
+local viewText = {}
 
 local function isTracked(id)
     -- the clients with no list of their own to read: the one the addon keeps (QuestTracking.lua)
@@ -151,6 +118,15 @@ local function logQuests(only)
                 found[#found + 1] = { quest = { id = info.questID, name = info.title or "?", level = info.level }, zone = zone }
             end
         end
+    end
+    return found
+end
+
+-- The List view of an entry: its quests that the tree's filters let through (MainWindow.lua gives them).
+local function entryQuests()
+    local found = {}
+    for _, e in ipairs(ns.UI_EntryQuests and ns.UI_EntryQuests() or {}) do
+        found[#found + 1] = { quest = e.quest, entry = e.entry }
     end
     return found
 end
@@ -217,39 +193,40 @@ local function visibleQuests()
     return candidates
 end
 
--- Every quest that matches the form.
+-- How the filters read a title here: the client's, else the data's name, kept lowercase (every keystroke compares thousands).
+local function matchText(q, needle)
+    local title, isName = lowerTitle(q)
+    return (title:find(needle, 1, true) or (not isName and lowerName(q):find(needle, 1, true))) and true or false
+end
+
+-- The predicate of each entry (its chains are looked at as a whole), for a title typed in: the shared filters
+-- (Filters.lua), the same in every view.
+local function filterOfEntry(cache, d, text)
+    local key = d or false
+    local pass = cache[key]
+    if not pass then
+        pass = ns.QuestFilter(d, { text = text, isOnQuest = isOnQuest, matchText = matchText, assumeVisible = true })
+        cache[key] = pass
+    end
+    return pass
+end
+
+-- Every quest that passes the filters and the title typed in the search box.
 local function search()
-    local found = {}
-    local needle = state.text ~= "" and state.text or nil
-    local lowByLevel = {} -- IsLowLevel only depends on the level, and asks the client
+    local found, cache = {}, {}
     for _, c in ipairs(visibleQuests()) do
-        local q, d = c.q, c.d
-        local ok = true
-        local onQuest = isOnQuest(q.id)
-        if not state.done and ns.IsQuestDone(q.id) and not onQuest then ok = false end
-        if ok and not onQuest then
-            local level = q.level or q.minLevel
-            local low = level and lowByLevel[level]
-            if low == nil then
-                low = ns.IsLowLevel(q)
-                if level then lowByLevel[level] = low end
-            end
-            if not state.low and low then ok = false end
-            if ok and not state.high and ns.IsTooHigh(q) then ok = false end
-        end
-        if ok and needle then
-            local title, isName = lowerTitle(q)
-            ok = title:find(needle, 1, true) or (not isName and lowerName(q):find(needle, 1, true))
-            ok = ok and true or false
-        end
-        if ok and not matchesReward(q) then ok = false end
-        if ok and state.itemsOnly then
-            local r = ns.REWARDS and ns.REWARDS[q.id]
-            ok = r ~= nil and #rewardIds(r) > 0
-        end
-        if ok then found[#found + 1] = { quest = q, entry = d } end
+        if filterOfEntry(cache, c.d, state.text)(c.q) then found[#found + 1] = { quest = c.q, entry = c.d } end
     end
     return found
+end
+
+-- The same for a list of the quest log's views.
+local function filterLog(list, text)
+    local kept, cache = {}, {}
+    for _, f in ipairs(list) do
+        if filterOfEntry(cache, f.entry, text)(f.quest) then kept[#kept + 1] = f end
+    end
+    return kept
 end
 
 -- Where a quest's next step is. Out of the log the steps aren't worked out (ns.QuestSteps asks the client for the
@@ -336,13 +313,10 @@ end
 local function openMenu(anchor, options, onPick) ns.PopupMenu(anchor, options, onPick, 170) end
 
 local function makeDropdown(parent, width)
-    local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    b:SetSize(width, 22)
+    local b = T.CreateGhostButton(parent, nil, width, 22)
     local text = b:GetFontString()
-    if text then text:SetPoint("LEFT", 8, 0); text:SetPoint("RIGHT", -18, 0); text:SetJustifyH("LEFT") end
-    local arrow = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    arrow:SetPoint("RIGHT", -6, 0)
-    arrow:SetText("v")
+    if text then text:ClearAllPoints(); text:SetPoint("LEFT", 8, 0); text:SetPoint("RIGHT", -18, 0); text:SetJustifyH("LEFT") end
+    T.SetGlyph(b, "chevronDown", "RIGHT", -9, 0)
     return b
 end
 
@@ -351,27 +325,45 @@ local function getRow(i)
     if row then return row end
     row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
     row:SetHeight(ROW_H)
-    row:SetBackdrop(BACKDROP)
-    row:SetBackdropBorderColor(0, 0, 0, 0)
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    T.Style(row, "obsidian", false)
+    row:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
     row.status = row:CreateTexture(nil, "ARTWORK")
     row.status:SetSize(STATUS_W - 4, STATUS_W - 4)
-    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.name = T.Text(row, "quest")
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
-    row.level = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    -- the numbers: a narrow tabular font, muted, right-aligned so they read down the column
+    row.level = T.Text(row, "data", "muted")
     row.level:SetWidth(LEVEL_W)
     row.level:SetJustifyH("CENTER")
-    row.where = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.where = T.Text(row, "small", "muted")
     row.where:SetJustifyH("LEFT")
     row.where:SetWordWrap(false)
-    row.dist = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.dist = T.Text(row, "data", "muted")
     row.dist:SetWidth(DIST_W)
     row.dist:SetJustifyH("RIGHT")
-    row.xp = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.xp = T.Text(row, "data", "muted")
     row.xp:SetJustifyH("RIGHT")
     row.xp:SetWordWrap(false)
-    row.money = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.money = T.Text(row, "data", "muted")
+    -- a quest of a chain: a chain icon right after its title, which opens that chain's tree
+    row.chain = CreateFrame("Button", nil, row)
+    row.chain:SetSize(14, 14)
+    row.chain.tex = row.chain:CreateTexture(nil, "ARTWORK")
+    row.chain.tex:SetAllPoints()
+    T.SetActionIcon(row.chain.tex, "chain")
+    row.chain:SetScript("OnClick", function(self)
+        local q = self:GetParent().quest
+        if q and q.entryId then ns.UI_OpenQuest(q.entryId, q.id) end
+    end)
+    row.chain:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(L["View chain"])
+        GameTooltip:Show()
+    end)
+    row.chain:SetScript("OnLeave", GameTooltip_Hide)
+    row.chain:Hide()
     row.money:SetJustifyH("RIGHT")
     row.money:SetWordWrap(false)
     row.icons = {}
@@ -443,12 +435,15 @@ local function placeRow(row)
     row.where:SetShown(cols.where > 0)
     row.dist:ClearAllPoints()
     row.dist:SetPoint("LEFT", row, "LEFT", cols.distX, 0)
+    row.dist:SetShown(cols.dist > 0)
     row.xp:ClearAllPoints()
     row.xp:SetPoint("LEFT", row, "LEFT", cols.xpX, 0)
     row.xp:SetWidth(XP_W)
+    row.xp:SetShown(cols.xp > 0)
     row.money:ClearAllPoints()
     row.money:SetPoint("LEFT", row, "LEFT", cols.moneyX, 0)
     row.money:SetWidth(MONEY_W)
+    row.money:SetShown(cols.money > 0)
     if row.icons then
         for k, icon in ipairs(row.icons) do
             icon:ClearAllPoints()
@@ -457,6 +452,7 @@ local function placeRow(row)
     elseif row.rewards then
         row.rewards:ClearAllPoints()
         row.rewards:SetPoint("LEFT", row, "LEFT", cols.iconsX, 0)
+        row.rewards:SetShown(cols.icons > 0)
     end
 end
 
@@ -492,13 +488,13 @@ local function getStepRow()
     -- the step the waypoint is set on: a gold tint and a bar on the left
     row.mark = row:CreateTexture(nil, "BACKGROUND")
     row.mark:SetAllPoints()
-    row.mark:SetColorTexture(1, 0.82, 0, 0.18)
+    row.mark:SetColorTexture(T.rgba("gold", 0.14))
     row.markBar = row:CreateTexture(nil, "ARTWORK")
     row.markBar:SetPoint("TOPLEFT")
     row.markBar:SetPoint("BOTTOMLEFT")
     row.markBar:SetWidth(3)
-    row.markBar:SetColorTexture(1, 0.82, 0, 1)
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.markBar:SetColorTexture(T.rgba("gold"))
+    row.text = T.Text(row, "small")
     row.text:SetPoint("LEFT", 16, 0)
     row.text:SetPoint("RIGHT", -6, 0)
     row.text:SetJustifyH("LEFT")
@@ -507,7 +503,7 @@ local function getStepRow()
     return row
 end
 
-local STEP_COLORS = { done = "ff808080", current = "ffffd100", todo = "ffffffff" }
+local STEP_COLORS = { done = "ff64748b", current = "ffd4af37", todo = "ffe2e8f0" }
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14|t "
 
 local function readyToTurnIn(quest)
@@ -524,6 +520,7 @@ local STATUS_ICONS = {
 local function setStatusIcon(tex, kind)
     local spec = kind and STATUS_ICONS[kind]
     if not spec then tex:Hide() return end
+    tex:SetTexCoord(0, 1, 0, 1) -- (a reused row may have had a piece of the theme's icons)
     local set
     if tex.SetAtlas and C_Texture and C_Texture.GetAtlasInfo then
         for _, name in ipairs(spec.atlas) do
@@ -534,6 +531,35 @@ local function setStatusIcon(tex, kind)
     tex:Show()
 end
 ns.SetQuestStatusIcon = setStatusIcon -- the focus window's too
+
+-- In the search, every result gets the icon of its status: in the log as in the log views, available to take (a
+-- yellow !), done (a green check) or locked (a grey padlock: level or requirements). Only what is cheap to ask is
+-- asked (the log as read once per search, isOnQuest): some clients scan the whole log for each question.
+local function locked(q)
+    if q.minLevel and UnitLevel("player") < q.minLevel then return true end
+    for _, id in ipairs(q.requires or {}) do
+        if not ns.IsQuestDone(id) then return true end
+    end
+    if q.requiresAny and #q.requiresAny > 0 then
+        for _, id in ipairs(q.requiresAny) do
+            if ns.IsQuestDone(id) then return false end
+        end
+        return true
+    end
+    return false
+end
+
+local function setSearchIcon(tex, q)
+    if isOnQuest(q.id) then
+        setStatusIcon(tex, ns.IsReadyToTurnIn(q.id) and "ready" or "progress")
+    elseif ns.IsQuestDone(q.id) then
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+        tex:Show()
+    else
+        T.SetStatusIcon(tex, locked(q) and "lock" or "quest")
+    end
+end
 
 -- The same icon as inline text (for menus, whose rows are plain text): "|A:atlas|a" when the client has the atlas,
 -- else the file's "|T...|t". Ends in a space, so it can go straight in front of a name.
@@ -597,7 +623,7 @@ local groups = {} -- the last grouping: { key, name, first, last } (indexes into
 local folded = {} -- "<view>:<group by>:<group key>" = true
 
 local function groupBy()
-    if mode == "search" then return "none" end
+    if mode == "search" or mode == "entry" then return "none" end
     local saved = ns.char and ns.char.tableGroup and ns.char.tableGroup[mode]
     return GROUP_LABELS[saved] and saved or "none"
 end
@@ -665,16 +691,27 @@ local function getGroupRow()
     local row = groupRows[groupsUsed]
     if row then return row end
     row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
-    row:SetHeight(ROW_H)
+    row:SetHeight(GROUP_H)
     row:SetBackdrop(BACKDROP)
-    row:SetBackdropColor(0.16, 0.13, 0.03, 0.95)
-    row:SetBackdropBorderColor(0.45, 0.37, 0.08, 1)
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    row.toggle = row:CreateTexture(nil, "ARTWORK")
+    -- a band of parchment, as the table's header, with a dark brass frame and a sienna bar on its left: nothing
+    -- else in the table looks like it
+    T.Style(row, "obsidian", "gold")
+    row.band = row:CreateTexture(nil, "BACKGROUND", nil, 2)
+    row.band:SetTexture(T.MEDIA .. "ParchmentBar")
+    row.band:SetPoint("TOPLEFT", 1, -1)
+    row.band:SetPoint("BOTTOMRIGHT", -1, 1)
+    row.mark = row:CreateTexture(nil, "ARTWORK")
+    row.mark:SetPoint("TOPLEFT", 1, -1)
+    row.mark:SetPoint("BOTTOMLEFT", 1, 1)
+    row.mark:SetWidth(4)
+    row.mark:SetColorTexture(T.rgba("sienna"))
+    row:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.12)
+    row.toggle = CreateFrame("Frame", nil, row)
     row.toggle:SetSize(14, 14)
-    row.toggle:SetPoint("LEFT", 5, 0)
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    row.text:SetPoint("LEFT", 24, 0)
+    row.toggle:SetPoint("LEFT", 12, 0)
+    row.text = T.Text(row, "title", "ink")
+    row.text:SetPoint("LEFT", 32, 0)
     row.text:SetPoint("RIGHT", -6, 0)
     row.text:SetJustifyH("LEFT")
     row.text:SetWordWrap(false)
@@ -688,8 +725,8 @@ end
 
 local function fillGroupRow(row, g, y)
     row.fold, row.group = g.fold, g.key
-    row.toggle:SetTexture(folded[g.fold] and "Interface\\Buttons\\UI-PlusButton-Up" or "Interface\\Buttons\\UI-MinusButton-Up")
-    row.text:SetText(("%s  |cffa0a0a0(%d)|r"):format(g.name, g.last - g.first + 1))
+    T.SetGlyph(row.toggle, folded[g.fold] and "chevronRight" or "chevronDown", "CENTER", 0, 0, "ink")
+    row.text:SetText(("%s  |cff5a3e22(%d)|r"):format(g.name, g.last - g.first + 1))
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", 0, -y)
     row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
@@ -705,19 +742,34 @@ local function fillRow(row, i, y, focusTag)
         placeRow(row)
         row.placedFor = cols.gen
     end
-    setStatusIcon(row.status, mode ~= "search" and (readyToTurnIn(q) and "ready" or "progress") or nil)
+    if mode == "search" or mode == "entry" then
+        setSearchIcon(row.status, q)
+    else
+        setStatusIcon(row.status, readyToTurnIn(q) and "ready" or "progress")
+    end
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", 0, -y)
     row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
-    local shade = (i % 2 == 0) and 0.08 or 0.04
-    row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
+    -- zebra: card and obsidian, by turns
+    -- zebra, translucent enough for the sigil behind to show through
+    row:SetBackdropColor(T.rgba(i % 2 == 0 and "card" or "obsidian", i % 2 == 0 and 0.72 or 0.5))
     -- the quest whose step has the waypoint: gold border
     if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
-        row:SetBackdropBorderColor(1, 0.82, 0, 1)
+        row:SetBackdropBorderColor(T.rgba("gold"))
     else
         row:SetBackdropBorderColor(0, 0, 0, 0)
     end
     row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
+    -- the chain icon goes right after the title (which gives it room when it is cut)
+    local chained = q.entryId ~= nil and ns.IsInChain(q)
+    row.chain:SetShown(chained)
+    if chained then
+        row.name:SetWidth(math.max(20, cols.name - 18))
+        row.chain:ClearAllPoints()
+        row.chain:SetPoint("LEFT", row, "LEFT", cols.nameX + math.min(row.name:GetStringWidth(), cols.name - 18) + 3, 0)
+    else
+        row.name:SetWidth(cols.name)
+    end
     row.name:SetTextColor(ns.QuestLevelColorRGB(q.level or q.minLevel))
     row.level:SetText(q.level or q.minLevel or "?")
     row.whereText = f.whereText
@@ -760,14 +812,14 @@ function draw()
     local width = panel.scroll:GetWidth()
     if width and width > 0 then
         panel.content:SetWidth(width)
-        if computeColumns(width, mode == "search" and 0 or STATUS_W) then
+        if computeColumns(width, STATUS_W) then
             placeRow(panel.head)
             for _, row in ipairs(rows) do row.placedFor = nil end
         end
     end
     local focusTag = ns.FocusTag()
     local used, height = 0, 0
-    if mode == "search" then
+    if mode == "search" or mode == "entry" then
         local first, last = visibleRange(shown)
         for i = first, last do
             used = used + 1
@@ -778,8 +830,9 @@ function draw()
         -- the log views: a few quests, each with its steps under it, and the row of each group above its quests
         for _, g in ipairs(#groups > 0 and groups or { { first = 1, last = shown } }) do
             if g.fold and g.first <= shown then
+                if height > 0 then height = height + GROUP_GAP end -- air above every group but the first
                 fillGroupRow(getGroupRow(), g, height)
-                height = height + ROW_H
+                height = height + GROUP_H + 2
             end
             if not (g.fold and folded[g.fold]) then
                 for i = g.first, math.min(g.last, shown) do
@@ -796,6 +849,9 @@ function draw()
     for i = groupsUsed + 1, #groupRows do groupRows[i]:Hide() end
     panel.content:SetHeight(math.max(1, height))
     panel.empty:SetShown(#found == 0)
+    -- a view with a title typed in that matches nothing: say so, not that the view is empty
+    local typed = mode ~= "search" and mode ~= "entry" and (viewText[mode] or "") ~= ""
+    panel.empty:SetText(typed and L["No quests match the search."] or panel.emptyDefault or L["No quests match the search."])
 end
 
 local function refresh(moved)
@@ -803,12 +859,18 @@ local function refresh(moved)
     if moved then
         moveGen = moveGen + 1
         -- the log views are short, and their steps follow the player (the spots the game gives): done again
-        if mode ~= "search" then stale = true end
+        if mode ~= "search" and mode ~= "entry" then stale = true end
     end
     if stale or not found then
         stale = false
         readLive()
-        found = groupFound(sortFound(prepare(mode == "search" and search() or logQuests(mode ~= "log" and mode or nil))))
+        local list
+        if mode == "search" then list = search()
+        elseif mode == "entry" then list = entryQuests()
+        else
+            list = filterLog(logQuests(mode ~= "log" and mode or nil), viewText[mode])
+        end
+        found = groupFound(sortFound(prepare(list)))
     elseif moved and sortState().sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
         for _, row in ipairs(rows) do
@@ -836,104 +898,27 @@ local function requestRefresh(keep)
     end)
 end
 
-local function updateDropdowns()
-    local typeName, subName = L["Any"], L["Any"]
-    for _, t in ipairs(getRewardTypes()) do
-        if t.id == state.class then
-            typeName = t.name
-            for _, s in ipairs(t.subs) do
-                if s.id == state.subclass then subName = s.name end
-            end
-        end
-    end
-    panel.typeButton:SetText(typeName)
-    panel.subButton:SetText(subName)
-    panel.subButton:SetEnabled(state.class ~= nil)
-    -- with a reward type picked every quest already gives an item: the checkbox would change nothing
-    local byType = state.class ~= nil
-    panel.itemsOnly:SetEnabled(not byType)
-    panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
-    panel.filters.Update()
-end
-
 function ns.Search_Create(parent)
     panel = CreateFrame("Frame", nil, parent)
     panel:Hide()
 
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    local title = T.Text(panel, "title", "gold")
     title:SetPoint("TOPLEFT", 4, 0)
     title:SetText(L["Search quests"])
     panel.title = title
 
-    local okSearch, box = pcall(CreateFrame, "EditBox", nil, panel, "SearchBoxTemplate")
-    if not okSearch or not box then
-        box = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
-        box:SetTextInsets(6, 6, 0, 0)
-    end
-    box:SetSize(240, 20)
-    box:SetAutoFocus(false)
-    local placeholder = box.Instructions
-    if not placeholder then
-        placeholder = box:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        placeholder:SetPoint("LEFT", 8, 0)
-    end
-    placeholder:SetText(L["Quest title"])
+    local box = T.CreateSearchBox(panel, 240, L["Quest title"])
     box:HookScript("OnTextChanged", function(self)
-        state.text = strtrim(self:GetText() or ""):lower()
-        if not box.Instructions then placeholder:SetShown(state.text == "") end
+        local text = strtrim(self:GetText() or ""):lower()
+        if mode == "search" then state.text = text else viewText[mode] = text end
         requestRefresh()
     end)
-    box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
-    -- what to include, "only with items" and the reward's type, in a "Filters" drop-down (FilterMenu.lua): the type and its
-    -- subtype are two pickers under the checkboxes
-    local filters = ns.FilterMenu(panel, {
-        options = {
-            { key = "low", label = L["Include low level"] },
-            { key = "high", label = L["Include too high"] },
-            { key = "done", label = L["Include completed"] },
-            { key = "itemsOnly", label = L["Only quests with item rewards"] },
-        },
-        get = function(key) return state[key] end,
-        set = function(key, on) state[key] = on end,
-        onChange = requestRefresh,
-        footer = function(menu)
-            local footer = CreateFrame("Frame", nil, menu)
-            footer:SetSize(158, 76)
-            local line = footer:CreateTexture(nil, "ARTWORK")
-            line:SetColorTexture(1, 1, 1, 0.15)
-            line:SetHeight(1)
-            line:SetPoint("TOPLEFT", 0, 0)
-            line:SetPoint("TOPRIGHT", 0, 0)
-            local label = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            label:SetPoint("TOPLEFT", 2, -8)
-            label:SetText(L["Reward type:"])
-            panel.typeButton = makeDropdown(footer, 150)
-            panel.typeButton:SetPoint("TOPLEFT", 0, -24)
-            panel.subButton = makeDropdown(footer, 150)
-            panel.subButton:SetPoint("TOPLEFT", 0, -50)
-            return footer
-        end,
-        footerActive = function() return state.class and 1 or 0 end,
-        clearFooter = function()
-            state.class, state.subclass = nil, nil
-            ns.PopupMenu_Hide()
-            if panel.itemsOnly then updateDropdowns() end
-        end,
-    })
-    panel.filters = filters
-    -- only quests that give some item (fixed or to choose): off while a reward type is chosen
-    local itemsOnly = filters.checks.itemsOnly
-    itemsOnly:SetMotionScriptsWhileDisabled(true)
-    itemsOnly:SetScript("OnEnter", function(self)
-        if self:IsEnabled() then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(L["A reward type is selected: every result already gives an item."], 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
-    panel.itemsOnly = itemsOnly
+    -- the same filters, menu and words as in every view (Filters.lua), and under the form a line saying which are on
+    local filters = ns.CreateFilterMenu(panel, function() ns.UI_FiltersChanged() end)
+    panel.filters, panel.typeButton, panel.subButton, panel.itemsOnly = filters, filters.typeButton, filters.subButton, filters.itemsOnly
+    panel.summary = ns.FilterSummary(panel, filters)
 
     -- form in rows by width; the table header goes under the last row
     local formItems = {
@@ -943,49 +928,69 @@ function ns.Search_Create(parent)
     local function layoutForm()
         local width = panel:GetWidth() - 8
         if width <= 0 then return end
-        -- the log view has no form: the table starts under the title
-        for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
-        local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
+        -- the box and the filters are in every table view (an entry's list uses the tree's toolbar, above it)
+        local formed = mode ~= "entry"
+        box:SetShown(formed)
+        filters:SetShown(formed)
+        local h = formed and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
+        local lined = formed and panel.summary.Refresh()
+        if lined then
+            panel.summary:ClearAllPoints()
+            panel.summary:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -(28 + h + 5))
+            panel.summary:SetPoint("RIGHT", panel, "RIGHT", -(8 + barInset), 0)
+            h = h + 18
+        elseif not formed then
+            panel.summary:Hide()
+        end
         -- the log views' "Group by", at the right of the title
-        panel.groupButton:SetShown(mode ~= "search")
-        panel.groupLabel:SetShown(mode ~= "search")
+        local grouped = mode ~= "search" and mode ~= "entry"
+        panel.groupButton:SetShown(grouped)
+        panel.groupLabel:SetShown(grouped)
+        if panel.updateFoldButtons then panel.updateFoldButtons() end
         panel.groupButton:ClearAllPoints()
         panel.groupButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), 0)
         panel.count:ClearAllPoints()
-        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(28 + h + 6))
         panel.head:ClearAllPoints()
-        panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -(28 + h + 22))
+        -- the entry's list sits under the tree's toolbar (its own title, search and filters): no title of its own, the
+        -- count right above the table
+        panel.title:SetShown(mode ~= "entry")
+        local top = mode == "entry" and 18 or 28 + h + 22
+        panel.count:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), -(top - 16))
+        panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -top)
         panel.head:SetPoint("RIGHT", panel, "RIGHT", -barInset, 0)
     end
-    panel.typeButton:SetScript("OnClick", function(self)
-        local options = { { name = L["Any"] } }
-        for _, t in ipairs(getRewardTypes()) do options[#options + 1] = t end
-        openMenu(self, options, function(opt)
-            state.class, state.subclass = opt.id, nil
-            updateDropdowns()
-            requestRefresh()
-        end)
-    end)
-    panel.subButton:SetScript("OnClick", function(self)
-        local options = { { name = L["Any"] } }
-        for _, t in ipairs(getRewardTypes()) do
-            if t.id == state.class then
-                for _, s in ipairs(t.subs) do options[#options + 1] = s end
-            end
-        end
-        openMenu(self, options, function(opt)
-            state.subclass = opt.id
-            updateDropdowns()
-            requestRefresh()
-        end)
-    end)
-    panel.count = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    panel.count = T.Text(panel, "small", "muted")
 
     panel.groupButton = makeDropdown(panel, 130)
-    panel.groupLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    panel.groupLabel = T.Text(panel, "small", "muted")
     panel.groupLabel:SetPoint("RIGHT", panel.groupButton, "LEFT", -6, 0)
     panel.groupLabel:SetText(L["Group by:"])
-    panel.updateGroupButton = function() panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]]) end
+    -- Expand all / Collapse all, left of "Group by": only while the table is grouped
+    panel.collapseAll = T.CreateIconButton(panel, "minus", 20, L["Collapse all"])
+    panel.collapseAll:SetPoint("RIGHT", panel.groupLabel, "LEFT", -8, 0)
+    panel.expandAll = T.CreateIconButton(panel, "plus", 20, L["Expand all"])
+    panel.expandAll:SetPoint("RIGHT", panel.collapseAll, "LEFT", -2, 0)
+    panel.collapseAll:SetScript("OnClick", function()
+        for _, g in ipairs(groups) do
+            if g.fold then folded[g.fold] = true end
+        end
+        draw()
+    end)
+    panel.expandAll:SetScript("OnClick", function()
+        for _, g in ipairs(groups) do
+            if g.fold then folded[g.fold] = nil end
+        end
+        draw()
+    end)
+    function panel.updateFoldButtons()
+        local on = mode ~= "search" and mode ~= "entry" and groupBy() ~= "none"
+        panel.collapseAll:SetShown(on)
+        panel.expandAll:SetShown(on)
+    end
+    panel.updateGroupButton = function()
+        panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]])
+        panel.updateFoldButtons()
+    end
     panel.groupButton:SetScript("OnClick", function(self)
         local options = {}
         for _, g in ipairs(GROUPS) do options[#options + 1] = { name = L[g.label], key = g.key } end
@@ -999,10 +1004,14 @@ function ns.Search_Create(parent)
 
     -- table header, with the same columns as the rows (placeRow)
     local head = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    head:SetHeight(20)
+    head:SetHeight(22)
     head:SetBackdrop(BACKDROP)
-    head:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
-    head:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+    T.Style(head, "slate", "brass")
+    -- a band of parchment, the column names in ink
+    local band = head:CreateTexture(nil, "BACKGROUND", nil, 2)
+    band:SetTexture(T.MEDIA .. "ParchmentBar")
+    band:SetPoint("TOPLEFT", 1, -1)
+    band:SetPoint("BOTTOMRIGHT", -1, 1)
     -- sortable columns: a click sorts by them; another click reverses the order (arrow next to the name)
     local sortable = {}
     local function updateSortLabels()
@@ -1017,9 +1026,10 @@ function ns.Search_Create(parent)
         if sortKey then
             local b = CreateFrame("Button", nil, head)
             b:SetHeight(20)
-            fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            fs = T.Text(b, "heading", "ink")
             fs:SetAllPoints()
-            b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+            b:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+            b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.05)
             b:SetScript("OnClick", function()
                 local s = sortState()
                 if s.sort == sortKey then
@@ -1037,7 +1047,7 @@ function ns.Search_Create(parent)
             fs:SetText(text)
             return b
         end
-        fs = head:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs = T.Text(head, "heading", "ink")
         fs:SetJustifyH(justify or "LEFT")
         fs:SetWordWrap(false)
         fs:SetText(text)
@@ -1065,6 +1075,9 @@ function ns.Search_Create(parent)
         requestRefresh(true)
     end)
 
+    -- the same background as the quest tree's: the runic sigil over a dark veil, still as the rows scroll
+    panel.sigil = T.SigilBackground(panel)
+
     panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     panel.scroll:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, -2)
     panel.scroll:SetPoint("BOTTOMRIGHT", -barInset, 0)
@@ -1074,7 +1087,7 @@ function ns.Search_Create(parent)
     panel.scroll:SetScript("OnSizeChanged", function() requestRefresh(true) end)
     -- other rows come into view: filled again from the same results
     panel.scroll:HookScript("OnVerticalScroll", function()
-        if panel:IsShown() and mode == "search" then draw() end
+        if panel:IsShown() and (mode == "search" or mode == "entry") then draw() end
     end)
     ns.AutoScrollBar(panel.scroll, function(has)
         barInset = has and 24 or 0
@@ -1082,12 +1095,12 @@ function ns.Search_Create(parent)
         panel.layoutForm()
     end)
 
-    panel.empty = panel.content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    panel.empty = T.Text(panel.content, "body", "locked")
     panel.empty:SetPoint("TOPLEFT", 8, -8)
     panel.empty:SetText(L["No quests match the search."])
 
     panel:SetScript("OnShow", function()
-        updateDropdowns()
+        ns.RefreshFilterMenus()
         panel.updateGroupButton()
         stale = true -- the log may have changed while it was hidden
         refresh()
@@ -1114,8 +1127,15 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
-local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In" }
-local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.",
+-- The filters changed (in any view's menu): the form's line may have changed, and the table is worked out again.
+function ns.Search_FiltersChanged()
+    if panel and panel.layoutForm then panel.layoutForm() end
+    requestRefresh()
+end
+
+-- "entry": the quests of the entry on show in the main window, as a table (its "List" view, MainWindow.lua).
+local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In", entry = "" }
+local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.", entry = "No quests match the filters.",
     tracked = "No quests are being tracked.", turnin = "No quests are ready to turn in." }
 
 -- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked;
@@ -1125,7 +1145,11 @@ function ns.Search_SetMode(m)
     if not panel then return end
     ns.PopupMenu_Hide()
     panel.title:SetText(L[TITLES[mode]])
-    panel.empty:SetText(L[EMPTY[mode]])
+    panel.emptyDefault = L[EMPTY[mode]]
+    panel.empty:SetText(panel.emptyDefault)
+    -- the box shows the text of this view
+    local own = mode == "search" and state.text or viewText[mode] or ""
+    if (panel.box:GetText() or "") ~= own then panel.box:SetText(own) end
     panel.updateSortLabels()
     panel.updateGroupButton()
     panel.layoutForm()

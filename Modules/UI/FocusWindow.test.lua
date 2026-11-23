@@ -65,6 +65,50 @@ describe("FocusWindow", function()
         assert.is_nil(CompletaoFocusFrame)
     end)
 
+    it("its title bar shows only with the mouse over the window, and the quest starts right at the top", function()
+        focus()
+        local tick = function() for _ = 1, 30 do frame._scripts.OnUpdate(frame, 0.05) end end
+        tick()
+        assert.are.equal(0, frame.barText:GetAlpha())
+        assert.are.equal(0, frame.close:GetAlpha())
+        frame._mouseOver = true
+        tick()
+        assert.are.equal(1, frame.barText:GetAlpha())
+        assert.are.equal(1, frame.lock:GetAlpha())
+        frame._mouseOver = false
+        tick()
+        assert.are.equal(0, frame.bar:GetAlpha())
+    end)
+
+    it("a thin bar behind each objective shows how far along it is", function()
+        focus()
+        local button = lineWith("Wolves 1/3")
+        local fill = WowMock.Find(function(f) return f._kind == "Texture" and f._parent == button and f._h == 16 - 3 end)
+        assert.is_true(fill:IsShown())
+        local width = fill:GetWidth() -- a third of the line
+        assert.are.equal(0.3, fill._set.SetColorTexture[4]) -- amber, translucent
+        objectives(false, true) -- wolves done: the bar fills, in a faint green
+        FireEvent("QUEST_LOG_UPDATE")
+        assert.is_true(fill:GetWidth() > width * 2.5)
+        assert.are.equal(0.16, fill._set.SetColorTexture[4])
+        local boarFill = WowMock.Find(function(f) return f._kind == "Texture" and f._parent == lineWith("Boars 0/5") and f._h == 16 - 3 end)
+        assert.is_false(boarFill:IsShown()) -- nothing done yet: no bar
+    end)
+
+    it("an arrow at the right of the title points to the waypoint's step, while the game tells the facing", function()
+        focus()
+        assert.is_false(frame.arrow:IsShown()) -- the mock gives no position: no arrow
+        ns.BearingTo = function() return 1.0 end
+        _G.GetPlayerFacing = function() return 0.25 end
+        ns.Focus_UpdateArrow()
+        assert.is_true(frame.arrow:IsShown())
+        assert.near(0.75, frame.arrow._set.SetRotation[1], 1e-9)
+        _G.GetPlayerFacing = function() return nil end -- inside an instance
+        ns.Focus_UpdateArrow()
+        assert.is_false(frame.arrow:IsShown())
+        _G.GetPlayerFacing = nil
+    end)
+
     it("shows the title in its difficulty color, the status icon and the objectives with their progress", function()
         focus()
         assert.is_true(frame:IsShown())
@@ -90,8 +134,8 @@ describe("FocusWindow", function()
         assert.are.equal("999001:2", ns.FocusTag())
         assert.near(0.1, WowMock.userWaypoint.x, 1e-9)
         assert.is_true(WowMock.chatted) -- a click of the player's says so, unlike the automatic one
-        assert.matches("ffd100", shownTexts()[1])
-        assert.matches("ffffff", shownTexts()[2])
+        assert.matches("d4af37", shownTexts()[1])
+        assert.matches("e2e8f0", shownTexts()[2])
     end)
 
     it("a click on the window opens the main window on the tracked quests, with the focused quest's details open", function()
@@ -129,6 +173,26 @@ describe("FocusWindow", function()
         assert.is_true(ns.UI:IsShown())
     end)
 
+    it("it can be dragged by an objective's line and by the strip of its floating title bar", function()
+        focus()
+        -- the title bar sits above the window: that strip is part of the window for the mouse
+        assert.are.same({ 0, 0, -18, 0 }, frame._set.SetHitRectInsets)
+        local started, stopped = 0, 0
+        frame.StartMoving = function() started = started + 1 end
+        frame.StopMovingOrSizing = function() stopped = stopped + 1 end
+        local line = lineWith("Boars")
+        assert.is_not_nil(line._scripts.OnDragStart)
+        line._scripts.OnDragStart(line)
+        line._scripts.OnDragStop(line)
+        assert.are.equal(1, started)
+        assert.are.equal(1, stopped)
+        assert.is_not_nil(ns.char.focusWindow) -- its place is saved
+        assert.is_nil(ns.UI) -- and the drag was no click: the main window stays closed
+        ns.char.focusLocked = true -- locked: no moving
+        line._scripts.OnDragStart(line)
+        assert.are.equal(1, started)
+    end)
+
     it("an objective only sets its waypoint, it doesn't open the main window", function()
         focus()
         lineWith("Boars"):Click()
@@ -160,15 +224,15 @@ describe("FocusWindow", function()
         assert.near(0.6, WowMock.userWaypoint.x, 1e-9)
         assert.are.equal("999001:3", ns.FocusTag())
         assert.is_nil(WowMock.chatted)
-        assert.matches("ffd100", shownTexts()[2])
-        assert.matches("ffffff", shownTexts()[1])
+        assert.matches("d4af37", shownTexts()[2])
+        assert.matches("e2e8f0", shownTexts()[1])
     end)
 
     it("a done objective goes grey and struck through, and the waypoint moves to the one left", function()
-        -- the lines drawn over the text (the only textures of the window with a plain color)
+        -- the lines drawn over the text (1 px tall; the progress bars behind them are plain color too)
         local function strikes()
             return #WowMock.FindAll(function(f)
-                return f._kind == "Texture" and isLine(f._parent) and f._set.SetColorTexture ~= nil and f:IsVisible()
+                return f._kind == "Texture" and isLine(f._parent) and f._set.SetColorTexture ~= nil and f._h == 1 and f:IsVisible()
             end)
         end
         focus()
@@ -176,7 +240,7 @@ describe("FocusWindow", function()
         objectives(false, true)
         FireEvent("QUEST_LOG_UPDATE")
         local texts = shownTexts()
-        assert.matches("808080", texts[2])
+        assert.matches("64748b", texts[2])
         assert.matches("Wolves 3/3", texts[2])
         assert.are.equal(1, strikes())
         assert.are.equal("999001:2", ns.FocusTag())
@@ -920,7 +984,7 @@ describe("FocusWindow", function()
             WowMock.superTrackedQuest = 999003
             ns.Prefs_Toggle()
             local checks = WowMock.FindAll(function(f)
-                return f._kind == "CheckButton" and f._parent == CompletaoPreferencesFrame
+                return f._kind == "CheckButton" and f._parent and f._parent._parent == CompletaoPreferencesFrame -- (on the tabs' pages)
             end)
             local check = checks[10] -- (see Preferences.test.lua for the order)
             assert.is_false(check:GetChecked())
@@ -1254,6 +1318,21 @@ describe("FocusWindow", function()
             assert.is_nil(lineWith("Fox"))
         end)
 
+        it("the header folds the list (remembered), saying how many quests it holds, and unfolds it again", function()
+            focus()
+            local header = lineWith("Also here:")
+            header:GetScript("OnClick")(header, "LeftButton")
+            assert.is_true(ns.char.focusAlsoFolded)
+            local texts = shownTexts()
+            assert.are.equal(3, #texts)
+            assert.matches("Also here: %(1%)", texts[3])
+            assert.is_nil(lineWith("Owl Watch"))
+            header = lineWith("Also here:")
+            header:GetScript("OnClick")(header, "LeftButton")
+            assert.is_nil(ns.char.focusAlsoFolded)
+            assert.are.equal(5, #shownTexts())
+        end)
+
         it("leaves out untracked quests and the focused one's own objectives", function()
             tracked[999004] = nil
             focus()
@@ -1297,12 +1376,12 @@ describe("FocusWindow", function()
             assert.matches("Owls 2/10", texts[5])
             assert.matches("Bats 0/4", texts[6]) -- far from the wolves, but its quest is here
             assert.matches("Moths 6/6", texts[7])
-            assert.matches("808080", texts[7]) -- done: grey...
+            assert.matches("64748b", texts[7]) -- done: grey...
             assert.is_true(lineWith("Moths").step.struck) -- ...and struck through
             lineWith("Bats"):Click()
             assert.are.equal("999004:3", ns.FocusTag())
             assert.near(0.95, WowMock.userWaypoint.x, 1e-9)
-            assert.matches("ffd100", shownTexts()[6]) -- and the gold follows
+            assert.matches("d4af37", shownTexts()[6]) -- and the gold follows
         end)
 
         it("says 'Also there:' while the player is away from the spot, and 'Also here:' once there", function()

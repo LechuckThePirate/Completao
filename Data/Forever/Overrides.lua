@@ -13,3 +13,7 @@ end
 
 -- "Important Heirlooms" (Hall of Thanes) is listed as Alliance only, but the Horde takes it too.
 ns.PatchQuest(96403, { faction = false })
+
+-- "The New Plague" (Ruins of Lordaeron) is not given until the whole "A Recipe For Death" chain (Silverpine Forest) is
+-- done: its last part is the requirement.
+ns.PatchQuest(95216, { requires = { 451 } })

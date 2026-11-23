@@ -11,20 +11,22 @@ local _, ns = ...
 -- Returns the button, with .menu, .clear, .checks[key] (the CheckButtons, with .label) and :Update() (call it when
 -- the values change elsewhere).
 function ns.FilterMenu(parent, spec)
-    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(110, 22)
-    local arrow = button:CreateTexture(nil, "OVERLAY")
-    arrow:SetTexture("Interface\\Buttons\\Arrow-Down-Up")
-    arrow:SetSize(10, 10)
-    arrow:SetPoint("RIGHT", -8, -2)
+    local T = ns.Theme
+    local button = T.CreateGhostButton(parent, nil, 110, 22)
+    local label = button:GetFontString()
+    if label then
+        label:ClearAllPoints()
+        label:SetPoint("LEFT", 8, 0)
+        label:SetPoint("RIGHT", -18, 0)
+        label:SetJustifyH("LEFT")
+    end
+    T.SetGlyph(button, "chevronDown", "RIGHT", -9, 0)
 
     local menu = CreateFrame("Frame", nil, button, BackdropTemplateMixin and "BackdropTemplate" or nil)
     menu:SetFrameStrata("DIALOG")
     menu:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -2)
     if menu.SetBackdrop then
-        menu:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-            tile = true, tileSize = 16, edgeSize = 14, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
-        menu:SetBackdropColor(0.06, 0.06, 0.08, 0.97)
+        T.Style(menu, "slate", "brass")
     end
     menu:Hide()
     button.menu = menu
@@ -42,13 +44,15 @@ function ns.FilterMenu(parent, spec)
     clear:SetHeight(20)
     clear:SetPoint("TOPLEFT", 8, -6)
     clear:SetPoint("RIGHT", -8, 0)
-    clear:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-    clear.text = clear:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    clear:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    clear:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
+    clear.text = T.Text(clear, "small", "gold")
     clear.text:SetPoint("LEFT", 4, 0)
     clear.text:SetText(ns.L["Clear filters"])
     button.clear = clear
 
     local footer = spec.footer and spec.footer(menu)
+    button.footer = footer
     button.checks = {}
     function button.Update()
         local active = 0
@@ -113,4 +117,36 @@ function ns.FilterMenu(parent, spec)
     end
     button.Update()
     return button
+end
+
+-- A line of small text that says which filters are being applied ("Filters: Hide low level, Hide completed"), for under
+-- the search box and the "Filters" button: the button only counts them, and some are on by default. A click on it opens
+-- the drop-down. :Set(parts) takes the texts of the filters in force and returns whether there are any (hidden if not).
+function ns.FilterSummary(parent, filtersButton)
+    local T = ns.Theme
+    local line = CreateFrame("Button", nil, parent)
+    line:SetHeight(14)
+    line.text = T.Text(line, "small", "muted")
+    line.text:SetPoint("LEFT", 0, 0)
+    line.text:SetPoint("RIGHT", 0, 0)
+    line.text:SetJustifyH("LEFT")
+    line.text:SetWordWrap(false)
+    -- the filters in force now (Filters.lua): the line of every view says the same
+    function line.Refresh() return line.Set(ns.FilterParts()) end
+    function line.Set(parts)
+        if #parts == 0 then
+            line:Hide()
+            return false
+        end
+        line.text:SetText(ns.L["Filters"] .. ": " .. table.concat(parts, "  |  "))
+        line:Show()
+        return true
+    end
+    line:SetScript("OnClick", function()
+        local click = filtersButton:GetScript("OnClick")
+        if click then click(filtersButton) end
+    end)
+    line:SetScript("OnEnter", function(self) self.text:SetTextColor(T.rgba("gold")) end)
+    line:SetScript("OnLeave", function(self) self.text:SetTextColor(T.rgba("muted")) end)
+    return line
 end

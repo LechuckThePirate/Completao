@@ -269,6 +269,27 @@ describe("Search", function()
         assert.is_true(reads < 20) -- a scan per quest would be thousands
     end)
 
+    it("a narrow table (the quest drawer beside it) hides the least needed columns, and the title stays readable", function()
+        ns.UI_SetSearchMode(true, "search")
+        local search = ns.UI.searchPanel
+        local head = search.head
+        search.scroll:SetWidth(380)
+        ns.Search_Refresh()
+        assert.is_false(head.rewards:IsShown())
+        assert.is_false(head.money:IsShown())
+        assert.is_false(head.xp:IsShown())
+        assert.is_false(head.where:IsShown())
+        assert.is_true(head.dist:IsShown()) -- the last to go
+        assert.is_true(head.name:GetWidth() >= 190)
+        assert.is_false(ShownRows()[1].money:IsShown())
+        search.scroll:SetWidth(900) -- wide again: every column comes back
+        ns.Search_Refresh()
+        for _, column in ipairs({ "rewards", "money", "xp", "where", "dist" }) do
+            assert.is_true(head[column]:IsShown(), column)
+        end
+        assert.is_true(ShownRows()[1].money:IsShown())
+    end)
+
     it("remembers the table's order between sessions", function()
         panel.head.dist:Click()
         panel.head.dist:Click() -- distance, reversed
@@ -693,6 +714,7 @@ describe("Search", function()
         end)
 
         it("shows the quest's reward items in its row", function()
+            panel.scroll._w = 900 -- wide enough for the rewards column
             typeText("defias brother")
             local row
             for _, r in ipairs(ShownRows()) do if r.quest.id == 166 then row = r end end

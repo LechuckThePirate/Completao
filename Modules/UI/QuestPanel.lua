@@ -6,27 +6,46 @@ local T = ns.Theme
 local detail, parentFrame, treeScroll, current, leftOff, companion
 -- the text's scroll bar only shows when the text doesn't fit; without it the text gets its room
 local scrollBar, scrollBottom = false, 38
+local PAGE_MARGIN = 30 -- the text keeps this far from the page's edges, clear of the burnt rim
 local function anchorScroll()
     -- the parchment page ends above the action bar; the text keeps clear of its burnt edges
     detail.page:SetPoint("BOTTOMRIGHT", detail, "BOTTOMRIGHT", -6, scrollBottom)
-    detail.scroll:SetPoint("BOTTOMRIGHT", detail.page, "BOTTOMRIGHT", -(scrollBar and 34 or 20), 18)
+    detail.scroll:SetPoint("BOTTOMRIGHT", detail.page, "BOTTOMRIGHT", -(scrollBar and PAGE_MARGIN + 16 or PAGE_MARGIN), PAGE_MARGIN - 4)
 end
 local maximized = false
 
--- Text on parchment: the colors meant for a dark background (gold, yellow, light green...) darkened to ink, keeping
--- their hue, so they stay readable.
+-- Text on parchment: the colors meant for a dark background (gold, yellow, light green, greys...) become inks of
+-- the same family, dark enough to read: whites in plain ink, greys in a soft brown ink, the section titles (gold) in
+-- burnt sienna, and each hue in its deep ink.
+local INKS = {
+    heading = "7a3510", plain = "2b1a0b", soft = "5a3e22",
+    red = "9b1c1c", orange = "8a4300", yellow = "6e5800", green = "1e6b1e", blue = "1f4e7a", purple = "6a2a80",
+}
+local HEADINGS = { d4af37 = true, ffd100 = true }
+local function inkFor(hex)
+    hex = hex:lower()
+    if HEADINGS[hex] then return INKS.heading end
+    local r, g, b = tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
+    local hi, lo = math.max(r, g, b), math.min(r, g, b)
+    if hi - lo < 0.16 then return hi > 0.75 and INKS.plain or INKS.soft end -- white or grey
+    local h -- hue, in degrees
+    if hi == r then h = ((g - b) / (hi - lo)) % 6
+    elseif hi == g then h = (b - r) / (hi - lo) + 2
+    else h = (r - g) / (hi - lo) + 4 end
+    h = h * 60
+    if h < 18 or h >= 335 then return INKS.red end
+    if h < 42 then return INKS.orange end
+    if h < 72 then return INKS.yellow end
+    if h < 165 then return INKS.green end
+    if h < 260 then return INKS.blue end
+    return INKS.purple
+end
 local function inkify(s)
-    return (s:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(a, r, g, b)
-        r, g, b = tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)
-        local lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255
-        local k = lum > 0 and math.min(1, 0.32 / lum) or 1
-        return ("|c%s%02x%02x%02x"):format(a, math.floor(r * k), math.floor(g * k), math.floor(b * k))
-    end))
+    return (s:gsub("|c(%x%x)(%x%x%x%x%x%x)", function(a, hex) return "|c" .. a .. inkFor(hex) end))
 end
 local function inkRGB(r, g, b)
-    local lum = 0.3 * r + 0.59 * g + 0.11 * b
-    local k = lum > 0 and math.min(1, 0.32 / lum) or 1
-    return r * k, g * k, b * k
+    local hex = inkFor(("%02x%02x%02x"):format(math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5)))
+    return tonumber(hex:sub(1, 2), 16) / 255, tonumber(hex:sub(3, 4), 16) / 255, tonumber(hex:sub(5, 6), 16) / 255
 end
 
 local function describeLocation(loc)
@@ -481,25 +500,25 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     -- the page: parchment, written in ink
     detail.page = CreateFrame("Frame", nil, detail)
     detail.page:SetPoint("TOPLEFT", 6, -30)
-    T.Parchment(detail.page, "BACKGROUND", 2)
+    T.Parchment(detail.page, "BACKGROUND", 2, true)
 
     detail.title = T.Text(detail.page, "title", "ink")
     detail.title:SetShadowOffset(0, 0)
-    detail.title:SetPoint("TOPLEFT", 20, -20)
-    detail.title:SetPoint("RIGHT", -20, 0)
+    detail.title:SetPoint("TOPLEFT", PAGE_MARGIN, -PAGE_MARGIN)
+    detail.title:SetPoint("RIGHT", -PAGE_MARGIN, 0)
     detail.title:SetJustifyH("LEFT")
     detail.title:SetWordWrap(true)
 
     detail.meta = T.Text(detail.page, "small", "inkSoft")
     detail.meta:SetShadowOffset(0, 0)
     detail.meta:SetPoint("TOPLEFT", detail.title, "BOTTOMLEFT", 0, -4)
-    detail.meta:SetPoint("RIGHT", -20, 0)
+    detail.meta:SetPoint("RIGHT", -PAGE_MARGIN, 0)
     detail.meta:SetJustifyH("LEFT")
 
     local divider = detail.page:CreateTexture(nil, "ARTWORK")
     divider:SetHeight(1)
     divider:SetPoint("TOPLEFT", detail.meta, "BOTTOMLEFT", 0, -8)
-    divider:SetPoint("RIGHT", -20, 0)
+    divider:SetPoint("RIGHT", -PAGE_MARGIN, 0)
     divider:SetColorTexture(T.rgba("inkMuted", 0.6))
 
     detail.scroll = CreateFrame("ScrollFrame", nil, detail.page, "UIPanelScrollFrameTemplate")

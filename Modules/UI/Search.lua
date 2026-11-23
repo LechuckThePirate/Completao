@@ -9,31 +9,49 @@ local T = ns.Theme
 -- default), only quests with item rewards, and the reward's item type (the game's class and subclass,
 -- e.g. Weapon > Wand). Clicking a result opens its tree with the quest selected (MainWindow.lua).
 local ROW_H, ICON = 22, 18
-local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 150
+local LEVEL_W, XP_W, MONEY_W, DIST_W, MAX_ICONS, MIN_NAME_W = 44, 56, 84, 60, 6, 190
 local MAX_ROWS = 300
 
--- Table columns by width: the title keeps at least MIN_NAME_W; if it doesn't fit, "Where" narrows first,
--- then fewer reward icons are shown and last "Where" is dropped.
-local STATUS_W = 20 -- the quest's status icon before its title (quest log and tracked views)
+-- Table columns by width: the title keeps at least MIN_NAME_W, so it always reads. When it doesn't fit (a narrow
+-- window, or the quest drawer open beside the table) the other columns give way, the least needed first: "Where"
+-- narrows, fewer reward icons, no rewards, no money, no XP, no "Where", and last no distance. A dropped column is
+-- hidden, header and rows alike (a width of 0).
+local STATUS_W = 20 -- the quest's status icon before its title
 local cols = { width = 0 }
 local function computeColumns(width, status)
     if cols.width == width and cols.status == status then return false end
     local gap = 6
     local icons, where = MAX_ICONS, math.max(90, math.min(170, math.floor(width * 0.28)))
-    local function nameW() return width - 6 - status - LEVEL_W - DIST_W - XP_W - MONEY_W - where - icons * (ICON + 2) - 6 * gap end
-    if nameW() < MIN_NAME_W then where = math.max(90, where - (MIN_NAME_W - nameW())) end
-    if nameW() < MIN_NAME_W then icons = 3 end
-    if nameW() < MIN_NAME_W then where = 0 end
+    local dist, xp, money = DIST_W, XP_W, MONEY_W
+    local function used(w) return w > 0 and (w + gap) or 0 end
+    local function nameW()
+        return width - 6 - status - gap - (LEVEL_W + gap) - used(where) - used(dist) - used(xp) - used(money)
+            - icons * (ICON + 2)
+    end
+    local giveWay = {
+        function() where = math.max(90, where - (MIN_NAME_W - nameW())) end,
+        function() icons = math.min(icons, 3) end,
+        function() icons = 0 end,
+        function() money = 0 end,
+        function() xp = 0 end,
+        function() where = 0 end,
+        function() dist = 0 end,
+    }
+    for _, step in ipairs(giveWay) do
+        if nameW() >= MIN_NAME_W then break end
+        step()
+    end
     cols.width, cols.icons, cols.where, cols.status = width, icons, where, status
+    cols.dist, cols.xp, cols.money = dist, xp, money
     cols.gen = (cols.gen or 0) + 1
     cols.name = math.max(40, nameW())
     cols.nameX = 6 + status
     cols.levelX = cols.nameX + cols.name + gap
     cols.whereX = cols.levelX + LEVEL_W + gap
-    cols.distX = cols.whereX + (where > 0 and (where + gap) or 0)
-    cols.xpX = cols.distX + DIST_W + gap
-    cols.moneyX = cols.xpX + XP_W + gap
-    cols.iconsX = cols.moneyX + MONEY_W + gap
+    cols.distX = cols.whereX + used(where)
+    cols.xpX = cols.distX + used(dist)
+    cols.moneyX = cols.xpX + used(xp)
+    cols.iconsX = cols.moneyX + used(money)
     return true
 end
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
@@ -442,12 +460,15 @@ local function placeRow(row)
     row.where:SetShown(cols.where > 0)
     row.dist:ClearAllPoints()
     row.dist:SetPoint("LEFT", row, "LEFT", cols.distX, 0)
+    row.dist:SetShown(cols.dist > 0)
     row.xp:ClearAllPoints()
     row.xp:SetPoint("LEFT", row, "LEFT", cols.xpX, 0)
     row.xp:SetWidth(XP_W)
+    row.xp:SetShown(cols.xp > 0)
     row.money:ClearAllPoints()
     row.money:SetPoint("LEFT", row, "LEFT", cols.moneyX, 0)
     row.money:SetWidth(MONEY_W)
+    row.money:SetShown(cols.money > 0)
     if row.icons then
         for k, icon in ipairs(row.icons) do
             icon:ClearAllPoints()
@@ -456,6 +477,7 @@ local function placeRow(row)
     elseif row.rewards then
         row.rewards:ClearAllPoints()
         row.rewards:SetPoint("LEFT", row, "LEFT", cols.iconsX, 0)
+        row.rewards:SetShown(cols.icons > 0)
     end
 end
 

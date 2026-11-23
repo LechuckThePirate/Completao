@@ -362,10 +362,12 @@ function setPx(img, x, y, c, a = 255) {
 }
 
 // Aged parchment with mottled stains and grain (the colors of the maintainer's mockup); `burn` gives it torn, burnt
-// edges (irregular, a dark rim with an ember line inside), transparent beyond them.
-function parchment(w, h, seed, burn) {
+// edges (irregular, a dark rim with an ember line inside), transparent beyond them. `page`: lighter and calmer, with
+// a thinner rim, for a sheet that is read (the quest details).
+function parchment(w, h, seed, burn, page) {
     const img = blank(w, h);
-    const light = rgb("E8BF86"), mid = rgb("D6A46C"), dark = rgb("BE8A50"), edge = rgb("9A6234");
+    const light = rgb(page ? "F4DDB0" : "E8BF86"), mid = rgb(page ? "EBCF9C" : "D6A46C"), dark = rgb(page ? "DDBB84" : "BE8A50");
+    const edge = rgb(page ? "B98A55" : "9A6234");
     const ember = rgb("B5581E"), char = rgb("3A1E0E"), soot = rgb("160B05");
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
@@ -373,14 +375,14 @@ function parchment(w, h, seed, burn) {
             const stain = fbm(x / 25, y / 25, seed + 5);
             const grain = fbm(x / 3, y / 3, seed + 9, 3) - 0.5;
             let c = mix(dark, mix(mid, light, smooth(0.45, 0.75, mott)), smooth(0.25, 0.6, mott));
-            c = mix(c, edge, smooth(0.62, 0.8, stain) * 0.35); // tea stains
-            c = c.map((v) => v + grain * 22);
+            c = mix(c, edge, smooth(0.62, 0.8, stain) * (page ? 0.18 : 0.35)); // tea stains
+            c = c.map((v) => v + grain * (page ? 12 : 22));
             let alpha = 255;
             if (burn) {
                 // distance to the nearest edge, made ragged by noise
                 let d = Math.min(x, w - 1 - x, y, h - 1 - y);
-                d += (fbm(x / 26, y / 26, seed + 3) - 0.5) * 22 + (fbm(x / 6, y / 6, seed + 4) - 0.5) * 6 - 6;
-                c = mix(edge, c, smooth(4, 46, d)); // darker towards the edge
+                d += (fbm(x / 26, y / 26, seed + 3) - 0.5) * (page ? 14 : 22) + (fbm(x / 6, y / 6, seed + 4) - 0.5) * 6 - (page ? 3 : 6);
+                c = mix(edge, c, smooth(4, page ? 26 : 46, d)); // darker towards the edge
                 if (d < 13) c = mix(c, ember, smooth(13, 8, d) * 0.55);
                 if (d < 8) c = mix(c, char, smooth(8, 3, d));
                 if (d < 3) c = mix(c, soot, smooth(3, 0, d));
@@ -397,6 +399,7 @@ function parchment(w, h, seed, burn) {
 
 // 7. Parchment, 256 x 512: the side panel and the quest drawer's page.
 writeTGA("Parchment.tga", parchment(256, 512, 11, true));
+writeTGA("ParchmentPage.tga", parchment(256, 512, 13, true, true));
 
 // 8. Parchment band, 512 x 32: the table's header.
 {

@@ -287,6 +287,20 @@ describe("QuestPanel", function()
         assert.matches("Elite: recommended with a group", panelText())
     end)
 
+    it("on the parchment every color is a dark ink: the section titles in sienna, no light color left", function()
+        local q = ns.FindQuestDef(166)
+        WowMock.level = 30 -- below the quest's level range, so the recommended level gets a color too
+        ns.Detail_Show(q)
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local shown = detail.text._text
+        assert.matches("|cff7a3510", shown) -- the headings
+        for code in shown:gmatch("|c%x%x(%x%x%x%x%x%x)") do
+            local r, g, b = tonumber(code:sub(1, 2), 16), tonumber(code:sub(3, 4), 16), tonumber(code:sub(5, 6), 16)
+            assert.is_true(0.3 * r + 0.59 * g + 0.11 * b < 120, code) -- dark enough to read on parchment
+        end
+        assert.are_not.equal(shown, detail.rawText) -- what it says is the same, only its colors change
+    end)
+
     it("the long description goes last, when there is one", function()
         ns.Detail_Show({ id = 1, name = "x", desc = "Long story" })
         local text = panelText()

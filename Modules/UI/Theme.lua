@@ -32,6 +32,8 @@ T.colors = {
     ink = hex("2B1A0B"),
     inkSoft = hex("5A3E22"),
     inkMuted = hex("7A5C38"),
+    inkGreen = hex("1E6B1E"),
+    sienna = hex("7A3510"), -- headings and marks on parchment
 }
 
 T.fonts = {
@@ -143,10 +145,10 @@ function T.SliceColor(parts, r, g, b, a)
     for _, tex in ipairs(parts) do tex:SetVertexColor(r, g, b, a or 1) end
 end
 
--- Parchment (torn, burnt edges) filling `f`.
-function T.Parchment(f, layer, sublevel)
+-- Parchment (torn, burnt edges) filling `f`; `page`: the lighter sheet made for reading.
+function T.Parchment(f, layer, sublevel, page)
     local tex = f:CreateTexture(nil, layer or "BACKGROUND", nil, sublevel or 4)
-    tex:SetTexture(T.MEDIA .. "Parchment")
+    tex:SetTexture(T.MEDIA .. (page and "ParchmentPage" or "Parchment"))
     tex:SetAllPoints()
     return tex
 end

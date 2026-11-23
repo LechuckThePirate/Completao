@@ -528,3 +528,31 @@ buttonPlate("ButtonStone.tga", [rgb("2E3139"), rgb("17191E")], [rgb("5B5E66"), r
         rFill, { ...red, ox: 256 });
     writeTGA("ActionIcons.tga", img);
 }
+
+// 12. The window's emblem, 256 x 256: the compass, quest icons and progress bar in the jeweled ring (images/originals/
+// emblem.jpg), cut out of its black backdrop at 1024 px and brought down to 256 (premultiplied, so no dark fringe).
+{
+    const big = (() => {
+        const r = spawnSync("ffmpeg", ["-loglevel", "error", "-i", join(root, "images", "originals", "emblem.jpg"), "-vf",
+            "scale=1024:1024:flags=lanczos", "-f", "rawvideo", "-pix_fmt", "rgba", "-"], { maxBuffer: 1 << 28 });
+        if (r.status !== 0) throw new Error(`ffmpeg failed: ${r.stderr}`);
+        return { w: 1024, h: 1024, px: new Float32Array(r.stdout) };
+    })();
+    knockOutBackdrop(big, 26);
+    const img = blank(256, 256), f = 4;
+    for (let y = 0; y < 256; y++) {
+        for (let x = 0; x < 256; x++) {
+            let r = 0, g = 0, b = 0, a = 0;
+            for (let dy = 0; dy < f; dy++) {
+                for (let dx = 0; dx < f; dx++) {
+                    const i = ((y * f + dy) * 1024 + x * f + dx) * 4, al = big.px[i + 3] / 255;
+                    r += big.px[i] * al; g += big.px[i + 1] * al; b += big.px[i + 2] * al; a += al;
+                }
+            }
+            const o = (y * 256 + x) * 4;
+            if (a > 0) { img.px[o] = r / a; img.px[o + 1] = g / a; img.px[o + 2] = b / a; }
+            img.px[o + 3] = (a / (f * f)) * 255;
+        }
+    }
+    writeTGA("Emblem.tga", img);
+}

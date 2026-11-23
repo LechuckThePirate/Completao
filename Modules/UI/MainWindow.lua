@@ -1291,7 +1291,7 @@ local function createFrame()
     medallion:SetFrameLevel(frame:GetFrameLevel() + 20)
     medallion.tex = medallion:CreateTexture(nil, "ARTWORK")
     medallion.tex:SetAllPoints()
-    medallion.tex:SetTexture(T.MEDIA .. "LogoMedallion")
+    medallion.tex:SetTexture(T.MEDIA .. "Emblem") -- the jeweled emblem (the plain compass stays on the Focus button)
     frame.medallion = medallion
 
     -- the title plate, centered and standing a little out of the bar: the name and, in slate, the version

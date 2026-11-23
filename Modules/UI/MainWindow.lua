@@ -3,9 +3,10 @@ local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly 
 local T = ns.Theme
 
 -- the tree reads top to bottom: GAP_Y between depths (room for the connections), GAP_X between quests side by side
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 190, 64, 28, 46, 24
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 204, 80, 28, 46, 24
 local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
-local NODE_PAD = 10 -- room the metal frame of a node takes
+-- room the metal frame of a node takes inside it: its corners are ornamented, so the sides keep more (NODE_PAD_X)
+local NODE_CORNER, NODE_PAD_X, NODE_PAD_TOP, NODE_PAD_BOTTOM = 18, 25, 14, 13
 
 -- The icon of an item, from what the client knows of it without loading it (a question mark when it knows nothing).
 local function itemIcon(id)
@@ -161,12 +162,12 @@ local function getNodeButton(i)
     fade:SetSmoothing("IN_OUT")
     b.pulse:SetLooping("BOUNCE")
     -- the frame: a 9-slice of the state's picture, its stone panel in the middle
-    b.plate = T.NineSlice(b, FRAMES.iron, 256, 256, 56, 20, 0, "BACKGROUND", 1, true)
+    b.plate = T.NineSlice(b, FRAMES.iron, 256, 256, 56, NODE_CORNER, 0, "BACKGROUND", 1, true)
     b.frameFile = FRAMES.iron
     -- the title, centered, and under it the level and zone (or the state: completed, locked...)
     b.text = T.Text(b, "quest")
-    b.text:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD)
-    b.text:SetPoint("TOPRIGHT", -NODE_PAD, -NODE_PAD)
+    b.text:SetPoint("TOPLEFT", NODE_PAD_X, -NODE_PAD_TOP)
+    b.text:SetPoint("TOPRIGHT", -NODE_PAD_X, -NODE_PAD_TOP)
     b.text:SetJustifyH("CENTER")
     b.text:SetWordWrap(false)
     b.sub = T.Text(b, "small")
@@ -174,12 +175,17 @@ local function getNodeButton(i)
     b.sub:SetPoint("TOPRIGHT", b.text, "BOTTOMRIGHT", 0, -2)
     b.sub:SetJustifyH("CENTER")
     b.sub:SetWordWrap(false)
+    -- a soft dark veil behind the two lines: where the frame's chains or flourishes cross them, the text still reads
+    b.veil = b:CreateTexture(nil, "BACKGROUND", nil, 3)
+    b.veil:SetPoint("TOPLEFT", b.text, "TOPLEFT", -6, 2)
+    b.veil:SetPoint("BOTTOMRIGHT", b.sub, "BOTTOMRIGHT", 6, -2)
+    b.veil:SetColorTexture(0, 0, 0, 0.45)
     -- the bottom row: the money and small icons of the items the quest gives on the left, the XP on the right
     b.xp = T.Text(b, "data", "muted")
-    b.xp:SetPoint("BOTTOMRIGHT", -NODE_PAD - 2, NODE_PAD - 1)
+    b.xp:SetPoint("BOTTOMRIGHT", -NODE_PAD_X, NODE_PAD_BOTTOM)
     b.xp:SetJustifyH("RIGHT")
     b.money = T.Text(b, "data", "muted")
-    b.money:SetPoint("BOTTOMLEFT", NODE_PAD + 2, NODE_PAD - 1)
+    b.money:SetPoint("BOTTOMLEFT", NODE_PAD_X, NODE_PAD_BOTTOM)
     b.money:SetJustifyH("LEFT")
     b.icons = {}
     for k = 1, NODE_ICONS do
@@ -267,9 +273,10 @@ local function pooled(pool, i, layer, file)
 end
 
 -- Tree filters: options saved in ns.char.filters + the search text.
-local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
+-- (gentle: on the stone and the sigil, a node much fainter than this can't be read)
+local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.75, 0.88
 -- with a quest selected: whatever isn't part of its chain is dimmed; its path goes green
-local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
+local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.55, 0.35
 local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
 local searchText = ""
 local searchBox
@@ -560,14 +567,14 @@ local function renderTree(d)
         local reward = ns.REWARDS and ns.REWARDS[n.quest.id]
         b.money:SetText(reward and reward.money and ns.CoinString(reward.money) or "")
         -- the item icons go after the money while they fit before the XP
-        local x = NODE_PAD + 2 + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
-        local limit = NODE_W - NODE_PAD - 2 - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
+        local x = NODE_PAD_X + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
+        local limit = NODE_W - NODE_PAD_X - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
         local ids = reward and ns.RewardItemIds(reward) or {}
         for k, icon in ipairs(b.icons) do
             local itemId = ids[k]
             if itemId and x + NODE_ICON <= limit then
                 icon:ClearAllPoints()
-                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, NODE_PAD - 3)
+                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, NODE_PAD_BOTTOM - 2)
                 icon.itemID = itemId
                 icon.tex:SetTexture(itemIcon(itemId))
                 icon:Show()
@@ -1835,7 +1842,11 @@ local function createFrame()
     local sigil = treeScroll:CreateTexture(nil, "BACKGROUND")
     sigil:SetTexture(T.MEDIA .. "TreeSigil")
     sigil:SetBlendMode("ADD")
-    sigil:SetAlpha(0.4)
+    sigil:SetAlpha(0.2)
+    -- and under it, a dark veil over the window's cracked stone, so the nodes stand out from it
+    local shade = treeScroll:CreateTexture(nil, "BACKGROUND", nil, -1)
+    shade:SetAllPoints()
+    shade:SetColorTexture(T.rgba("obsidian", 0.6))
     sigil:SetPoint("CENTER")
     sigil:SetSize(400, 400)
     treeScroll:HookScript("OnSizeChanged", function(self)

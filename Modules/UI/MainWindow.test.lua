@@ -738,7 +738,7 @@ describe("MainWindow", function()
             assert.is_true(count(nodes) > inChain)
             local dimmed = false
             for id, b in pairs(nodes) do
-                if id ~= q.id and b:GetAlpha() < 0.5 then dimmed = true end
+                if id ~= q.id and b:GetAlpha() < 0.6 then dimmed = true end
             end
             assert.is_true(dimmed)
         end)

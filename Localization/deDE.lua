@@ -251,4 +251,5 @@ ns.AddLocale({ "deDE" }, {
     ["Map"] = "Karte",
     ["Abandon"] = "Abbrechen",
     ["Unfocus"] = "Lösen",
+    ["Back to all quests"] = "Zurück zu allen",
 })

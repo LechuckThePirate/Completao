@@ -519,16 +519,72 @@ describe("MainWindow", function()
         end)
     end)
 
-    it("selecting a quest highlights its chain and dims the rest", function()
-        local q = ns.entries.vc.quests[1]
-        ns.UI_OpenQuest("vc", q.id)
-        local nodes = ShownNodes()
-        local dimmed = false
-        for id, b in pairs(nodes) do
-            if id ~= q.id and b:GetAlpha() < 0.5 then dimmed = true end
+    describe("the chain view", function()
+        local function chained()
+            for _, q in ipairs(ns.entries.vc.quests) do
+                if #ns.ParentsOf(q) > 0 and ns.QuestVisible(q, ns.entries.vc) then return q end
+            end
         end
-        assert.are.equal(q.id, ns.Detail_Current().id)
-        assert.is_true(dimmed)
+        local function count(t) local n = 0 for _ in pairs(t) do n = n + 1 end return n end
+        local function topY(b)
+            local y
+            for _, p in ipairs(b._points) do if p[1] == "TOPLEFT" then y = p[#p] end end
+            return y
+        end
+
+        it("picking a quest of a chain shows that chain alone, with the way back and its name in the title", function()
+            ns.UI_Refresh()
+            local all = count((ShownNodes()))
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local nodes = ShownNodes()
+            assert.is_true(ns.UI_InChainView())
+            assert.is_true(count(nodes) > 1 and count(nodes) < all)
+            assert.is_not_nil(nodes[q.id])
+            for _, parent in ipairs(ns.ParentsOf(q)) do
+                if ns.FindQuestDef(parent) and ns.FindQuestDef(parent).entryId == "vc" then assert.is_not_nil(nodes[parent]) end
+            end
+            assert.is_true(ns.UI.chainBack:IsShown())
+            assert.matches("  %-  ", ns.UI.header:GetText())
+        end)
+
+        it("Back shows the whole tree again, the chosen quest's path lit and the rest dimmed", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local inChain = count((ShownNodes()))
+            ns.UI.chainBack:Click()
+            assert.is_false(ns.UI_InChainView())
+            assert.is_false(ns.UI.chainBack:IsShown())
+            assert.are.equal(q.id, ns.Detail_Current().id)
+            local nodes = ShownNodes()
+            assert.is_true(count(nodes) > inChain)
+            local dimmed = false
+            for id, b in pairs(nodes) do
+                if id ~= q.id and b:GetAlpha() < 0.5 then dimmed = true end
+            end
+            assert.is_true(dimmed)
+        end)
+
+        it("a click on a quest of a chain in the tree opens the chain view; another entry leaves it", function()
+            ns.UI_Refresh()
+            local q = chained()
+            local node = (ShownNodes())[q.id]
+            node._scripts.OnClick(node, "LeftButton")
+            assert.is_true(ns.UI_InChainView())
+            assert.are.equal(q.id, ns.Detail_Current().id)
+            local other = WowMock.Find(function(f) return f.entry and f.entry.id ~= "vc" and f:IsShown() end)
+            other:Click()
+            assert.is_false(ns.UI_InChainView())
+        end)
+
+        it("reads top to bottom: a quest sits below the quest it requires", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local nodes = ShownNodes()
+            for _, parent in ipairs(ns.ParentsOf(q)) do
+                if nodes[parent] then assert.is_true(topY(nodes[q.id]) < topY(nodes[parent])) end
+            end
+        end)
     end)
 
     it("the search replaces the tree and picking an entry closes it", function()

@@ -1,8 +1,9 @@
 local _, ns = ...
 
 -- Column layout: the column is the depth (longest path from a root within the entry); rows are
--- ordered by the average row of the parents.
-ns.MAX_PER_COL = 12
+-- ordered by the average row of the parents. (The window draws it top to bottom: a column is a row of quests
+-- side by side on screen, so MAX_PER_COL is how many go across before the next line.)
+ns.MAX_PER_COL = 6
 
 local function parentsOf(q)
     if not q.requiresAny then return q.requires or {} end
@@ -68,7 +69,7 @@ function ns.BuildLayout(quests, visible)
     end
 
     -- A column with more than MAX_PER_COL quests is spread over several visual columns, so a zone with a
-    -- hundred loose quests isn't a tower of a hundred rows.
+    -- hundred loose quests isn't a hundred boxes in one line.
     local nodes, edges, maxRows, visualCols = {}, {}, 0, 0
     for c = 0, maxCol do
         local col = columns[c] or {}

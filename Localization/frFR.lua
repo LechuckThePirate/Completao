@@ -252,4 +252,5 @@ ns.AddLocale({ "frFR" }, {
     ["Map"] = "Carte",
     ["Abandon"] = "Abandonner",
     ["Unfocus"] = "Défocaliser",
+    ["Back to all quests"] = "Retour à toutes",
 })

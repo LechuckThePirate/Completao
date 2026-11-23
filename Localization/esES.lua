@@ -251,4 +251,5 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Map"] = "Mapa",
     ["Abandon"] = "Abandonar",
     ["Unfocus"] = "Desenfocar",
+    ["Back to all quests"] = "Volver a todas",
 })

@@ -2,7 +2,8 @@ local ADDON, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local T = ns.Theme
 
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 175, 54, 56, 20, 20
+-- the tree reads top to bottom: GAP_Y between depths (room for the connections), GAP_X between quests side by side
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 175, 54, 26, 44, 20
 local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
 local NODE_PAD = 9 -- room the metal frame of a node takes
 
@@ -107,8 +108,11 @@ local function onNodeClick(self, button)
         ns.QuestMenu(self, self.quest)
         return
     end
+    -- a quest of a chain: the tree shows that chain alone
+    local entered = ns.UI_EnterChain(self.quest)
     ns.Detail_Toggle(self.quest)
     ns.UI_Refresh()
+    if entered and frame.scrollToQuest then frame.scrollToQuest(self.quest.id) end
 end
 
 local function getNodeButton(i)
@@ -205,9 +209,10 @@ local CHAIN_COLOR = { T.rgba("ready") }
 local GOLD_LINE, FUTURE_LINE = { T.rgba("gold") }, { T.rgba("muted") }
 local searchText = ""
 local searchBox
--- A quest opened from elsewhere (a search result, "View chain", another addon): its whole chain is shown whatever the filters
--- say, as a set of quest ids, until the selection or a filter changes.
-local pinned
+-- Chain view: picking a quest of a chain (in the tree, a search result, "View chain", another addon) shows that chain
+-- alone, whole, whatever the filters say (a set of quest ids). "Back" (or another entry, a filter, the search box)
+-- goes back to the whole tree.
+local focusChain
 
 -- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
 -- data: size (number of quests), allDone (all done; loose done quests included), started (some done or in
@@ -300,6 +305,31 @@ local function chainMembers(d, id)
     return set
 end
 
+-- The chain of quest `id` in entry `d`, for the chain view; nil for a loose quest (a chain of one).
+local function chainFor(d, id)
+    local set, n = chainMembers(d, id), 0
+    for _ in pairs(set) do
+        n = n + 1
+        if n > 1 then return set end
+    end
+    return nil
+end
+
+-- The quest a chain starts with (none of its prerequisites in it; the lowest id if several), for the title.
+local function chainHead(d, set)
+    local head
+    for _, q in ipairs(d.quests) do
+        if set[q.id] then
+            local first = true
+            for _, p in ipairs(ns.ParentsOf(q)) do
+                if set[p] then first = false break end
+            end
+            if first and (not head or q.id < head.id) then head = q end
+        end
+    end
+    return head
+end
+
 -- Visibility predicate for an entry's tree: faction/race + the user's filters.
 -- By level, chains are shown or hidden as a whole, so they are never cut in half:
 --  * "too high" hides a chain when every quest it starts with is above your level; if you can start it,
@@ -312,9 +342,11 @@ local function makeFilter(d)
     local chains
     if f.hideLow or f.hideHigh then chains = chainInfo(d) end
     local needle = searchText ~= "" and searchText or nil
+    if focusChain then
+        return function(q) return ns.QuestVisible(q, d) and focusChain[q.id] == true end
+    end
     return function(q)
         if not ns.QuestVisible(q, d) then return false end
-        if pinned and pinned[q.id] then return true end
         local c = chains and chains[q.id]
         local onQuest = C_QuestLog.IsOnQuest(q.id)
         -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
@@ -352,9 +384,17 @@ local function renderTree(d)
         end
         emptyText:SetText(hasData and ns.L["No quests match the filters."] or ns.L["No quest data yet."])
     end
+    -- Top to bottom: a quest's depth in its chain (the layout's column) is its row on screen, and the quests of one
+    -- depth go side by side, each row centered under the widest one.
     canvas:SetSize(
-        math.max(1, PAD * 2 + layout.cols * NODE_W + (layout.cols - 1) * GAP_X),
-        math.max(1, PAD * 2 + layout.rows * NODE_H + (layout.rows - 1) * GAP_Y))
+        math.max(1, PAD * 2 + layout.rows * NODE_W + (layout.rows - 1) * GAP_X),
+        math.max(1, PAD * 2 + layout.cols * NODE_H + (layout.cols - 1) * GAP_Y))
+    local perDepth = {}
+    for _, n in pairs(layout.nodes) do perDepth[n.col] = (perDepth[n.col] or 0) + 1 end
+    local function posOf(n)
+        local shift = (layout.rows - perDepth[n.col]) / 2
+        return PAD + (n.row + shift) * (NODE_W + GAP_X), PAD + n.col * (NODE_H + GAP_Y)
+    end
     syncHolder()
 
     -- With a quest selected: its path (what comes before and after, along the chain) is highlighted in
@@ -380,9 +420,9 @@ local function renderTree(d)
         end
         walk(parents, selected.id)
         walk(kids, selected.id)
-        -- opened from elsewhere: the whole chain it belongs to is lit, branches included, not only the path through it
-        if pinned and pinned[selected.id] then
-            for id in pairs(pinned) do
+        -- in the chain view the whole chain is lit, branches included, not only the path through it
+        if focusChain and focusChain[selected.id] then
+            for id in pairs(focusChain) do
                 if layout.nodes[id] then chainSet[id] = true end
             end
         end
@@ -391,15 +431,15 @@ local function renderTree(d)
     local byId, i = {}, 0
     for k in pairs(nodePos) do nodePos[k] = nil end
     for id, n in pairs(layout.nodes) do
-        nodePos[id] = { x = PAD + n.col * (NODE_W + GAP_X), y = PAD + n.row * (NODE_H + GAP_Y) }
+        local nx, ny = posOf(n)
+        nodePos[id] = { x = nx, y = ny }
         i = i + 1
         local b = getNodeButton(i)
         local status, reasons = ns.QuestStatus(n.quest)
         local c = STATUS_COLORS[status]
         b.quest, b.status, b.reasons = n.quest, status, reasons
         b:ClearAllPoints()
-        b:SetPoint("TOPLEFT", canvas, "TOPLEFT",
-            PAD + n.col * (NODE_W + GAP_X), -(PAD + n.row * (NODE_H + GAP_Y)))
+        b:SetPoint("TOPLEFT", canvas, "TOPLEFT", nx, -ny)
         T.SliceColor(b.glow, c[1], c[2], c[3], 0.85)
         b.glowFrame:SetShown(status ~= "locked")
         if status == "active" then
@@ -475,10 +515,10 @@ local function renderTree(d)
         byId[id] = b
     end
 
-    -- Connections run through the gaps between boxes, never over them: they leave the parent towards the
-    -- vertical corridor on its right, go up or down to the gap between rows next to the child, cross along
-    -- that gap to the corridor on the child's left and enter from its left side. Each row uses its own lane
-    -- in the corridor, so lines from the same parent (or into the same child) share a trunk.
+    -- Connections run through the gaps between boxes: down from the middle of the parent's bottom edge to the gap
+    -- under it, across that gap, and down into the middle of the child's top edge. A child more than one depth
+    -- below goes down the corridor beside its own column first. Lines out of the same parent share a trunk; each
+    -- parent's crossing takes its own lane in the gap, so they don't run on top of each other.
     local segCount = 0
     local lineAlpha, lineThickness = 0.85, 2
     local function segment(x1, y1, x2, y2, c)
@@ -491,36 +531,34 @@ local function renderTree(d)
         l:SetEndPoint("TOPLEFT", canvas, x2, -y2)
         l:Show()
     end
-    local function colX(col) return PAD + col * (NODE_W + GAP_X) end
-    local function rowY(row) return PAD + row * (NODE_H + GAP_Y) end
-    local function gutterX(col, row) -- corridor right of column `col`, in `row`'s lane
-        return colX(col) + NODE_W + GAP_X / 2 + ((row % 8) - 3.5) * 5
-    end
+    local function lane(k) return ((k % 5) - 2) * 4 end
     local function drawEdge(e, c)
         local a, b = layout.nodes[e.from], layout.nodes[e.to]
-        local yA, yB = rowY(a.row) + NODE_H / 2, rowY(b.row) + NODE_H / 2
-        local xA, xB = colX(a.col) + NODE_W, colX(b.col)
+        local ax, ay = posOf(a)
+        local bx, by = posOf(b)
+        local xA, yA = ax + NODE_W / 2, ay + NODE_H
+        local xB, yB = bx + NODE_W / 2, by
         if b.col <= a.col then
-            segment(xA, yA, xB, yB, c) -- shouldn't happen (child to the left or in the same column)
+            segment(xA, yA, xB, yB, c) -- shouldn't happen (a child above or beside its parent)
         else
-            local gA = gutterX(a.col, a.row)
+            local yGap = yA + GAP_Y / 2 + lane(a.row) -- the gap under the parent
             if b.col == a.col + 1 then
-                segment(xA, yA, gA, yA, c)
-                segment(gA, yA, gA, yB, c)
-                segment(gA, yB, xB, yB, c)
+                segment(xA, yA, xA, yGap, c)
+                segment(xA, yGap, xB, yGap, c)
+                segment(xB, yGap, xB, yB, c)
             else
-                local gB = gutterX(b.col - 1, b.row)
-                local yCh = rowY(b.row) - GAP_Y / 2 + ((a.col % 3) - 1) * 3 -- gap between rows, above the child
-                segment(xA, yA, gA, yA, c)
-                segment(gA, yA, gA, yCh, c)
-                segment(gA, yCh, gB, yCh, c)
-                segment(gB, yCh, gB, yB, c)
-                segment(gB, yB, xB, yB, c)
+                local xSide = bx - GAP_X / 2 + lane(a.col) / 2 -- the corridor left of the child's column
+                local yAbove = yB - GAP_Y / 2 + lane(a.col) -- the gap above the child
+                segment(xA, yA, xA, yGap, c)
+                segment(xA, yGap, xSide, yGap, c)
+                segment(xSide, yGap, xSide, yAbove, c)
+                segment(xSide, yAbove, xB, yAbove, c)
+                segment(xB, yAbove, xB, yB, c)
             end
         end
         -- an arrowhead where it enters the child: which way the chain goes
-        segment(xB - 6, yB - 4, xB, yB, c)
-        segment(xB - 6, yB + 4, xB, yB, c)
+        segment(xB - 4, yB - 6, xB, yB, c)
+        segment(xB + 4, yB - 6, xB, yB, c)
     end
     -- first the normal connections (fainter with a quest selected): gold where the player has been (out of a done
     -- quest), translucent slate towards what is still ahead; on top the selected path's, in green
@@ -606,7 +644,7 @@ local function showSideTooltip(self)
 end
 
 local function selectEntry(id)
-    pinned = nil
+    focusChain = nil
     ns.Detail_Hide()
     searchText = ""
     if searchBox then searchBox:SetText("") end
@@ -889,6 +927,7 @@ function ns.UI_Refresh()
     refreshList()
     if searchMode then
         for _, w in ipairs(treeWidgets) do w:Hide() end
+        frame.chainBack:Hide()
         frame.searchPanel:Show()
         ns.Search_Refresh()
         ns.Detail_Layout() -- with a quest's panel open, the table ends above it
@@ -897,7 +936,11 @@ function ns.UI_Refresh()
     frame.searchPanel:Hide()
     for _, w in ipairs(treeWidgets) do w:Show() end
     local d = ns.entries[selectedId]
-    frame.header:SetText(d and ns.EntryName(d) or "")
+    if focusChain and not d then focusChain = nil end
+    frame.chainBack:SetShown(focusChain ~= nil)
+    -- in the chain view the title says which chain: its first quest
+    local head = focusChain and chainHead(d, focusChain)
+    frame.header:SetText(d and (ns.EntryName(d) .. (head and ("  -  " .. ns.QuestTitle(head.id, head.name)) or "")) or "")
     renderTree(d or { quests = {} })
     ns.Detail_Refresh()
 end
@@ -916,6 +959,29 @@ end
 
 function ns.UI_IsSearchMode()
     return searchMode
+end
+
+-- The chain view: a quest of a chain (in the entry on show) leaves the tree with that chain alone. Returns whether
+-- it changed to it (a loose quest, or one of the chain already on show, changes nothing).
+function ns.UI_EnterChain(q)
+    if focusChain and focusChain[q.id] then return false end
+    local d = ns.entries[selectedId]
+    local set = d and chainFor(d, q.id)
+    if not set then return false end
+    focusChain = set
+    return true
+end
+
+-- Back from the chain view to the whole tree, with the quest whose details are open in view.
+function ns.UI_LeaveChain()
+    focusChain = nil
+    ns.UI_Refresh()
+    local cur = ns.Detail_Current()
+    if cur and frame and frame.scrollToQuest then frame.scrollToQuest(cur.id) end
+end
+
+function ns.UI_InChainView()
+    return focusChain ~= nil
 end
 
 -- Entering the search (side panel entry): the quest panel closes and the tree is hidden.
@@ -940,7 +1006,7 @@ function ns.UI_OpenQuest(entryId, questId)
     expandedCat = d.category
     ns.char.category = expandedCat
     selectEntry(entryId)
-    pinned = chainMembers(d, questId)
+    focusChain = chainFor(d, questId)
     ns.UI_Refresh()
     for _, q in ipairs(d.quests) do
         if q.id == questId then ns.Detail_Show(q) break end
@@ -1369,7 +1435,7 @@ local function createFrame()
     toolbarItems[#toolbarItems + 1] = { frame = box, w = 204, h = 24, dy = 1 }
     box:HookScript("OnTextChanged", function(self)
         searchText = strtrim(self:GetText() or ""):lower()
-        pinned = nil
+        focusChain = nil
         ns.RequestRefresh()
     end)
 
@@ -1388,7 +1454,7 @@ local function createFrame()
         get = function(key) return ns.char.filters[key] end,
         set = function(key, on) ns.char.filters[key] = on end,
         onChange = function()
-            pinned = nil
+            focusChain = nil
             ns.UI_Refresh()
         end,
     })
@@ -1494,6 +1560,17 @@ local function createFrame()
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
+
+    -- the chain view's way back to the whole tree, in the tree's top-left corner
+    local back = T.CreateGhostButton(body, ns.L["Back to all quests"], 150, 22)
+    back:SetPoint("TOPLEFT", treeScroll, "TOPLEFT", 8, -8)
+    back:SetFrameLevel(treeScroll:GetFrameLevel() + 20)
+    local backText = back:GetFontString()
+    if backText then backText:SetPoint("LEFT", 18, 0) end
+    T.SetGlyph(back, "chevronLeft", "LEFT", 10, 0)
+    back:SetScript("OnClick", function() ns.UI_LeaveChain() end)
+    back:Hide()
+    frame.chainBack = back
     ns.Detail_Create(body, treeScroll, treeLeft(), frame.searchPanel)
     -- the tree's scroll bar only when it is taller than the view (the canvas is scaled by the zoom, which the
     -- client's own scroll range ignores)

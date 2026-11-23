@@ -1,8 +1,10 @@
 local ADDON, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
+local T = ns.Theme
 
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 170, 52, 60, 20, 20
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 175, 54, 56, 20, 20
 local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
+local NODE_PAD = 9 -- room the metal frame of a node takes
 
 -- The icon of an item, from what the client knows of it without loading it (a question mark when it knows nothing).
 local function itemIcon(id)
@@ -11,12 +13,13 @@ local function itemIcon(id)
     return icon or 134400
 end
 
+-- by status: done green, in the log gold (it pulses in the tree), available to take now amber, locked slate
 local STATUS_COLORS = {
-    done      = { 0.20, 0.80, 0.20 },
-    active    = { 1.00, 0.82, 0.00 },
-    available = { 0.35, 0.65, 1.00 },
-    locked    = { 0.45, 0.45, 0.45 },
-    missed    = { 0.80, 0.30, 0.30 },
+    done      = { T.rgba("ready") },
+    active    = { T.rgba("gold") },
+    available = { T.rgba("active") },
+    locked    = { T.rgba("locked") },
+    missed    = { T.rgba("danger") },
 }
 local STATUS_LABELS = {
     done = ns.L["Completed"], active = ns.L["In progress"], available = ns.L["Available"], locked = ns.L["Locked"],
@@ -25,13 +28,12 @@ local STATUS_LABELS = {
 -- a repeatable quest's title, in the tree: the blue the game gives them
 local REPEATABLE_COLOR = { 0.45, 0.80, 1.00 }
 ns.STATUS_COLORS, ns.STATUS_LABELS = STATUS_COLORS, STATUS_LABELS
-local BACKDROP = {
-    bgFile = "Interface\\Buttons\\WHITE8x8",
-    edgeFile = "Interface\\Buttons\\WHITE8x8",
-    edgeSize = 1,
-}
 
-local HEADER_H, ENTRY_H, ENTRY_INDENT = 28, 34, 12
+local HEADER_H, ENTRY_H, ENTRY_INDENT = 26, 36, 10
+local NAV_H = 26 -- the four views at the top of the side panel
+local BAR_H = 46 -- the window's header bar
+local MEDALLION = 96 -- the compass in the top-left corner
+local LIST_TOP = 90 -- the side panel's list starts under the medallion
 -- The side panel collapses to a strip of icons (a tooltip gives each one's name)
 local COLLAPSED_W, ICON_BTN_H, TOGGLE_H = 64, 30, 20
 local function collapsed() return ns.char and ns.char.sideCollapsed and true or false end
@@ -44,7 +46,8 @@ local sideScrolls = false
 local function mainLeft() return sideW() + 30 - (sideScrolls and 0 or SCROLL_W) end
 local function treeLeft() return mainLeft() - 4 end
 local treeBarUpdate -- re-checks whether the tree needs its scroll bar (see createFrame)
-local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 640, 380, 940, 580
+-- wide enough by default for the side panel, the tree and the quest drawer side by side
+local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 700, 380, 1120, 620
 
 local selectedId, expandedCat, listInitialized, viewRestored
 local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
@@ -111,20 +114,39 @@ end
 local function getNodeButton(i)
     local b = nodeButtons[i]
     if b then return b end
-    b = CreateFrame("Button", nil, canvas, "BackdropTemplate")
+    b = CreateFrame("Button", nil, canvas)
     b:SetSize(NODE_W, NODE_H)
-    b:SetBackdrop(BACKDROP)
-    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    b.text:SetPoint("TOPLEFT", 6, -4)
-    b.text:SetPoint("BOTTOMRIGHT", -6, 16) -- (the XP line takes the bottom of the box)
+    -- a stone plate in a metal frame; around it a halo in the status's color (none when locked), which pulses
+    -- on the quest in the log. The halo is a frame of its own under the plate, so it can fade by itself.
+    b.glowFrame = CreateFrame("Frame", nil, b)
+    b.glowFrame:SetAllPoints()
+    b.glowFrame:SetFrameLevel(math.max(0, b:GetFrameLevel() - 1))
+    b.glow = T.NineSlice(b.glowFrame, T.MEDIA .. "NodeGlow", 128, 64, 24, 22, 11, "BACKGROUND", 0, true)
+    b.plate = T.NineSlice(b, T.MEDIA .. "NodeFrame", 128, 64, 16, 14, 0, "BACKGROUND", 1, true)
+    b.pulse = b.glowFrame:CreateAnimationGroup()
+    local fade = b.pulse:CreateAnimation("Alpha")
+    fade:SetFromAlpha(1)
+    fade:SetToAlpha(0.3)
+    fade:SetDuration(0.9)
+    fade:SetSmoothing("IN_OUT")
+    b.pulse:SetLooping("BOUNCE")
+    -- locked: a padlock before the title
+    b.lock = b:CreateTexture(nil, "OVERLAY")
+    b.lock:SetSize(12, 12)
+    b.lock:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD + 1)
+    T.SetStatusIcon(b.lock, "lock")
+    b.lock:Hide()
+    b.text = T.Text(b, "quest")
+    b.text:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD + 2)
+    b.text:SetPoint("BOTTOMRIGHT", -NODE_PAD, 18) -- (the XP line takes the bottom of the box)
     b.text:SetJustifyH("LEFT")
-    b.xp = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.xp:SetPoint("BOTTOMRIGHT", -6, 4)
+    b.text:SetJustifyV("TOP")
+    b.xp = T.Text(b, "data", "muted")
+    b.xp:SetPoint("BOTTOMRIGHT", -NODE_PAD, 7)
     b.xp:SetJustifyH("RIGHT")
-    b.xp:SetTextColor(0.5, 0.75, 1)
     -- the bottom-left of the box: the money, then small icons of the items the quest gives (textures, so a click still reaches the box)
-    b.money = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.money:SetPoint("BOTTOMLEFT", 6, 4)
+    b.money = T.Text(b, "data", "muted")
+    b.money:SetPoint("BOTTOMLEFT", NODE_PAD, 7)
     b.money:SetJustifyH("LEFT")
     b.icons = {}
     for k = 1, NODE_ICONS do
@@ -179,7 +201,8 @@ local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
 -- with a quest selected: whatever isn't part of its chain is dimmed; its path goes green
 local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
 local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
-local CHAIN_COLOR = { 0.35, 1, 0.35 }
+local CHAIN_COLOR = { T.rgba("ready") }
+local GOLD_LINE, FUTURE_LINE = { T.rgba("gold") }, { T.rgba("muted") }
 local searchText = ""
 local searchBox
 -- A quest opened from elsewhere (a search result, "View chain", another addon): its whole chain is shown whatever the filters
@@ -377,13 +400,21 @@ local function renderTree(d)
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", canvas, "TOPLEFT",
             PAD + n.col * (NODE_W + GAP_X), -(PAD + n.row * (NODE_H + GAP_Y)))
-        b:SetBackdropColor(c[1] * 0.2, c[2] * 0.2, c[3] * 0.2, 0.9)
-        local picked = ns.Detail_Current() and ns.Detail_Current().id == n.quest.id
-        if picked then
-            b:SetBackdropBorderColor(1, 1, 1, 1)
+        T.SliceColor(b.glow, c[1], c[2], c[3], 0.85)
+        b.glowFrame:SetShown(status ~= "locked")
+        if status == "active" then
+            if not b.pulse:IsPlaying() then b.pulse:Play() end
         else
-            b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
+            b.pulse:Stop()
+            b.glowFrame:SetAlpha(1)
         end
+        -- the quest whose details are open: the gold frame
+        local picked = ns.Detail_Current() and ns.Detail_Current().id == n.quest.id
+        if picked and not b.goldBorder then T.ApplyGoldBorder(b, 12, 2) end
+        if b.goldBorder then T.SetGoldBorderShown(b, picked) end
+        local locked = status == "locked"
+        b.lock:SetShown(locked)
+        b.text:SetPoint("TOPLEFT", locked and NODE_PAD + 14 or NODE_PAD, -NODE_PAD + 2)
         local elite = ns.IsEliteQuest(n.quest.id)
         b.elite = elite
         if elite then
@@ -407,14 +438,14 @@ local function renderTree(d)
         local reward = ns.REWARDS and ns.REWARDS[n.quest.id]
         b.money:SetText(reward and reward.money and ns.CoinString(reward.money) or "")
         -- the item icons go after the money while they fit before the XP
-        local x = 6 + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
-        local limit = NODE_W - 6 - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
+        local x = NODE_PAD + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
+        local limit = NODE_W - NODE_PAD - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
         local ids = reward and ns.RewardItemIds(reward) or {}
         for k, icon in ipairs(b.icons) do
             local itemId = ids[k]
             if itemId and x + NODE_ICON <= limit then
                 icon:ClearAllPoints()
-                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, 3)
+                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, 6)
                 icon.itemID = itemId
                 icon.tex:SetTexture(itemIcon(itemId))
                 icon:Show()
@@ -423,12 +454,13 @@ local function renderTree(d)
                 icon:Hide()
             end
         end
+        -- locked ones stay readable: muted slate, not dark grey on black
         if status == "locked" or status == "missed" then
-            b.text:SetTextColor(0.65, 0.65, 0.65)
+            b.text:SetTextColor(T.rgba("muted"))
         elseif n.quest.repeatable then
             b.text:SetTextColor(REPEATABLE_COLOR[1], REPEATABLE_COLOR[2], REPEATABLE_COLOR[3])
         else
-            b.text:SetTextColor(1, 1, 1)
+            b.text:SetTextColor(T.rgba("text"))
         end
         -- translucent when they don't fit your level (too high ones more than low level ones);
         -- done ones and the ones in your log are always shown sharp
@@ -486,12 +518,17 @@ local function renderTree(d)
                 segment(gB, yB, xB, yB, c)
             end
         end
+        -- an arrowhead where it enters the child: which way the chain goes
+        segment(xB - 6, yB - 4, xB, yB, c)
+        segment(xB - 6, yB + 4, xB, yB, c)
     end
-    -- first the normal connections (fainter with a quest selected) and on top the path's, in green
+    -- first the normal connections (fainter with a quest selected): gold where the player has been (out of a done
+    -- quest), translucent slate towards what is still ahead; on top the selected path's, in green
     for _, e in ipairs(layout.edges) do
         if not (chainSet and chainSet[e.from] and chainSet[e.to]) then
-            lineAlpha, lineThickness = chainSet and OFF_CHAIN_LINE_ALPHA or 0.85, 2
-            drawEdge(e, STATUS_COLORS[byId[e.from].status == "done" and "done" or "locked"])
+            local walked = byId[e.from].status == "done"
+            lineAlpha, lineThickness = chainSet and OFF_CHAIN_LINE_ALPHA or (walked and 0.9 or 0.45), 2
+            drawEdge(e, walked and GOLD_LINE or FUTURE_LINE)
         end
     end
     if chainSet then
@@ -520,9 +557,15 @@ local ACCENTS = {
     ["È"] = "e", ["Ì"] = "i", ["Ò"] = "o", ["Ù"] = "u", ["Â"] = "a", ["Ê"] = "e", ["Î"] = "i", ["Ô"] = "o",
     ["Û"] = "u", ["Ç"] = "c", ["Ä"] = "a", ["Ë"] = "e", ["Ï"] = "i", ["Ö"] = "o",
 }
-local function sortKey(d)
-    return (ns.EntryName(d):lower():gsub("[\195][\128-\191]", ACCENTS))
+local function fold(s)
+    return (s:lower():gsub("[\195][\128-\191]", ACCENTS))
 end
+local function sortKey(d)
+    return fold(ns.EntryName(d))
+end
+
+-- The side panel's mini filter ("Filter zone..."): only the entries whose name has the text, in every section.
+local zoneFilter = ""
 
 local function entriesOf(catId)
     local items = {}
@@ -530,7 +573,8 @@ local function entriesOf(catId)
     -- left out -- except the one being looked at, so it doesn't vanish under the player as they finish it
     local hideDone = ns.char and ns.char.hideDone
     for _, d in ipairs(ns.entryList) do
-        if d.category == catId and (not HIDE_WHEN_EMPTY[catId] or select(2, ns.EntryProgress(d)) > 0)
+        if d.category == catId and (zoneFilter == "" or sortKey(d):find(zoneFilter, 1, true))
+            and (not HIDE_WHEN_EMPTY[catId] or select(2, ns.EntryProgress(d)) > 0)
             and not (hideDone and not (d.id == selectedId and not searchMode) and not ns.EntryHasWork(d)) then
             items[#items + 1] = d
         end
@@ -622,12 +666,19 @@ local function getHeaderButton(i)
     if b then return b end
     b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
     b:SetHeight(HEADER_H)
-    b:SetBackdrop(BACKDROP)
-    b:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
-    b:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+    T.Style(b, "slate", false)
+    -- a brass divider under each section
+    b.divider = b:CreateTexture(nil, "BORDER")
+    b.divider:SetPoint("BOTTOMLEFT", 0, 0)
+    b.divider:SetPoint("BOTTOMRIGHT", 0, 0)
+    b.divider:SetHeight(1)
+    b.divider:SetColorTexture(T.rgba("inkMuted", 0.45))
+    b:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    b:GetHighlightTexture():SetVertexColor(0, 0, 0, 0.06)
     b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetSize(18, 18)
-    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    b.icon:SetSize(16, 16)
+    b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    b.text = T.Text(b, "heading", "ink")
     b:SetScript("OnClick", onHeaderClick)
     b:SetScript("OnEnter", showSideTooltip)
     b:SetScript("OnLeave", GameTooltip_Hide)
@@ -640,13 +691,28 @@ local function getEntryButton(i)
     if b then return b end
     b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
     b:SetHeight(ENTRY_H)
-    b:SetBackdrop(BACKDROP)
-    b.name = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    b.name:SetPoint("TOPLEFT", 6, -4)
+    T.Style(b, "slate", false)
+    b:SetBackdropColor(0, 0, 0, 0)
+    b:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    b:GetHighlightTexture():SetVertexColor(0, 0, 0, 0.06)
+    -- the selected entry: a dark bar on its left
+    b.mark = b:CreateTexture(nil, "ARTWORK")
+    b.mark:SetPoint("TOPLEFT")
+    b.mark:SetPoint("BOTTOMLEFT")
+    b.mark:SetWidth(3)
+    b.mark:SetColorTexture(T.rgba("inkSoft"))
+    b.name = T.Text(b, "body", "ink")
+    b.name:SetPoint("TOPLEFT", 9, -5)
     b.name:SetPoint("RIGHT", -6, 0)
     b.name:SetJustifyH("LEFT")
-    b.sub = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    b.sub:SetPoint("BOTTOMLEFT", 6, 4)
+    b.name:SetWordWrap(false)
+    b.sub = T.Text(b, "small", "inkMuted")
+    b.sub:SetPoint("BOTTOMLEFT", 9, 7)
+    -- how much of it is done: a 2 px bar along its bottom edge
+    b.bar = T.CreateProgressBar(b, 2, "gold")
+    b.bar.track:SetColorTexture(0, 0, 0, 0.18)
+    b.bar:SetPoint("BOTTOMLEFT", 9, 2)
+    b.bar:SetPoint("BOTTOMRIGHT", -6, 2)
     b:SetScript("OnClick", onEntryClick)
     listButtons[i] = b
     return b
@@ -658,10 +724,28 @@ local function visibleCategories()
     local list = {}
     for _, cat in ipairs(ns.categories) do
         local items = entriesOf(cat.id)
-        if #items > 0 or not (ns.char and ns.char.hideDone) then list[#list + 1] = { cat = cat, items = items } end
+        if #items > 0 or not ((ns.char and ns.char.hideDone) or zoneFilter ~= "") then list[#list + 1] = { cat = cat, items = items } end
     end
     return list
 end
+
+-- The badges of the views at the top of the side panel: how many quests the log, the tracked ones and the ones ready
+-- to turn in hold (the search has none).
+local function navCounts()
+    local counts = { log = 0, tracked = 0, turnin = 0 }
+    for i = 1, C_QuestLog.GetNumQuestLogEntries() do
+        local info = C_QuestLog.GetInfo(i)
+        local id = info and not info.isHeader and info.questID
+        if id and id > 0 then
+            counts.log = counts.log + 1
+            if ns.IsQuestTracked and ns.IsQuestTracked(id) then counts.tracked = counts.tracked + 1 end
+            if ns.IsReadyToTurnIn(id) then counts.turnin = counts.turnin + 1 end
+        end
+    end
+    return counts
+end
+
+local zoneBox -- the mini filter's box (createFrame)
 
 local function refreshList()
     local narrow = collapsed()
@@ -680,31 +764,52 @@ local function refreshList()
     sideToggle.label = narrow and ns.L["Expand menu"] or nil
     y = y + TOGGLE_H + 4
 
-    -- first entries: the global search and the quest log (same table, Search.lua)
+    -- first block: the four views (the global search, the quest log, the tracked quests and the ones to turn in, all in
+    -- the same table, Search.lua), the one open marked with a gold bar, each with its count
+    local counts = navCounts()
     for _, b in ipairs(searchButtons) do
         local on = searchMode and ns.Search_Mode() == b.kind
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", 0, -y)
         b:SetWidth(listW)
-        b:SetHeight(narrow and ICON_BTN_H or 26)
+        b:SetHeight(narrow and ICON_BTN_H or NAV_H)
         b.tex:ClearAllPoints()
-        b.tex:SetPoint(narrow and "CENTER" or "LEFT", narrow and 0 or 8, 0)
+        b.tex:SetPoint(narrow and "CENTER" or "LEFT", narrow and 0 or 10, 0)
         b.text:SetShown(not narrow)
         b.label = narrow and b.title or nil
-        b:SetBackdropColor(on and 0.15 or 0.05, on and 0.25 or 0.05, on and 0.4 or 0.05, 0.9)
-        b:SetBackdropBorderColor(on and 0.35 or 0.4, on and 0.65 or 0.4, on and 1 or 0.4, 1)
+        b:SetBackdropColor(0, 0, 0, on and 0.14 or 0)
+        b.mark:SetShown(on)
+        b.text:SetTextColor(T.rgba(on and "ink" or "inkSoft"))
+        local n = counts[b.kind]
+        b.badge:SetShown(not narrow and n ~= nil and n > 0)
+        if n then
+            b.badge.text:SetText(tostring(n))
+            b.badge:SetWidth(math.max(20, b.badge.text:GetStringWidth() + 10))
+            b.badge.text:SetTextColor(T.rgba(b.kind == "turnin" and "ready" or "gold"))
+        end
         y = y + b:GetHeight() + 2
     end
-    y = y + 4
+    y = y + 6
 
+    -- second block: the catalogue, with the mini filter on top (not on the strip of icons)
+    zoneBox:ClearAllPoints()
+    zoneBox:SetShown(not narrow)
+    if not narrow then
+        zoneBox:SetPoint("TOPLEFT", 0, -y)
+        zoneBox:SetWidth(listW)
+        y = y + zoneBox:GetHeight() + 6
+    end
+
+    local filtering = zoneFilter ~= "" and not narrow
     local current = ns.entries[selectedId]
     for _, shown in ipairs(visibleCategories()) do
         local cat, items = shown.cat, shown.items
-        local open = cat.id == expandedCat and not narrow
+        -- filtering, every section with a match is open
+        local open = (cat.id == expandedCat or filtering) and not narrow
 
         hi = hi + 1
         local h = getHeaderButton(hi)
-        h.cat = cat
+        h.cat, h.open = cat, open
         h.label = narrow and ("%s (%d)"):format(cat.name, #items) or nil
         h:ClearAllPoints()
         h:SetPoint("TOPLEFT", 0, -y)
@@ -717,16 +822,20 @@ local function refreshList()
             h.icon:SetPoint("CENTER", 0, 0)
             -- the section of the entry you are on
             local on = current and current.category == cat.id and not searchMode
-            h:SetBackdropColor(on and 0.15 or 0.12, on and 0.25 or 0.10, on and 0.4 or 0.02, 0.95)
-            h:SetBackdropBorderColor(on and 0.35 or 0.6, on and 0.65 or 0.5, on and 1 or 0.1, 1)
+            h:SetBackdropColor(T.rgba(on and "card" or "slate"))
+            h:SetBackdropBorderColor(T.rgba(on and "gold" or "brass"))
+            h.divider:Hide()
+            T.SetGlyph(h, nil)
         else
-            h.icon:SetPoint("LEFT", 8, 0)
-            h.text:SetPoint("LEFT", 32, 0)
-            h:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
-            h:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+            h.icon:SetPoint("LEFT", 6, 0)
+            h.text:SetPoint("LEFT", 28, 0)
+            h:SetBackdropColor(T.rgba("slate", 0))
+            h:SetBackdropBorderColor(0, 0, 0, 0)
+            h.divider:Show()
+            T.SetGlyph(h, open and "chevronDown" or "chevronRight", "RIGHT", -10, 0, "inkSoft")
         end
         h.text:SetShown(not narrow)
-        h.text:SetText(("%s %s (%d)"):format(open and "-" or "+", cat.name, #items))
+        h.text:SetText(("%s (%d)"):format(cat.name, #items))
         h:Show()
         y = y + h:GetHeight() + 2
 
@@ -746,11 +855,14 @@ local function refreshList()
                     level = ns.L["Lv"] .. " " .. lv .. "   "
                 end
                 b.sub:SetText(("%s%s%s%d/%d"):format(
-                    d.new and ("|cff33ff99" .. ns.L["NEW"] .. "|r  ") or "", level,
+                    d.new and (T.code("ready") .. ns.L["NEW"] .. "|r  ") or "", level,
                     d.size and (ns.L["%d-man"]:format(d.size) .. "   ") or "", done, total))
+                b.bar:SetProgress(done, total)
+                b.bar:SetFillColor(total > 0 and done >= total and "ready" or "gold")
                 local sel = d.id == selectedId and not searchMode
-                b:SetBackdropColor(sel and 0.15 or 0.05, sel and 0.25 or 0.05, sel and 0.4 or 0.05, 0.9)
-                b:SetBackdropBorderColor(sel and 0.35 or 0.2, sel and 0.65 or 0.2, sel and 1 or 0.2, 1)
+                b:SetBackdropColor(0, 0, 0, sel and 0.14 or 0)
+                b.mark:SetShown(sel)
+                b.name:SetTextColor(T.rgba(sel and "ink" or "inkSoft"))
                 b:Show()
                 y = y + ENTRY_H + 2
             end
@@ -770,6 +882,7 @@ end
 function ns.UI_Refresh()
     if not frame then return end
     if frame.consolidateSwitch then frame.consolidateSwitch.Update() end
+    if frame.updateProgress then frame.updateProgress() end
     -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
@@ -838,7 +951,9 @@ end
 
 local function saveGeometry()
     local point, _, relPoint, x, y = frame:GetPoint()
-    ns.char.window = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = frame:GetHeight() }
+    -- minimized, the height to keep is the one it comes back to
+    local h = frame.minimized and frame.restoreH or frame:GetHeight()
+    ns.char.window = { point = point, relPoint = relPoint, x = x, y = y, w = frame:GetWidth(), h = h }
 end
 
 -- Hooks for the preferences (Preferences.lua): reset window, zoom and filters.
@@ -961,13 +1076,39 @@ local function fadeOnUpdate(self, elapsed)
     self:SetAlpha(current + (target - current) * math.min(1, elapsed * 8))
 end
 
+-- The character's progress over everything (each quest once, however many entries it is in), for the header's bar.
+-- Worked out again at most once a second: every quest of the data is looked at.
+local progressCache, progressAt
+local function globalProgress()
+    local now = GetTime()
+    if progressCache and progressAt and now - progressAt < 1 then return progressCache[1], progressCache[2] end
+    local seen, done, total = {}, 0, 0
+    for _, d in ipairs(ns.entryList) do
+        for _, q in ipairs(d.quests) do
+            if not seen[q.id] and not q.repeatable and ns.QuestVisible(q, d) then
+                local isDone = ns.IsQuestDone(q.id)
+                if isDone or not ns.QuestLostTo(q) then
+                    seen[q.id] = true
+                    total = total + 1
+                    if isDone then done = done + 1 end
+                end
+            end
+        end
+    end
+    progressCache, progressAt = { done, total }, now
+    return done, total
+end
+
+local function number(n)
+    return BreakUpLargeNumbers and BreakUpLargeNumbers(n) or tostring(n)
+end
+
 local function createFrame()
-    -- Portrait frame (like Embolsao); if the client lacked the template, the older basic frame.
-    local okPortrait, portraitFrame = pcall(CreateFrame, "Frame", "CompletaoFrame", UIParent, "PortraitFrameFlatTemplate")
-    local hasPortrait = okPortrait and portraitFrame and portraitFrame.SetPortraitToAsset ~= nil
-    frame = okPortrait and portraitFrame or CreateFrame("Frame", "CompletaoFrame", UIParent, "BasicFrameTemplateWithInset")
-    -- the content starts below the portrait (which sticks out at the top left)
-    local top = hasPortrait and 66 or 34
+    -- Our own frame ("Cartographic Codex"): obsidian, a fine gold frame, a header bar with the compass medallion
+    frame = CreateFrame("Frame", "CompletaoFrame", UIParent, "BackdropTemplate")
+    -- the content starts below the header bar
+    local top = BAR_H + 10
+    ns.CONTENT_TOP = top
     ns.TREE_TOP = top + 104
     local saved = ns.char.window
     frame:SetSize(saved and math.max(MIN_W, saved.w) or DEFAULT_W, saved and math.max(MIN_H, saved.h) or DEFAULT_H)
@@ -1001,10 +1142,32 @@ local function createFrame()
         self:SetAlpha(baseAlpha()) -- opens at its resting opacity next time
         if clickThrough then setClickThrough(false) end
         openedWithLog = false
+        if self.minimized then ns.UI_SetMinimized(false) end -- opens whole next time
     end)
     frame:Hide()
 
-    local grip = CreateFrame("Button", nil, frame)
+    -- Everything under the header bar lives in `body`, which minimizing hides (the window shrinks to its bar).
+    local body = CreateFrame("Frame", nil, frame)
+    body:SetAllPoints()
+    frame.body = body
+    function ns.UI_SetMinimized(on)
+        on = on and true or false
+        if on == (frame.minimized or false) then return end
+        if on then
+            frame.restoreH = frame:GetHeight()
+            frame.minimized = true
+            body:Hide()
+            frame:SetHeight(BAR_H + 4)
+        else
+            frame.minimized = false
+            frame:SetHeight(frame.restoreH or DEFAULT_H)
+            body:Show()
+            ns.UI_Refresh()
+        end
+        T.SetGlyph(frame.minimizeButton, on and "restore" or "minimize")
+    end
+
+    local grip = CreateFrame("Button", nil, body)
     grip:SetSize(16, 16)
     grip:SetPoint("BOTTOMRIGHT", -3, 3)
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
@@ -1017,73 +1180,122 @@ local function createFrame()
         ns.UI_Refresh()
     end)
 
-    if hasPortrait then
-        frame:SetPortraitToAsset("Interface\\AddOns\\" .. ADDON .. "\\Icons\\Completao.png")
-    end
     local getMeta = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
     local version = getMeta and getMeta(ADDON, "Version") or "?"
-    local title = (frame.TitleContainer and frame.TitleContainer.TitleText) or frame.TitleText
-    if title then title:SetText(("Completao!! v%s"):format(version)) end
 
-    -- Blizzard's template background is slightly see-through, so even at 100 % the trees showed the game world behind
-    -- them: a solid backing over it makes 100 % really opaque (the window's alpha still fades it all together).
+    -- Background: a solid obsidian backing (so 100 % is really opaque; the window's alpha still fades it all together)
+    -- and, over it, the cartographic stone with its vignette.
     local backing = frame:CreateTexture(nil, "BACKGROUND", nil, 1)
-    backing:SetColorTexture(0.06, 0.06, 0.08, 1)
-    if frame.Bg then
-        backing:SetAllPoints(frame.Bg)
-    else
-        backing:SetPoint("TOPLEFT", 4, -top + 6)
-        backing:SetPoint("BOTTOMRIGHT", -4, 4)
-    end
+    backing:SetColorTexture(T.rgba("obsidian", 1))
+    backing:SetAllPoints()
+    local art = frame:CreateTexture(nil, "BACKGROUND", nil, 2)
+    art:SetTexture(T.MEDIA .. "BgMain")
+    art:SetAllPoints()
+    art:SetAlpha(0.55)
+    T.ApplyGoldBorder(frame, 16, 3)
 
-    -- Gear next to the X: opens the preferences. Our own icon (Icons/Gear.png) tinted gold.
-    local gear = CreateFrame("Button", nil, frame)
-    gear:SetSize(20, 20)
-    -- Blizzard's frame border (NineSlice) sits far above its window and would cover the gear: it takes the
-    -- close button's level, or goes above the border
-    local closeButton = frame.CloseButton
-    local level = frame:GetFrameLevel() + 10
-    if frame.NineSlice then level = math.max(level, frame.NineSlice:GetFrameLevel() + 10) end
-    if closeButton then level = math.max(level, closeButton:GetFrameLevel()) end
-    gear:SetFrameLevel(level)
-    if closeButton then
-        gear:SetPoint("RIGHT", closeButton, "LEFT", -2, 0)
-    else
-        gear:SetPoint("TOPRIGHT", -32, -5)
+    -- Header bar: the banner (its ends kept at their shape, the middle stretched), the medallion sticking out of the
+    -- top-left corner, the title plate and the version, the progress bar, and the controls on the right.
+    local bar = CreateFrame("Frame", nil, frame)
+    bar:SetPoint("TOPLEFT", 0, 0)
+    bar:SetPoint("TOPRIGHT", 0, 0)
+    bar:SetHeight(BAR_H)
+    frame.headerBar = bar
+    local function banner(l, r)
+        local tex = bar:CreateTexture(nil, "BACKGROUND")
+        tex:SetTexture(T.MEDIA .. "HeaderBanner")
+        tex:SetTexCoord(l, r, 0, 1)
+        return tex
     end
+    local bannerLeft, bannerMid, bannerRight = banner(0, 0.0625), banner(0.0625, 0.875), banner(0.875, 1)
+    bannerLeft:SetPoint("TOPLEFT")
+    bannerLeft:SetSize(64 * BAR_H / 64, BAR_H)
+    bannerRight:SetPoint("TOPRIGHT")
+    bannerRight:SetSize(128 * BAR_H / 64, BAR_H)
+    bannerMid:SetPoint("TOPLEFT", bannerLeft, "TOPRIGHT")
+    bannerMid:SetPoint("BOTTOMRIGHT", bannerRight, "BOTTOMLEFT")
+
+    -- the medallion: over the top-left corner, out of the gold frame, its lower half over the side panel's parchment
+    local medallion = CreateFrame("Frame", nil, frame)
+    medallion:SetSize(MEDALLION, MEDALLION)
+    medallion:SetPoint("TOPLEFT", -12, 12)
+    medallion:SetFrameLevel(frame:GetFrameLevel() + 20)
+    medallion.tex = medallion:CreateTexture(nil, "ARTWORK")
+    medallion.tex:SetAllPoints()
+    medallion.tex:SetTexture(T.MEDIA .. "LogoMedallion")
+    frame.medallion = medallion
+
+    -- the title plate, centered and standing a little out of the bar: the name and, in slate, the version
+    local PLATE_H = 52
+    local plate = bar:CreateTexture(nil, "ARTWORK")
+    plate:SetTexture(T.MEDIA .. "TitlePlate")
+    plate:SetTexCoord(0, 1, 0, 106 / 128)
+    plate:SetSize(PLATE_H * 512 / 106, PLATE_H)
+    plate:SetPoint("TOP", bar, "TOP", 0, 5)
+    local title = T.Text(bar, "title", "gold")
+    title:SetPoint("CENTER", plate, "CENTER", 0, 1)
+    title:SetText("Completao!! " .. T.code("muted") .. "v" .. version .. "|r")
+    frame.titleText = title
+
+    -- controls, from the right edge: close, minimize, preferences and "Consolidate alts"
+    local close = T.CreateIconButton(bar, "close", 20, CLOSE or ns.L["Close"])
+    close:SetPoint("RIGHT", bar, "RIGHT", -10, 0)
+    close:SetScript("OnClick", function() frame:Hide() end)
+    frame.closeButton = close
+
+    local minimize = T.CreateIconButton(bar, "minimize", 20, function()
+        return frame.minimized and ns.L["Restore"] or ns.L["Minimize"]
+    end)
+    minimize:SetPoint("RIGHT", close, "LEFT", -4, 0)
+    minimize:SetScript("OnClick", function() ns.UI_SetMinimized(not frame.minimized) end)
+    frame.minimizeButton = minimize
+
+    -- Preferences: our own gear (Icons/Gear.png), slate, gold on hover
+    local gear = CreateFrame("Button", nil, bar)
+    gear:SetSize(18, 18)
+    gear:SetPoint("RIGHT", minimize, "LEFT", -6, 0)
     local gearTexture = "Interface\\AddOns\\" .. ADDON .. "\\Icons\\Gear.png"
     gear:SetNormalTexture(gearTexture)
-    gear:GetNormalTexture():SetVertexColor(0.95, 0.82, 0.3)
+    gear:GetNormalTexture():SetVertexColor(T.rgba("muted"))
     gear:SetHighlightTexture(gearTexture, "ADD")
     gear:SetScript("OnClick", function() ns.Prefs_Toggle() end)
     gear:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        self:GetNormalTexture():SetVertexColor(T.rgba("gold"))
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOMLEFT")
         GameTooltip:SetText(ns.L["Preferences"])
         GameTooltip:Show()
     end)
-    gear:SetScript("OnLeave", GameTooltip_Hide)
+    gear:SetScript("OnLeave", function(self)
+        self:GetNormalTexture():SetVertexColor(T.rgba("muted"))
+        GameTooltip_Hide()
+    end)
 
-    -- "Consolidate alts", left of the gear: an on/off switch (a track and a knob that slides to the right when on),
-    -- for the whole addon, so it sits in the title bar and not with the tree's filters.
-    local switch = CreateFrame("Button", nil, frame)
-    switch:SetSize(30, 14)
-    switch:SetFrameLevel(level)
-    switch:SetPoint("RIGHT", gear, "LEFT", -8, 0)
-    local track = switch:CreateTexture(nil, "BACKGROUND")
-    track:SetAllPoints()
-    local knob = switch:CreateTexture(nil, "ARTWORK")
-    knob:SetSize(12, 12)
-    knob:SetColorTexture(0.95, 0.95, 0.95, 1)
-    local switchLabel = switch:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    switchLabel:SetPoint("RIGHT", switch, "LEFT", -5, 0)
+    -- "Consolidate alts": a pill with the account's icon, for the whole addon (so in the header and not with the
+    -- tree's filters). On: green border and text, and a check.
+    local switch = CreateFrame("Button", nil, bar, "BackdropTemplate")
+    switch:SetHeight(22)
+    switch:SetPoint("RIGHT", gear, "LEFT", -10, 0)
+    T.Style(switch, "obsidian", "brass")
+    local pillIcon = switch:CreateTexture(nil, "ARTWORK")
+    pillIcon:SetSize(16, 16)
+    pillIcon:SetPoint("LEFT", 4, 0)
+    pillIcon:SetTexture("Interface\\Icons\\Achievement_GuildPerk_EverybodysFriend")
+    pillIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    local switchLabel = T.Text(switch, "small")
+    switchLabel:SetPoint("LEFT", pillIcon, "RIGHT", 5, 0)
     switchLabel:SetText(ns.L["Consolidate alts"])
+    local pillCheck = switch:CreateTexture(nil, "OVERLAY")
+    pillCheck:SetSize(14, 14)
+    pillCheck:SetPoint("LEFT", switchLabel, "RIGHT", 4, 0)
+    pillCheck:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
     function switch.Update()
         local on = ns.Consolidated()
         switch.on = on
-        track:SetColorTexture(on and 0.20 or 0.30, on and 0.65 or 0.30, on and 0.25 or 0.30, 1)
-        knob:ClearAllPoints()
-        knob:SetPoint(on and "RIGHT" or "LEFT", on and -1 or 1, 0)
-        switchLabel:SetTextColor(on and 0.4 or 0.6, on and 1 or 0.6, on and 0.4 or 0.6)
+        switch:SetBackdropBorderColor(T.rgba(on and "ready" or "brass"))
+        switchLabel:SetTextColor(T.rgba(on and "ready" or "muted"))
+        pillIcon:SetDesaturated(not on)
+        pillCheck:SetShown(on)
+        switch:SetWidth(4 + 16 + 5 + switchLabel:GetStringWidth() + (on and 22 or 8))
     end
     switch:SetScript("OnClick", function()
         ns.SetConsolidated(not ns.Consolidated())
@@ -1105,43 +1317,64 @@ local function createFrame()
     switch.Update()
     frame.consolidateSwitch = switch
 
-    frame.header =frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    -- Global progress, between the medallion and the title plate: the character's quests done over all of them.
+    local progress = T.CreateProgressBar(bar, 14, "gold", true)
+    progress:SetPoint("LEFT", bar, "LEFT", MEDALLION - 4, 0)
+    progress:SetPoint("RIGHT", plate, "LEFT", -6, 0)
+    progress.track:SetColorTexture(T.rgba("obsidian", 0.85))
+    frame.progress = progress
+    function frame.updateProgress()
+        local done, total = globalProgress()
+        progress:SetProgress(done, total)
+        progress:SetLabel(ns.L["Completed: %s / %s quests (%.1f%%)"]:format(number(done), number(total),
+            total > 0 and done * 100 / total or 0))
+        -- too narrow to say anything: no bar (only transparent, so its size keeps being followed)
+        progress:SetAlpha((progress:GetWidth() or 0) >= 120 and 1 or 0)
+    end
+    progress:HookScript("OnSizeChanged", function() frame.updateProgress() end)
+
+    -- the room the quest drawer takes on the right while it is open (QuestPanel.lua sets it)
+    local function drawerInset() return ns.DETAIL_INSET or 0 end
+
+    -- the side panel is a sheet of parchment with burnt edges (written in ink), from under the header bar; a brass
+    -- line where the main area starts
+    local sideBg = body:CreateTexture(nil, "BACKGROUND", nil, 3)
+    sideBg:SetTexture(T.MEDIA .. "Parchment")
+    local sideLine = body:CreateTexture(nil, "BORDER")
+    sideLine:SetColorTexture(T.rgba("brass"))
+    sideLine:SetWidth(1)
+    local function placeSide()
+        local right = mainLeft() - 10
+        sideBg:ClearAllPoints()
+        sideBg:SetPoint("TOPLEFT", body, "TOPLEFT", 2, -(BAR_H - 2))
+        sideBg:SetPoint("BOTTOMRIGHT", body, "BOTTOMLEFT", right - 2, 4)
+        sideLine:ClearAllPoints()
+        sideLine:SetPoint("TOPLEFT", body, "TOPLEFT", right, -BAR_H)
+        sideLine:SetPoint("BOTTOMLEFT", body, "BOTTOMLEFT", right, 0)
+    end
+    placeSide()
+
+    frame.header = T.Text(body, "title", "gold")
     frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
-    frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
+    frame.header:SetPoint("RIGHT", body, "RIGHT", -(16 + drawerInset()), 0)
     frame.header:SetJustifyH("LEFT")
     frame.header:SetWordWrap(false)
 
-    -- Filter bar under the title: search by title and checkboxes, placed in rows that rearrange with the
+    -- Filter bar under the title: search by title and the filters, placed in rows that rearrange with the
     -- window's width (layoutToolbar, below).
     local toolbarLeft = mainLeft()
     local toolbarItems = {}
-    local okSearch, box = pcall(CreateFrame, "EditBox", nil, frame, "SearchBoxTemplate")
-    if not okSearch or not box then
-        box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-        box:SetTextInsets(6, 6, 0, 0)
-    end
+    local box = T.CreateSearchBox(body, 200, ns.L["Search by title"])
     searchBox = box
-    box:SetSize(200, 20)
-    box:SetAutoFocus(false)
-    toolbarItems[#toolbarItems + 1] = { frame = box, w = 204, h = 24, dy = 2 }
-    local placeholder = box.Instructions
-    if placeholder then
-        placeholder:SetText(ns.L["Search by title"])
-    else
-        placeholder = box:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        placeholder:SetPoint("LEFT", 8, 0)
-        placeholder:SetText(ns.L["Search by title"])
-    end
+    toolbarItems[#toolbarItems + 1] = { frame = box, w = 204, h = 24, dy = 1 }
     box:HookScript("OnTextChanged", function(self)
         searchText = strtrim(self:GetText() or ""):lower()
         pinned = nil
-        if placeholder and not box.Instructions then placeholder:SetShown(searchText == "") end
         ns.RequestRefresh()
     end)
-    box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
 
     -- The filters live in a "Filters" drop-down next to the search box (FilterMenu.lua).
-    local filtersButton = ns.FilterMenu(frame, {
+    local filtersButton = ns.FilterMenu(body, {
         options = {
             { key = "hideLow", label = ns.L["Hide low level"], tip = ns.L["Hides quests that are grey for your level (trivial)."] },
             { key = "hideHigh", label = ns.L["Hide too high"], tip = ns.L["Hides quests you cannot take yet, because of your level."] },
@@ -1164,17 +1397,17 @@ local function createFrame()
     frame.updateFilters = filtersButton.Update
 
     -- hint at the bottom: takes the tree area's width and is cut ("...") if it doesn't fit
-    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    local hint = T.Text(body, "small", "locked")
     hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
-    hint:SetPoint("BOTTOMRIGHT", -26, 12)
-    hint:SetJustifyH("RIGHT")
+    hint:SetPoint("BOTTOMRIGHT", -(26 + drawerInset()), 12)
+    hint:SetJustifyH("LEFT")
     hint:SetWordWrap(false)
     hint:SetText(ns.L["Drag: pan  |  Wheel: zoom  |  Shift+wheel: sideways  |  Ctrl+wheel: vertical"])
 
-    local listScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
-    listScroll:SetPoint("TOPLEFT", 12, -top)
-    listScroll:SetPoint("BOTTOMLEFT", 12, 14)
-    frame.listTop = top
+    local listScroll = CreateFrame("ScrollFrame", nil, body, "UIPanelScrollFrameTemplate")
+    listScroll:SetPoint("TOPLEFT", 14, -LIST_TOP)
+    listScroll:SetPoint("BOTTOMLEFT", 14, 18)
+    frame.listTop = LIST_TOP
     listScroll:SetWidth(sideW() - 22)
     frame.listChild = CreateFrame("Frame", nil, listScroll)
     frame.listChild:SetSize(sideW() - 26, 1)
@@ -1183,21 +1416,34 @@ local function createFrame()
     -- the bar hides by itself; the room it leaves goes to the main area through refreshList (sideScrolls)
     ns.AutoScrollBar(listScroll, function() end)
 
-    -- "Search quests..." and "Quest Log": first entries of the side panel; they open the table in the main
-    -- area (the search with its form, or the quests you carry in your log)
+    -- The four views, first in the side panel; they open the table in the main area (the search with its form, or
+    -- the quests you carry in your log). The open one gets a gold bar on its left; each counts its quests.
     local function sideButton(kind, icon, label)
         local b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
         b.kind, b.title = kind, label
-        b:SetHeight(26)
-        b:SetBackdrop(BACKDROP)
+        b:SetHeight(NAV_H)
+        T.Style(b, "slate", false)
+        b:SetBackdropColor(0, 0, 0, 0)
+        b:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+        b:GetHighlightTexture():SetVertexColor(0, 0, 0, 0.06)
+        b.mark = b:CreateTexture(nil, "ARTWORK")
+        b.mark:SetPoint("TOPLEFT")
+        b.mark:SetPoint("BOTTOMLEFT")
+        b.mark:SetWidth(3)
+        b.mark:SetColorTexture(T.rgba("inkSoft"))
         local tex = b:CreateTexture(nil, "ARTWORK")
         tex:SetSize(14, 14)
         tex:SetTexture(icon)
-        local text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetPoint("LEFT", tex, "RIGHT", 6, 0)
+        local text = T.Text(b, "heading", "inkSoft")
+        text:SetPoint("LEFT", tex, "RIGHT", 7, 0)
         text:SetText(label)
         b.tex, b.text = tex, text
-        b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+        b.badge = T.CreateStyledFrame(b, "Frame", "obsidian", "brass")
+        b.badge:SetSize(20, 15)
+        b.badge:SetPoint("RIGHT", -6, 0)
+        b.badge.text = T.Text(b.badge, "small", "gold")
+        b.badge.text:SetPoint("CENTER", 0, 0)
+        b.badge:Hide()
         b:SetScript("OnClick", function() ns.UI_SetSearchMode(true, kind) end)
         b:SetScript("OnEnter", showSideTooltip)
         b:SetScript("OnLeave", GameTooltip_Hide)
@@ -1208,24 +1454,37 @@ local function createFrame()
     sideButton("tracked", "Interface\\GossipFrame\\AvailableQuestIcon", ns.L["Tracked Quests"])
     sideButton("turnin", "Interface\\RaidFrame\\ReadyCheck-Ready", ns.L["Quests to Turn In"])
 
+    -- the catalogue's mini filter: by name, in every section at once (34 zones are a long scroll)
+    zoneBox = T.CreateSearchBox(frame.listChild, 180, ns.L["Filter zone..."])
+    zoneBox:HookScript("OnTextChanged", function(self)
+        local text = fold(strtrim(self:GetText() or ""))
+        if text == zoneFilter then return end
+        zoneFilter = text
+        frame.listScroll:SetVerticalScroll(0)
+        refreshList()
+    end)
+    frame.zoneFilter = zoneBox
+
     -- first row of the side panel: collapses it to the icons, or expands it back
     sideToggle = CreateFrame("Button", nil, frame.listChild)
     sideToggle:SetHeight(TOGGLE_H)
     sideToggle.tex = sideToggle:CreateTexture(nil, "ARTWORK")
     sideToggle.tex:SetSize(16, 16)
-    sideToggle.text = sideToggle:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    sideToggle.tex:SetVertexColor(T.rgba("inkSoft"))
+    sideToggle.text = T.Text(sideToggle, "small", "inkMuted")
     sideToggle.text:SetPoint("LEFT", sideToggle.tex, "RIGHT", 4, 0)
     sideToggle.text:SetText(ns.L["Collapse menu"])
-    sideToggle:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    sideToggle:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    sideToggle:GetHighlightTexture():SetVertexColor(0, 0, 0, 0.06)
     sideToggle:SetScript("OnClick", function() ns.UI_SetSideCollapsed(not collapsed()) end)
     sideToggle:SetScript("OnEnter", showSideTooltip)
     sideToggle:SetScript("OnLeave", GameTooltip_Hide)
 
-    frame.searchPanel = ns.Search_Create(frame)
+    frame.searchPanel = ns.Search_Create(body)
     frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
-    frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
+    frame.searchPanel:SetPoint("BOTTOMRIGHT", -(8 + drawerInset()), 30)
 
-    local treeScroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
+    local treeScroll = CreateFrame("ScrollFrame", nil, body, "UIPanelScrollFrameTemplate")
     treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
     treeScroll:SetPoint("BOTTOMRIGHT", -32, 30)
     holder = CreateFrame("Frame", nil, treeScroll)
@@ -1235,12 +1494,12 @@ local function createFrame()
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
-    ns.Detail_Create(frame, treeScroll, treeLeft(), frame.searchPanel)
+    ns.Detail_Create(body, treeScroll, treeLeft(), frame.searchPanel)
     -- the tree's scroll bar only when it is taller than the view (the canvas is scaled by the zoom, which the
     -- client's own scroll range ignores)
     treeBarUpdate = ns.AutoScrollBar(treeScroll, function(has)
         ns.TREE_RIGHT = has and 32 or 8
-        treeScroll:SetPoint("BOTTOMRIGHT", -ns.TREE_RIGHT, 30)
+        treeScroll:SetPoint("BOTTOMRIGHT", -(ns.TREE_RIGHT + drawerInset()), 30)
         ns.Detail_Layout()
     end, function()
         return (canvas:GetHeight() or 0) * (canvas:GetScale() or 1) - (treeScroll:GetHeight() or 0) > 1
@@ -1248,30 +1507,42 @@ local function createFrame()
 
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
-        local width = frame:GetWidth() - toolbarLeft - 32
-        local h = ns.FlowLayout(frame, toolbarItems, toolbarLeft, top + 26, width, 10, 2)
-        ns.TREE_TOP = top + 26 + h + 8
+        local width = frame:GetWidth() - toolbarLeft - 32 - drawerInset()
+        local h = ns.FlowLayout(body, toolbarItems, toolbarLeft, top + 28, width, 10, 2)
+        ns.TREE_TOP = top + 28 + h + 8
         treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
         ns.Detail_Layout()
     end
     layoutToolbar()
     frame:HookScript("OnSizeChanged", layoutToolbar)
 
+    -- what ends at the right edge of the main area: the title, the hint and the toolbar's rows
+    local function placeRight()
+        frame.header:ClearAllPoints()
+        frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
+        frame.header:SetPoint("RIGHT", body, "RIGHT", -(16 + drawerInset()), 0)
+        hint:ClearAllPoints()
+        hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
+        hint:SetPoint("BOTTOMRIGHT", -(26 + drawerInset()), 12)
+    end
+
     -- everything that starts where the side panel ends moves with it when it collapses or expands
     function ns.UI_ApplySideWidth()
         toolbarLeft = mainLeft()
-        frame.header:ClearAllPoints()
-        frame.header:SetPoint("TOPLEFT", mainLeft(), -top)
-        frame.header:SetPoint("RIGHT", frame, "RIGHT", -32, 0)
-        hint:ClearAllPoints()
-        hint:SetPoint("BOTTOMLEFT", mainLeft(), 12)
-        hint:SetPoint("BOTTOMRIGHT", -26, 12)
+        placeSide()
+        placeRight()
         listScroll:SetWidth(sideW() - 22)
         frame.listChild:SetWidth(sideW() - 26)
         frame.searchPanel:ClearAllPoints()
         frame.searchPanel:SetPoint("TOPLEFT", mainLeft(), -top)
-        frame.searchPanel:SetPoint("BOTTOMRIGHT", -8, 30)
+        frame.searchPanel:SetPoint("BOTTOMRIGHT", -(8 + drawerInset()), 30)
         ns.Detail_SetOffset(treeLeft())
+        layoutToolbar()
+    end
+
+    -- the quest drawer opened or closed (or was maximized): the main area ends where it starts
+    function ns.UI_DrawerChanged()
+        placeRight()
         layoutToolbar()
     end
 
@@ -1293,6 +1564,11 @@ local function createFrame()
         self:SetVerticalScroll(math.max(0, math.min(y, maxY)))
     end
 
+    local zoomLabel -- the zoom controls' "100%" (below)
+    local function showZoom()
+        if zoomLabel then zoomLabel:SetText(("%d%%"):format(math.floor(zoom * 100 + 0.5))) end
+    end
+
     function ns.UI_SetZoom(z)
         zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
         ns.char.zoom = zoom
@@ -1300,6 +1576,7 @@ local function createFrame()
         syncHolder()
         treeBarUpdate()
         scrollTo(treeScroll, 0, 0)
+        showZoom()
     end
 
     -- centers a tree quest in the view (search results)
@@ -1308,6 +1585,24 @@ local function createFrame()
         if not p then return end
         local cx, cy = (p.x + NODE_W / 2) * zoom, (p.y + NODE_H / 2) * zoom
         scrollTo(treeScroll, cx - treeScroll:GetWidth() / 2, cy - treeScroll:GetHeight() / 2)
+    end
+
+    -- Zooms to `newZoom` keeping the point at (cx, cy) of the view where it is.
+    local function zoomAt(newZoom, cx, cy)
+        newZoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, newZoom))
+        if newZoom == zoom then return end
+        local x, y = treeScroll:GetHorizontalScroll(), treeScroll:GetVerticalScroll()
+        local contentX, contentY = (x + cx) / zoom, (y + cy) / zoom
+        zoom = newZoom
+        ns.char.zoom = zoom
+        canvas:SetScale(zoom)
+        syncHolder()
+        treeBarUpdate()
+        scrollTo(treeScroll, contentX * zoom - cx, contentY * zoom - cy)
+        showZoom()
+    end
+    local function zoomAtCenter(newZoom)
+        zoomAt(newZoom, (treeScroll:GetWidth() or 0) / 2, (treeScroll:GetHeight() or 0) / 2)
     end
 
     -- Wheel: zoom, centered on the cursor (the point under the cursor doesn't move). Shift+wheel: scrolls
@@ -1319,21 +1614,66 @@ local function createFrame()
         elseif IsControlKeyDown() then
             scrollTo(self, x, y - delta * 60)
         else
-            local newZoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, zoom * (delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP)))
-            if newZoom == zoom then return end
             local px, py = GetCursorPosition()
             local scale = self:GetEffectiveScale()
-            local cx = px / scale - (self:GetLeft() or 0)
-            local cy = (self:GetTop() or 0) - py / scale
-            local contentX, contentY = (x + cx) / zoom, (y + cy) / zoom
-            zoom = newZoom
-            ns.char.zoom = zoom
-            canvas:SetScale(zoom)
-            syncHolder()
-            treeBarUpdate()
-            scrollTo(self, contentX * zoom - cx, contentY * zoom - cy)
+            zoomAt(zoom * (delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP),
+                px / scale - (self:GetLeft() or 0), (self:GetTop() or 0) - py / scale)
         end
     end)
+
+    -- "Center on my current quest": the focused quest (opening its tree if it is another one), else a quest of this
+    -- tree that is in the log, else the one whose details are open.
+    local function centerOnCurrent()
+        local id = ns.Focus_Quest()
+        if id and nodePos[id] then frame.scrollToQuest(id) return end
+        local def = id and ns.FindQuestDef(id)
+        if def and ns.entries[def.entryId] then
+            ns.UI_OpenQuest(def.entryId, def.id)
+            return
+        end
+        local ids = {}
+        for qid in pairs(nodePos) do
+            if C_QuestLog.IsOnQuest(qid) then ids[#ids + 1] = qid end
+        end
+        table.sort(ids)
+        if ids[1] then frame.scrollToQuest(ids[1]) return end
+        local cur = ns.Detail_Current()
+        if cur and nodePos[cur.id] then frame.scrollToQuest(cur.id) end
+    end
+
+    -- Zoom controls in the tree's bottom-right corner: center, -, the zoom (a click goes back to 100 %), +.
+    local zoomBar = T.CreateStyledFrame(body, "Frame", "slate", "brass")
+    zoomBar:SetSize(4 * 22 + 18, 24)
+    zoomBar:SetPoint("BOTTOMRIGHT", treeScroll, "BOTTOMRIGHT", -6, 6)
+    zoomBar:SetFrameLevel(treeScroll:GetFrameLevel() + 20)
+    local centerButton = T.CreateIconButton(zoomBar, "center", 20, ns.L["Center on my current quest"])
+    centerButton:SetPoint("LEFT", 2, 0)
+    centerButton:SetScript("OnClick", centerOnCurrent)
+    local zoomOut = T.CreateIconButton(zoomBar, "minus", 20, ns.L["Zoom out"])
+    zoomOut:SetPoint("LEFT", centerButton, "RIGHT", 2, 0)
+    zoomOut:SetScript("OnClick", function() zoomAtCenter(zoom / ZOOM_STEP) end)
+    local zoomReset = CreateFrame("Button", nil, zoomBar)
+    zoomReset:SetSize(38, 20)
+    zoomReset:SetPoint("LEFT", zoomOut, "RIGHT", 2, 0)
+    zoomLabel = T.Text(zoomReset, "data", "muted")
+    zoomLabel:SetPoint("CENTER")
+    zoomReset:SetScript("OnClick", function() zoomAtCenter(1) end)
+    zoomReset:SetScript("OnEnter", function(self)
+        zoomLabel:SetTextColor(T.rgba("goldLight"))
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(ns.L["Reset zoom"])
+        GameTooltip:Show()
+    end)
+    zoomReset:SetScript("OnLeave", function()
+        zoomLabel:SetTextColor(T.rgba("muted"))
+        GameTooltip_Hide()
+    end)
+    local zoomIn = T.CreateIconButton(zoomBar, "plus", 20, ns.L["Zoom in"])
+    zoomIn:SetPoint("LEFT", zoomReset, "RIGHT", 2, 0)
+    zoomIn:SetScript("OnClick", function() zoomAtCenter(zoom * ZOOM_STEP) end)
+    frame.zoomBar, frame.centerOnCurrent = zoomBar, centerOnCurrent
+    treeWidgets[#treeWidgets + 1] = zoomBar
+    showZoom()
 
     -- Drag the background with the left button to move the view.
     local dragger = CreateFrame("Frame", nil, treeScroll)

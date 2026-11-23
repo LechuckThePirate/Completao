@@ -1,17 +1,33 @@
 local _, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
-
-local DETAIL_H = 210
-local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
+local T = ns.Theme
 
 local detail, parentFrame, treeScroll, current, leftOff, companion
 -- the text's scroll bar only shows when the text doesn't fit; without it the text gets its room
 local scrollBar, scrollBottom = false, 38
 local function anchorScroll()
-    detail.scroll:SetPoint("BOTTOMRIGHT", -(scrollBar and 28 or 4), scrollBottom)
+    -- the parchment page ends above the action bar; the text keeps clear of its burnt edges
+    detail.page:SetPoint("BOTTOMRIGHT", detail, "BOTTOMRIGHT", -6, scrollBottom)
+    detail.scroll:SetPoint("BOTTOMRIGHT", detail.page, "BOTTOMRIGHT", -(scrollBar and 34 or 20), 18)
 end
 local maximized = false
+
+-- Text on parchment: the colors meant for a dark background (gold, yellow, light green...) darkened to ink, keeping
+-- their hue, so they stay readable.
+local function inkify(s)
+    return (s:gsub("|c(%x%x)(%x%x)(%x%x)(%x%x)", function(a, r, g, b)
+        r, g, b = tonumber(r, 16), tonumber(g, 16), tonumber(b, 16)
+        local lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255
+        local k = lum > 0 and math.min(1, 0.32 / lum) or 1
+        return ("|c%s%02x%02x%02x"):format(a, math.floor(r * k), math.floor(g * k), math.floor(b * k))
+    end))
+end
+local function inkRGB(r, g, b)
+    local lum = 0.3 * r + 0.59 * g + 0.11 * b
+    local k = lum > 0 and math.min(1, 0.32 / lum) or 1
+    return r * k, g * k, b * k
+end
 
 local function describeLocation(loc)
     local zone = loc.area and C_Map.GetAreaInfo(loc.area)
@@ -27,7 +43,6 @@ local function describeLocation(loc)
 end
 
 -- The quest's steps (ns.QuestSteps, Modules/Quest) for the waypoint button, the map and the panel's list.
-local WAY_W = 230
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12:12|t "
 local ARROW = "|TInterface\\RaidFrame\\ReadyCheck-Waiting:12:12|t "
 local picked -- { id = quest, index = step } picked in the dropdown; otherwise the step that comes next
@@ -67,7 +82,7 @@ end
 local function buildText(q)
     local parts = {}
     local function section(title, body)
-        parts[#parts + 1] = "|cffffd100" .. title .. "|r\n" .. body
+        parts[#parts + 1] = T.code("gold") .. title .. "|r\n" .. body
     end
 
     local req = {}
@@ -175,7 +190,7 @@ end
 -- Rows of the block: { text = "..." } or { items = { id | { id, count } } }. nil when there are no rewards.
 local function buildRewards(q)
     local r = ns.REWARDS and ns.REWARDS[q.id] or {}
-    local rows = { { text = "|cffffd100" .. (REWARDS or L["Rewards"]) .. "|r" } }
+    local rows = { { text = T.code("gold") .. (REWARDS or L["Rewards"]) .. "|r" } }
     if r.choice then
         rows[#rows + 1] = { text = REWARD_CHOICES or L["You will be able to choose one of these rewards:"] }
         rows[#rows + 1] = { items = r.choice }
@@ -202,7 +217,8 @@ local function rewardText(i)
     local block = detail.rewards
     local fs = block.texts[i]
     if not fs then
-        fs = block:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        fs = T.Text(block, "body", "ink")
+        fs:SetShadowOffset(0, 0)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(true)
         block.texts[i] = fs
@@ -221,7 +237,8 @@ local function rewardButton(i)
         b.icon:SetPoint("LEFT", 0, 0)
         b.count = b:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
         b.count:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", -1, 1)
-        b.name = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        b.name = T.Text(b, "small")
+        b.name:SetShadowOffset(0, 0)
         b.name:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
         b.name:SetPoint("RIGHT", 0, 0)
         b.name:SetJustifyH("LEFT")
@@ -257,7 +274,8 @@ local function setRewardItem(b, entry)
     end
     local color = quality and ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[quality]
     b.name:SetText(name)
-    if color then b.name:SetTextColor(color.r, color.g, color.b) else b.name:SetTextColor(1, 1, 1) end
+    -- on parchment: the quality's color as ink (common and poor items in plain ink)
+    if color and quality > 1 then b.name:SetTextColor(inkRGB(color.r, color.g, color.b)) else b.name:SetTextColor(T.rgba("ink")) end
 end
 
 -- Lays the rows out for a given width (items in ITEM_W columns) and returns the block's height.
@@ -270,7 +288,7 @@ local function layoutRewards(width)
             nText = nText + 1
             local fs = rewardText(nText)
             fs:SetWidth(width)
-            fs:SetText(row.text)
+            fs:SetText(inkify(row.text))
             fs:ClearAllPoints()
             fs:SetPoint("TOPLEFT", 0, -y)
             fs:Show()
@@ -354,7 +372,7 @@ local function render()
     local status = ns.QuestStatus(q)
     local c = ns.STATUS_COLORS[status]
     detail.title:SetText(ns.QuestTitle(q.id, q.name))
-    detail.title:SetTextColor(c[1], c[2], c[3])
+    detail.meta:SetTextColor(inkRGB(c[1], c[2], c[3])) -- the status says its color
     local meta = { ns.STATUS_LABELS[status] }
     local alt = status == "done" and not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
     if alt then meta[1] = L["Completed by %s"]:format(alt) end
@@ -363,7 +381,8 @@ local function render()
     meta[#meta + 1] = "ID " .. q.id
     detail.meta:SetText(table.concat(meta, "   |   "))
     detail.steps, detail.currentStep = ns.QuestSteps(q)
-    detail.text:SetText(buildText(q))
+    detail.rawText = buildText(q)
+    detail.text:SetText(inkify(detail.rawText))
     rewardRows = buildRewards(q)
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
@@ -371,123 +390,65 @@ local function render()
     detail.btnOpen:SetEnabled(onQuest)
     detail.btnFocus:SetEnabled(onQuest)
     detail.btnAbandon:SetEnabled(onQuest)
-    detail.btnFocus:SetText(ns.Focus_Quest() == q.id and L["Stop focus"] or L["Focus"])
+    local focused = ns.Focus_Quest() == q.id
+    detail.btnFocus:SetText(focused and L["Unfocus"] or L["Focus"])
+    detail.btnFocus.tip = focused and L["Stop focus"] or L["Focus"]
     -- "View chain" goes to the quest's tree, when it is part of a chain
     detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
     -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false
     if step then loc, isEntrance = stepTarget(q, step) end
-    detail.btnWay:SetText(step and L["Waypoint: %s"]:format(step.label) or L["Waypoint: start"])
+    detail.btnWay.tip = step and L["Waypoint: %s"]:format(step.label) or L["Waypoint: start"]
     detail.btnWay:SetEnabled(loc ~= nil and ns.CanWaypoint(loc))
     detail.btnWayMenu:SetEnabled(detail.steps and #detail.steps > 0)
     detail.btnMap:SetEnabled(loc ~= nil and ns.CanShowMap(loc))
-    detail.btnMap:SetText(isEntrance and L["Show entrance"] or L["Show on map"])
+    detail.btnMap:SetText(isEntrance and L["Entrance"] or L["Map"])
+    detail.btnMap.tip = isEntrance and L["Show entrance"] or L["Show on map"]
     detail.layoutButtons()
 end
 
--- Icon drawn with lines (no client textures needed): a box with a diagonal arrow. Maximize: arrow from
--- the center to the top-left corner. Restore: the other way round.
-local function drawMaxIcon(btn, isMaximized)
-    local h, a = 6, 4.5
-    local segs = {
-        { -h, h, h, h }, { h, h, h, -h }, { h, -h, -h, -h }, { -h, -h, -h, h },
-    }
-    local arrow
-    if isMaximized then
-        arrow = { { -h, h, 0, 0 }, { 0, 0, -a, 0 }, { 0, 0, 0, a } }
-    else
-        arrow = { { 0, 0, -h, h }, { -h, h, -h, h - a }, { -h, h, -h + a, h } }
-    end
-    for _, s in ipairs(arrow) do segs[#segs + 1] = s end
-
-    btn.iconLines = btn.iconLines or {}
-    for i, s in ipairs(segs) do
-        local line = btn.iconLines[i]
-        if not line then
-            line = btn:CreateLine(nil, "OVERLAY")
-            line:SetThickness(1.5)
-            line:SetColorTexture(0.95, 0.95, 0.95, 1)
-            btn.iconLines[i] = line
-        end
-        line:SetStartPoint("CENTER", btn, s[1], s[2])
-        line:SetEndPoint("CENTER", btn, s[3], s[4])
-    end
-end
-
--- Maximize/restore widget. Preferred: Blizzard's own (the one on the map and the quest log, a gold arrow
--- on a red button). Fallbacks: buttons with the same atlases, and last the line icon. Returns a function
--- that syncs the shown state.
+-- Maximize / restore: our own glyph button (arrows out, arrows in). Returns the function that shows the state.
 local setMaxState
-local syncing = false
 
-local function atlasExists(name)
-    return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
-end
-
-local function createMaxWidget(parent, anchorTo, onToggle)
-    local ok, f = pcall(CreateFrame, "Frame", nil, parent, "MaximizeMinimizeButtonFrameTemplate")
-    if ok and f and f.SetOnMaximizedCallback and f.SetOnMinimizedCallback and f.Maximize and f.Minimize then
-        f:SetPoint("RIGHT", anchorTo, "LEFT", 0, 0)
-        f:SetOnMaximizedCallback(function() if not syncing then onToggle(true) end end)
-        f:SetOnMinimizedCallback(function() if not syncing then onToggle(false) end end)
-        return function(isMax)
-            syncing = true
-            if isMax then f:Maximize() else f:Minimize() end
-            syncing = false
-        end
-    end
-
-    local btn, set
-    if atlasExists("RedButton-Expand") and atlasExists("RedButton-Condense") then
-        btn = CreateFrame("Button", nil, parent)
-        btn:SetSize(26, 26)
-        if atlasExists("RedButton-Highlight") then btn:SetHighlightAtlas("RedButton-Highlight") end
-        set = function(isMax)
-            local name = isMax and "RedButton-Condense" or "RedButton-Expand"
-            btn:SetNormalAtlas(name)
-            if atlasExists(name .. "-Pressed") then btn:SetPushedAtlas(name .. "-Pressed") end
-        end
-    else
-        btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-        btn:SetSize(28, 22)
-        set = function(isMax) drawMaxIcon(btn, isMax) end
-    end
-    btn:SetPoint("RIGHT", anchorTo, "LEFT", 0, 0)
+local function createMaxButton(parent, anchorTo, onToggle)
+    local btn = T.CreateIconButton(parent, "expand", 18, function() return maximized and L["Restore"] or L["Maximize"] end)
+    btn:SetPoint("RIGHT", anchorTo, "LEFT", -2, 0)
     btn:SetScript("OnClick", function() onToggle(not maximized) end)
-    btn:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(maximized and L["Restore"] or L["Maximize"])
-        GameTooltip:Show()
-    end)
-    btn:SetScript("OnLeave", GameTooltip_Hide)
-    return set
+    return function(isMax) T.SetGlyph(btn, isMax and "collapse" or "expand") end
 end
 
--- Panel at the bottom (with the tree above) or maximized over the whole tree area.
+-- The drawer: on the right of the main area, from under the header bar to the bottom, so the table or the tree
+-- stays in sight beside it (they end at its left edge). Maximized, it takes the whole main area.
+local DRAWER_W = 340
 local function layout()
     local right = ns.TREE_RIGHT or 32 -- where the tree ends (its scroll bar takes room only when it shows)
     local shown = detail:IsShown()
     if not shown then maximized = false end
+    local inset = shown and not maximized and (DRAWER_W + 8) or 0
+    local top = ns.CONTENT_TOP or 56
     detail:ClearAllPoints()
     if maximized then
-        detail:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", leftOff, -(ns.TREE_TOP or 62))
-        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, 30)
+        detail:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", leftOff, -top)
+        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -8, 8)
         treeScroll:Hide()
     else
-        detail:SetPoint("BOTTOMLEFT", parentFrame, "BOTTOMLEFT", leftOff, 30)
-        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, 30)
-        detail:SetHeight(DETAIL_H)
+        detail:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -8, -top)
+        detail:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -8, 8)
+        detail:SetWidth(DRAWER_W)
         -- the tree only belongs to the tree view: under a table (search, log, tracked) it would show through it
         treeScroll:SetShown(not ns.UI_IsSearchMode())
-        treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -right, shown and (30 + DETAIL_H + 8) or 30)
+        treeScroll:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(right + inset), 30)
     end
-    -- the table (search, log, tracked) shares the space too: it ends above the panel
+    -- the table (search, log, tracked) ends at the drawer too
     if companion then
-        companion:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -8, shown and not maximized and (30 + DETAIL_H + 8) or 30)
+        companion:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -(8 + inset), 30)
     end
-    detail:SetBackdropColor(0.05, 0.05, 0.08, maximized and 1 or 0.95)
     if setMaxState then setMaxState(maximized) end
+    if inset ~= (ns.DETAIL_INSET or 0) then
+        ns.DETAIL_INSET = inset
+        if ns.UI_DrawerChanged then ns.UI_DrawerChanged() end
+    end
 end
 
 -- The side panel changed width (collapsed / expanded): the panel starts where the main area does.
@@ -502,39 +463,58 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     -- the panel is maximized over a table, the table must not show through
     detail:SetFrameLevel(parent:GetFrameLevel() + 60)
     detail:EnableMouse(true) -- and it takes the clicks, so nothing under it gets them
-    detail:SetBackdrop(BACKDROP)
-    detail:SetBackdropColor(0.05, 0.05, 0.08, 0.95)
-    detail:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
+    T.Style(detail, "slate", "brass")
     detail:Hide()
 
-    detail.title = detail:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    detail.title:SetPoint("TOPLEFT", 10, -8)
-    detail.title:SetPoint("RIGHT", -76, 0)
-    detail.title:SetJustifyH("LEFT")
-
-    detail.meta = detail:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    detail.meta:SetPoint("TOPLEFT", detail.title, "BOTTOMLEFT", 0, -3)
-
-    local close = CreateFrame("Button", nil, detail, "UIPanelCloseButton")
-    close:SetPoint("TOPRIGHT", 2, 2)
+    -- a dark strip on top: what the drawer is, maximize and close
+    local heading = T.Text(detail, "heading", "gold")
+    heading:SetPoint("TOPLEFT", 12, -9)
+    heading:SetText(L["Quest details"])
+    local close = T.CreateIconButton(detail, "close", 18, CLOSE or L["Close"])
+    close:SetPoint("TOPRIGHT", -6, -6)
     close:SetScript("OnClick", function() ns.Detail_Hide(); ns.UI_Refresh() end)
-
-    setMaxState = createMaxWidget(detail, close, function(isMax)
+    setMaxState = createMaxButton(detail, close, function(isMax)
         maximized = isMax
         layout()
     end)
 
-    detail.scroll = CreateFrame("ScrollFrame", nil, detail, "UIPanelScrollFrameTemplate")
-    detail.scroll:SetPoint("TOPLEFT", 8, -46)
+    -- the page: parchment, written in ink
+    detail.page = CreateFrame("Frame", nil, detail)
+    detail.page:SetPoint("TOPLEFT", 6, -30)
+    T.Parchment(detail.page, "BACKGROUND", 2)
+
+    detail.title = T.Text(detail.page, "title", "ink")
+    detail.title:SetShadowOffset(0, 0)
+    detail.title:SetPoint("TOPLEFT", 20, -20)
+    detail.title:SetPoint("RIGHT", -20, 0)
+    detail.title:SetJustifyH("LEFT")
+    detail.title:SetWordWrap(true)
+
+    detail.meta = T.Text(detail.page, "small", "inkSoft")
+    detail.meta:SetShadowOffset(0, 0)
+    detail.meta:SetPoint("TOPLEFT", detail.title, "BOTTOMLEFT", 0, -4)
+    detail.meta:SetPoint("RIGHT", -20, 0)
+    detail.meta:SetJustifyH("LEFT")
+
+    local divider = detail.page:CreateTexture(nil, "ARTWORK")
+    divider:SetHeight(1)
+    divider:SetPoint("TOPLEFT", detail.meta, "BOTTOMLEFT", 0, -8)
+    divider:SetPoint("RIGHT", -20, 0)
+    divider:SetColorTexture(T.rgba("inkMuted", 0.6))
+
+    detail.scroll = CreateFrame("ScrollFrame", nil, detail.page, "UIPanelScrollFrameTemplate")
+    detail.scroll:SetPoint("TOPLEFT", divider, "BOTTOMLEFT", 0, -8)
     anchorScroll()
     detail.content = CreateFrame("Frame", nil, detail.scroll)
     detail.content:SetSize(1, 1)
     detail.scroll:SetScrollChild(detail.content)
-    detail.text = detail.content:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    detail.text = T.Text(detail.content, "body", "ink")
+    detail.text:SetShadowOffset(0, 0)
     detail.text:SetPoint("TOPLEFT", 0, 0)
     detail.text:SetJustifyH("LEFT")
     detail.text:SetJustifyV("TOP")
     detail.text:SetWordWrap(true)
+    if detail.text.SetSpacing then detail.text:SetSpacing(2) end
     detail.scroll:SetScript("OnSizeChanged", function() if current then relayout() end end)
     ns.AutoScrollBar(detail.scroll, function(has)
         scrollBar = has
@@ -560,30 +540,26 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         end)
     end)
 
-    -- Waypoint: a split button. The main part goes to the chosen step (the next one by default); the arrow
-    -- opens the list of every step to pick another.
+    -- The action bar at the bottom, in two columns of plates with one word and an icon each (the whole action in the
+    -- tooltip): on the left the wooden ones, what is done most (Focus, Waypoint, Chain); on the right the stone ones
+    -- (Open, Map, Abandon). Waypoint is a split button: the plate goes to the chosen step (the next one by default),
+    -- the arrow lists every step to pick another.
+    local BTN_W, BTN_H = 159, 28
     detail.wayGroup = CreateFrame("Frame", nil, detail)
-    detail.wayGroup:SetSize(WAY_W + 26, 22)
-    detail.btnWay = CreateFrame("Button", nil, detail.wayGroup, "UIPanelButtonTemplate")
-    detail.btnWay:SetSize(WAY_W, 22)
+    detail.wayGroup:SetSize(BTN_W, BTN_H)
+    detail.btnWay = T.CreatePlateButton(detail.wayGroup, L["Waypoint"], BTN_W - 28, BTN_H, "wood", "waypoint")
     detail.btnWay:SetPoint("LEFT", 0, 0)
-    local wayText = detail.btnWay:GetFontString()
-    if wayText then
-        wayText:ClearAllPoints()
-        wayText:SetPoint("LEFT", 8, 0)
-        wayText:SetPoint("RIGHT", -8, 0)
-        wayText:SetWordWrap(false)
-    end
     detail.btnWay:SetScript("OnClick", function()
         local step = selectedStep()
         if not step then return end
         local loc = stepTarget(current, step)
         if loc then ns.SetWaypoint(loc, step.label) end
     end)
-    detail.btnWayMenu = CreateFrame("Button", nil, detail.wayGroup, "UIPanelButtonTemplate")
-    detail.btnWayMenu:SetSize(24, 22)
+    detail.btnWayMenu = T.CreatePlateButton(detail.wayGroup, nil, 26, BTN_H, "wood")
+    detail.btnWayMenu.stepsMenu = true
+    detail.btnWayMenu.tip = L["Choose the step"]
     detail.btnWayMenu:SetPoint("LEFT", detail.btnWay, "RIGHT", 2, 0)
-    detail.btnWayMenu:SetText("v")
+    T.SetGlyph(detail.btnWayMenu, "chevronDown", "CENTER", 0, 0, "gold")
     detail.btnWayMenu:SetScript("OnClick", function(self)
         if not current then return end
         local options = {}
@@ -593,7 +569,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
             options[i] = {
                 name = (step.done and CHECK or "") .. step.label .. (step.progress and (" " .. step.progress) or "")
                     .. (zone and (" |cff999999(" .. zone .. ")|r") or ""),
-                color = step.current and { 1, 0.82, 0 } or step.done and { 0.6, 0.8, 0.6 } or { 1, 1, 1 },
+                color = step.current and { T.rgba("gold") } or step.done and { T.rgba("ready") } or { T.rgba("text") },
                 disabled = target == nil,
             }
         end
@@ -606,16 +582,8 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         end, 300)
     end)
 
-    detail.btnOpen = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnOpen:SetSize(130, 22)
-    detail.btnOpen:SetText(L["Open quest"])
-    detail.btnOpen:SetScript("OnClick", function()
-        if current then openQuest(current.id) end
-    end)
-
     -- "Focus": the floating window for this quest (Modules/UI/FocusWindow.lua); again to stop focusing
-    detail.btnFocus = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnFocus:SetSize(130, 22)
+    detail.btnFocus = T.CreatePlateButton(detail, L["Focus"], BTN_W, BTN_H, "wood", "focus")
     detail.btnFocus:SetScript("OnClick", function()
         if not current then return end
         ns.Focus_Toggle(current.id)
@@ -623,42 +591,43 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         ns.Search_Refresh()
     end)
 
-    detail.btnChain = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnChain:SetSize(130, 22)
-    detail.btnChain:SetText(L["View chain"])
+    detail.btnChain = T.CreatePlateButton(detail, L["Chain"], BTN_W, BTN_H, "wood", "chain")
+    detail.btnChain.tip = L["View chain"]
     detail.btnChain:SetScript("OnClick", function()
         if current and current.entryId then ns.UI_OpenQuest(current.entryId, current.id) end
     end)
 
-    -- "Show on map": the chosen step (inside an instance, its entrance)
-    detail.btnMap = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnMap:SetSize(130, 22)
-    detail.btnMap:SetText(L["Show on map"])
+    detail.btnOpen = T.CreatePlateButton(detail, L["Open"], BTN_W, BTN_H, "stone", "open")
+    detail.btnOpen.tip = L["Open quest"]
+    detail.btnOpen:SetScript("OnClick", function()
+        if current then openQuest(current.id) end
+    end)
+
+    -- "Map": the chosen step (inside an instance, its entrance)
+    detail.btnMap = T.CreatePlateButton(detail, L["Map"], BTN_W, BTN_H, "stone", "map")
     detail.btnMap:SetScript("OnClick", function()
         local step = current and selectedStep()
         if step then ns.ShowStepOnMap(current, step) end
     end)
 
     -- the game's own confirmation (QuestMenu.lua)
-    detail.btnAbandon = CreateFrame("Button", nil, detail, "UIPanelButtonTemplate")
-    detail.btnAbandon:SetSize(130, 22)
-    detail.btnAbandon:SetText(L["Abandon quest"])
+    detail.btnAbandon = T.CreatePlateButton(detail, L["Abandon"], BTN_W, BTN_H, "stone", "abandon")
+    detail.btnAbandon.tip = L["Abandon quest"]
     detail.btnAbandon:SetScript("OnClick", function()
         if current then ns.AbandonQuest(current.id) end
     end)
 
-    -- buttons at the bottom, in rows if they don't fit in one; the text ends right above them. The same
-    -- options, in the same order, as the menu of a right click (QuestMenu.lua).
+    -- in rows of two (more if the drawer is maximized); the page ends right above them
     local buttons = {
-        { frame = detail.btnFocus, w = 130 }, { frame = detail.btnOpen, w = 130 },
-        { frame = detail.wayGroup, w = WAY_W + 26 }, { frame = detail.btnMap, w = 130 },
-        { frame = detail.btnChain, w = 130 }, { frame = detail.btnAbandon, w = 130 },
+        { frame = detail.btnFocus, w = BTN_W }, { frame = detail.btnOpen, w = BTN_W },
+        { frame = detail.wayGroup, w = BTN_W }, { frame = detail.btnMap, w = BTN_W },
+        { frame = detail.btnChain, w = BTN_W }, { frame = detail.btnAbandon, w = BTN_W },
     }
     function detail.layoutButtons()
         local width = detail:GetWidth() - 16
         if width <= 0 then return end
-        local h = ns.FlowLayout(detail, buttons, 8, 8, width, 6, 4, true, true)
-        scrollBottom = 8 + h + 8
+        local h = ns.FlowLayout(detail, buttons, 8, 8, width, 6, 5, true, true)
+        scrollBottom = 8 + h + 6
         anchorScroll()
     end
     detail:HookScript("OnSizeChanged", detail.layoutButtons)

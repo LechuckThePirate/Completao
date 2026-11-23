@@ -291,7 +291,7 @@ describe("Search", function()
     end)
 
     local function chainButton()
-        return WowMock.Find(function(f) return f._text == "View chain" and f._scripts.OnClick and f:IsShown() end)
+        return WowMock.Find(function(f) return f.tip == "View chain" and f._scripts.OnClick and f:IsShown() end)
     end
 
     it("clicking a result shows its details below the table, without leaving it", function()
@@ -503,9 +503,9 @@ describe("Search", function()
             ns.flavor = nil
         end)
 
-        it("the search table has no status icons", function()
+        it("the search table shows each result's status too", function()
             ns.UI_SetSearchMode(true, "search")
-            assert.is_false(ShownRows()[1].status:IsShown())
+            assert.is_true(ShownRows()[1].status:IsShown())
         end)
 
         it("lists only the quests of the log that are being tracked, without the form", function()
@@ -540,7 +540,7 @@ describe("Search", function()
             end
             assert.are.equal(1, #labels)
             assert.matches("3/10", labels[1])
-            assert.matches("ffd100", labels[1]) -- the current step is in gold
+            assert.matches("d4af37", labels[1]) -- the current step is in gold
             assert.is_true(#buttons >= 1)
             local kill
             for _, b in ipairs(buttons) do if b.title == "Kill boars" then kill = b end end
@@ -554,7 +554,7 @@ describe("Search", function()
             ns.Search_Refresh()
             local marked = WowMock.Find(function(f) return f._kind == "Button" and f.tag == focusTag and f.mark:IsShown() end)
             assert.is_not_nil(marked)
-            assert.are.same({ 1, 0.82, 0, 1 }, { ShownRows()[1]:GetBackdropBorderColor() })
+            assert.are.same({ ns.Theme.rgba("gold") }, { ShownRows()[1]:GetBackdropBorderColor() })
             ns.FocusTag = function() return nil end
             ns.Search_Refresh()
             assert.is_false(marked.mark:IsShown())

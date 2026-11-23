@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- New: a whole new look for the main window ("Cartographic Codex"): dark obsidian with a fine gold frame, a header with the compass medallion, the title plate and your overall progress, and a side panel on burnt parchment.
+- New: the side panel puts the four views first, each with a count (quests in the log, tracked, ready to turn in), and a filter box to find a zone, dungeon or class by name; every entry shows a thin bar of how much of it is done.
+- New: a quest's details open in a drawer on the right, on parchment, so the table or the tree stays in sight beside it; its actions are plates with one word and an icon (Focus, Waypoint, Chain, Open, Map, Abandon), the full action in their tooltip.
+- New: chain trees draw each quest as a stone plate with a halo in its status color (the one in your log pulses), locked quests show a padlock and stay readable, and connections go gold where you have already been, with an arrow into each quest. Zoom buttons and "Center on my current quest" sit in the tree's corner.
+- New: the search table shows each quest's status icon, with a parchment header and alternate row shading.
+
 ## 1.9.2
 
 - Fixed: on WoW Forever, since the game stopped giving the realm name, "Consolidate alts" left out the characters that had not logged in since, and could count the character you play, or an alt, twice ("Completed by" could name yourself). An unknown realm now goes with any: all your characters are together again, each once, from its newest copy.

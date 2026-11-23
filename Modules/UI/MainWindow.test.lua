@@ -30,7 +30,7 @@ describe("MainWindow", function()
     it("lists the sections, with battlegrounds, events and miscellaneous after the classic ones", function()
         local seen = {}
         for _, f in ipairs(WowMock.frames) do
-            local name = type(f._text) == "string" and f._text:match("^[+-] (%a[%a ]+) %(%d+%)$")
+            local name = f.cat and f._shown and f.text._text:match("^(%a[%a ]+) %(%d+%)$")
             if name then seen[#seen + 1] = name end
         end
         assert.are.same({ "Dungeons", "Raids", "Battlegrounds", "Zones", "Class Quests", "Professions", "Races",
@@ -41,7 +41,7 @@ describe("MainWindow", function()
         local function openSections()
             local n = 0
             for _, f in ipairs(WowMock.frames) do
-                if f:IsShown() and type(f._text) == "string" and f._text:match("^%- %a[%a ]+ %(%d+%)$") then n = n + 1 end
+                if f.cat and f.open and f:IsShown() then n = n + 1 end
             end
             return n
         end
@@ -604,7 +604,7 @@ describe("MainWindow", function()
             assert.are.equal(-32, right())
         end)
 
-        it("the quest details panel under it ends where the tree does", function()
+        it("the quest drawer sits on the right edge, and the tree ends at its left with or without its bar", function()
             local detail = WowMock.Find(function(f) return f.layoutButtons end)
             local function detailRight()
                 local x
@@ -615,12 +615,17 @@ describe("MainWindow", function()
             -- its real content, so the height is set after it, not before:
             -- how tall the Deadmines tree really is changes with the data.
             ns.UI_OpenQuest("vc", ns.entries.vc.quests[1].id)
+            assert.are.equal(340, detail:GetWidth())
             canvas:SetHeight(200)
             rangeChanged()
             assert.are.equal(-8, detailRight())
+            assert.are.equal(-(8 + 348), right())
             canvas:SetHeight(900)
             rangeChanged()
-            assert.are.equal(-32, detailRight())
+            assert.are.equal(-8, detailRight())
+            assert.are.equal(-(32 + 348), right())
+            ns.Detail_Hide() -- closed, the tree takes the room back
+            assert.are.equal(-32, right())
         end)
     end)
 
@@ -747,7 +752,7 @@ describe("MainWindow", function()
     describe("click-through", function()
         local function tick() ns.UI._scripts.OnUpdate(ns.UI, 0.1) end
         local function anyChild()
-            return WowMock.Find(function(f) return f._kind == "Button" and f._parent == ns.UI and f._scripts.OnClick end)
+            return WowMock.Find(function(f) return f._kind == "Button" and f._parent == ns.UI.headerBar and f._scripts.OnClick end)
         end
         before_each(function()
             ns.UI:EnableMouse(true)

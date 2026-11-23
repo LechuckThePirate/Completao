@@ -9,7 +9,7 @@ describe("Menu.PopupMenu", function()
 
     before_each(function()
         WowMock.Reset()
-        ns = LoadAddon({ files = { "Modules/UI/Menu.lua" } })
+        ns = LoadAddon({ files = { "Modules/UI/Theme.lua", "Modules/UI/Menu.lua" } })
         anchor = WowMock.NewFrame("Button")
     end)
 

@@ -1,6 +1,7 @@
 local _, ns = ...
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 local L = ns.L
+local T = ns.Theme
 
 -- Global search ("Search quests..." in the side panel): a form in the window's main area and the results
 -- in a table below. It searches every section at once, among the quests meant for this character (class,
@@ -336,13 +337,10 @@ end
 local function openMenu(anchor, options, onPick) ns.PopupMenu(anchor, options, onPick, 170) end
 
 local function makeDropdown(parent, width)
-    local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    b:SetSize(width, 22)
+    local b = T.CreateGhostButton(parent, nil, width, 22)
     local text = b:GetFontString()
-    if text then text:SetPoint("LEFT", 8, 0); text:SetPoint("RIGHT", -18, 0); text:SetJustifyH("LEFT") end
-    local arrow = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    arrow:SetPoint("RIGHT", -6, 0)
-    arrow:SetText("v")
+    if text then text:ClearAllPoints(); text:SetPoint("LEFT", 8, 0); text:SetPoint("RIGHT", -18, 0); text:SetJustifyH("LEFT") end
+    T.SetGlyph(b, "chevronDown", "RIGHT", -9, 0)
     return b
 end
 
@@ -351,27 +349,28 @@ local function getRow(i)
     if row then return row end
     row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
     row:SetHeight(ROW_H)
-    row:SetBackdrop(BACKDROP)
-    row:SetBackdropBorderColor(0, 0, 0, 0)
-    row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+    T.Style(row, "obsidian", false)
+    row:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+    row:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.06)
     row.status = row:CreateTexture(nil, "ARTWORK")
     row.status:SetSize(STATUS_W - 4, STATUS_W - 4)
-    row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    row.name = T.Text(row, "quest")
     row.name:SetJustifyH("LEFT")
     row.name:SetWordWrap(false)
-    row.level = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    -- the numbers: a narrow tabular font, muted, right-aligned so they read down the column
+    row.level = T.Text(row, "data", "muted")
     row.level:SetWidth(LEVEL_W)
     row.level:SetJustifyH("CENTER")
-    row.where = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.where = T.Text(row, "small", "muted")
     row.where:SetJustifyH("LEFT")
     row.where:SetWordWrap(false)
-    row.dist = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.dist = T.Text(row, "data", "muted")
     row.dist:SetWidth(DIST_W)
     row.dist:SetJustifyH("RIGHT")
-    row.xp = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.xp = T.Text(row, "data", "muted")
     row.xp:SetJustifyH("RIGHT")
     row.xp:SetWordWrap(false)
-    row.money = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.money = T.Text(row, "data", "muted")
     row.money:SetJustifyH("RIGHT")
     row.money:SetWordWrap(false)
     row.icons = {}
@@ -492,13 +491,13 @@ local function getStepRow()
     -- the step the waypoint is set on: a gold tint and a bar on the left
     row.mark = row:CreateTexture(nil, "BACKGROUND")
     row.mark:SetAllPoints()
-    row.mark:SetColorTexture(1, 0.82, 0, 0.18)
+    row.mark:SetColorTexture(T.rgba("gold", 0.14))
     row.markBar = row:CreateTexture(nil, "ARTWORK")
     row.markBar:SetPoint("TOPLEFT")
     row.markBar:SetPoint("BOTTOMLEFT")
     row.markBar:SetWidth(3)
-    row.markBar:SetColorTexture(1, 0.82, 0, 1)
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    row.markBar:SetColorTexture(T.rgba("gold"))
+    row.text = T.Text(row, "small")
     row.text:SetPoint("LEFT", 16, 0)
     row.text:SetPoint("RIGHT", -6, 0)
     row.text:SetJustifyH("LEFT")
@@ -507,7 +506,7 @@ local function getStepRow()
     return row
 end
 
-local STEP_COLORS = { done = "ff808080", current = "ffffd100", todo = "ffffffff" }
+local STEP_COLORS = { done = "ff64748b", current = "ffd4af37", todo = "ffe2e8f0" }
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14|t "
 
 local function readyToTurnIn(quest)
@@ -524,6 +523,7 @@ local STATUS_ICONS = {
 local function setStatusIcon(tex, kind)
     local spec = kind and STATUS_ICONS[kind]
     if not spec then tex:Hide() return end
+    tex:SetTexCoord(0, 1, 0, 1) -- (a reused row may have had a piece of the theme's icons)
     local set
     if tex.SetAtlas and C_Texture and C_Texture.GetAtlasInfo then
         for _, name in ipairs(spec.atlas) do
@@ -534,6 +534,35 @@ local function setStatusIcon(tex, kind)
     tex:Show()
 end
 ns.SetQuestStatusIcon = setStatusIcon -- the focus window's too
+
+-- In the search, every result gets the icon of its status: in the log as in the log views, available to take (a
+-- yellow !), done (a green check) or locked (a grey padlock: level or requirements). Only what is cheap to ask is
+-- asked (the log as read once per search, isOnQuest): some clients scan the whole log for each question.
+local function locked(q)
+    if q.minLevel and UnitLevel("player") < q.minLevel then return true end
+    for _, id in ipairs(q.requires or {}) do
+        if not ns.IsQuestDone(id) then return true end
+    end
+    if q.requiresAny and #q.requiresAny > 0 then
+        for _, id in ipairs(q.requiresAny) do
+            if ns.IsQuestDone(id) then return false end
+        end
+        return true
+    end
+    return false
+end
+
+local function setSearchIcon(tex, q)
+    if isOnQuest(q.id) then
+        setStatusIcon(tex, ns.IsReadyToTurnIn(q.id) and "ready" or "progress")
+    elseif ns.IsQuestDone(q.id) then
+        tex:SetTexCoord(0, 1, 0, 1)
+        tex:SetTexture("Interface\\RaidFrame\\ReadyCheck-Ready")
+        tex:Show()
+    else
+        T.SetStatusIcon(tex, locked(q) and "lock" or "quest")
+    end
+end
 
 -- The same icon as inline text (for menus, whose rows are plain text): "|A:atlas|a" when the client has the atlas,
 -- else the file's "|T...|t". Ends in a space, so it can go straight in front of a name.
@@ -667,13 +696,12 @@ local function getGroupRow()
     row = CreateFrame("Button", nil, panel.content, "BackdropTemplate")
     row:SetHeight(ROW_H)
     row:SetBackdrop(BACKDROP)
-    row:SetBackdropColor(0.16, 0.13, 0.03, 0.95)
-    row:SetBackdropBorderColor(0.45, 0.37, 0.08, 1)
+    T.Style(row, "slate", "brass")
     row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     row.toggle = row:CreateTexture(nil, "ARTWORK")
     row.toggle:SetSize(14, 14)
     row.toggle:SetPoint("LEFT", 5, 0)
-    row.text = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    row.text = T.Text(row, "heading", "gold")
     row.text:SetPoint("LEFT", 24, 0)
     row.text:SetPoint("RIGHT", -6, 0)
     row.text:SetJustifyH("LEFT")
@@ -705,15 +733,19 @@ local function fillRow(row, i, y, focusTag)
         placeRow(row)
         row.placedFor = cols.gen
     end
-    setStatusIcon(row.status, mode ~= "search" and (readyToTurnIn(q) and "ready" or "progress") or nil)
+    if mode == "search" then
+        setSearchIcon(row.status, q)
+    else
+        setStatusIcon(row.status, readyToTurnIn(q) and "ready" or "progress")
+    end
     row:ClearAllPoints()
     row:SetPoint("TOPLEFT", 0, -y)
     row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
-    local shade = (i % 2 == 0) and 0.08 or 0.04
-    row:SetBackdropColor(shade, shade, shade + 0.02, 0.9)
+    -- zebra: card and obsidian, by turns
+    row:SetBackdropColor(T.rgba(i % 2 == 0 and "card" or "obsidian", 0.92))
     -- the quest whose step has the waypoint: gold border
     if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
-        row:SetBackdropBorderColor(1, 0.82, 0, 1)
+        row:SetBackdropBorderColor(T.rgba("gold"))
     else
         row:SetBackdropBorderColor(0, 0, 0, 0)
     end
@@ -760,7 +792,7 @@ function draw()
     local width = panel.scroll:GetWidth()
     if width and width > 0 then
         panel.content:SetWidth(width)
-        if computeColumns(width, mode == "search" and 0 or STATUS_W) then
+        if computeColumns(width, STATUS_W) then
             placeRow(panel.head)
             for _, row in ipairs(rows) do row.placedFor = nil end
         end
@@ -860,30 +892,16 @@ function ns.Search_Create(parent)
     panel = CreateFrame("Frame", nil, parent)
     panel:Hide()
 
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    local title = T.Text(panel, "title", "gold")
     title:SetPoint("TOPLEFT", 4, 0)
     title:SetText(L["Search quests"])
     panel.title = title
 
-    local okSearch, box = pcall(CreateFrame, "EditBox", nil, panel, "SearchBoxTemplate")
-    if not okSearch or not box then
-        box = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
-        box:SetTextInsets(6, 6, 0, 0)
-    end
-    box:SetSize(240, 20)
-    box:SetAutoFocus(false)
-    local placeholder = box.Instructions
-    if not placeholder then
-        placeholder = box:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-        placeholder:SetPoint("LEFT", 8, 0)
-    end
-    placeholder:SetText(L["Quest title"])
+    local box = T.CreateSearchBox(panel, 240, L["Quest title"])
     box:HookScript("OnTextChanged", function(self)
         state.text = strtrim(self:GetText() or ""):lower()
-        if not box.Instructions then placeholder:SetShown(state.text == "") end
         requestRefresh()
     end)
-    box:HookScript("OnEscapePressed", function(self) self:ClearFocus() end)
     panel.box = box
 
     -- what to include, "only with items" and the reward's type, in a "Filters" drop-down (FilterMenu.lua): the type and its
@@ -979,10 +997,10 @@ function ns.Search_Create(parent)
             requestRefresh()
         end)
     end)
-    panel.count = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    panel.count = T.Text(panel, "small", "muted")
 
     panel.groupButton = makeDropdown(panel, 130)
-    panel.groupLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    panel.groupLabel = T.Text(panel, "small", "muted")
     panel.groupLabel:SetPoint("RIGHT", panel.groupButton, "LEFT", -6, 0)
     panel.groupLabel:SetText(L["Group by:"])
     panel.updateGroupButton = function() panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]]) end
@@ -999,10 +1017,14 @@ function ns.Search_Create(parent)
 
     -- table header, with the same columns as the rows (placeRow)
     local head = CreateFrame("Frame", nil, panel, "BackdropTemplate")
-    head:SetHeight(20)
+    head:SetHeight(22)
     head:SetBackdrop(BACKDROP)
-    head:SetBackdropColor(0.12, 0.10, 0.02, 0.95)
-    head:SetBackdropBorderColor(0.6, 0.5, 0.1, 1)
+    T.Style(head, "slate", "brass")
+    -- a band of parchment, the column names in ink
+    local band = head:CreateTexture(nil, "BACKGROUND", nil, 2)
+    band:SetTexture(T.MEDIA .. "ParchmentBar")
+    band:SetPoint("TOPLEFT", 1, -1)
+    band:SetPoint("BOTTOMRIGHT", -1, 1)
     -- sortable columns: a click sorts by them; another click reverses the order (arrow next to the name)
     local sortable = {}
     local function updateSortLabels()
@@ -1017,9 +1039,10 @@ function ns.Search_Create(parent)
         if sortKey then
             local b = CreateFrame("Button", nil, head)
             b:SetHeight(20)
-            fs = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+            fs = T.Text(b, "heading", "ink")
             fs:SetAllPoints()
-            b:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+            b:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+            b:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.05)
             b:SetScript("OnClick", function()
                 local s = sortState()
                 if s.sort == sortKey then
@@ -1037,7 +1060,7 @@ function ns.Search_Create(parent)
             fs:SetText(text)
             return b
         end
-        fs = head:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        fs = T.Text(head, "heading", "ink")
         fs:SetJustifyH(justify or "LEFT")
         fs:SetWordWrap(false)
         fs:SetText(text)
@@ -1082,7 +1105,7 @@ function ns.Search_Create(parent)
         panel.layoutForm()
     end)
 
-    panel.empty = panel.content:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    panel.empty = T.Text(panel.content, "body", "locked")
     panel.empty:SetPoint("TOPLEFT", 8, -8)
     panel.empty:SetText(L["No quests match the search."])
 

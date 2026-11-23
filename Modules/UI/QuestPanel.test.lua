@@ -4,11 +4,12 @@ describe("QuestPanel", function()
     local ns, waypoints, maps
 
     local function panelText()
-        local t = WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("|cffffd100Requirements|r", 1, true) end)
-        return t and t._text or ""
+        -- what the panel says, before it is inked for the parchment
+        local d = WowMock.Find(function(f) return f.layoutButtons end)
+        return d and d.rawText or ""
     end
     local function wayButton()
-        return WowMock.Find(function(f) return type(f._text) == "string" and f._text:find("^Waypoint: ") and f._scripts.OnClick end)
+        return WowMock.Find(function(f) return type(f.tip) == "string" and f.tip:find("^Waypoint: ") and f._scripts.OnClick end)
     end
 
     before_each(function()
@@ -169,7 +170,7 @@ describe("QuestPanel", function()
 
         it("not started: the button goes to the missing requirement", function()
             ns.Detail_Show(q)
-            assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton():GetText())
+            assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton().tip)
         end)
 
         it("in progress: to the first unfinished objective, with progress in the list", function()
@@ -177,7 +178,7 @@ describe("QuestPanel", function()
             WowMock.onQuest[900001] = true
             WowMock.objectives[900001] = { { text = "Tough Wolf Meat: 3/8", finished = false, numFulfilled = 3, numRequired = 8 } }
             ns.Detail_Show(q)
-            assert.are.equal("Waypoint: Tough Wolf Meat", wayButton():GetText())
+            assert.are.equal("Waypoint: Tough Wolf Meat", wayButton().tip)
             assert.matches("Tough Wolf Meat  3/8", panelText())
             wayButton():Click()
             assert.are.equal("Tough Wolf Meat@30", waypoints[#waypoints])
@@ -191,7 +192,7 @@ describe("QuestPanel", function()
             WowMock.FindButton("Show on map"):Click()
             assert.are.equal("Tough Wolf Meat@30", maps[#maps])
             -- picking the start in the dropdown makes the map follow it
-            local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
+            local arrow = WowMock.Find(function(f) return f.stepsMenu and f._scripts.OnClick end)
             arrow:Click()
             local option = WowMock.Find(function(f)
                 return f.text and type(f.text._text) == "string" and f.text._text:find("Start: Giver", 1, true) and f._scripts.OnClick
@@ -216,7 +217,7 @@ describe("QuestPanel", function()
 
         it("picking another step in the dropdown sets the waypoint and survives a refresh", function()
             ns.Detail_Show(q)
-            local arrow = WowMock.Find(function(f) return f._text == "v" and f._scripts.OnClick end)
+            local arrow = WowMock.Find(function(f) return f.stepsMenu and f._scripts.OnClick end)
             arrow:Click()
             local option = WowMock.Find(function(f)
                 return f.text and type(f.text._text) == "string" and f.text._text:find("Start: Giver", 1, true) and f._scripts.OnClick
@@ -224,7 +225,7 @@ describe("QuestPanel", function()
             option:Click()
             assert.are.equal("Start: Giver@10", waypoints[#waypoints])
             ns.Detail_Refresh()
-            assert.are.equal("Waypoint: Start: Giver", wayButton():GetText())
+            assert.are.equal("Waypoint: Start: Giver", wayButton().tip)
         end)
     end)
 

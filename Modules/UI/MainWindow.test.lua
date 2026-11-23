@@ -577,6 +577,31 @@ describe("MainWindow", function()
             assert.is_false(ns.UI_InChainView())
         end)
 
+        it("survives the late notice of the search box emptied by the addon; typing in it leaves the chain view", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local box = WowMock.Find(function(f) return f._kind == "EditBox" and f.Instructions
+                and f.Instructions._text == "Search by title" end)
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, false) end -- the game tells of SetText("") later
+            assert.is_true(ns.UI_InChainView())
+            box:SetText("wolf")
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, true) end
+            assert.is_false(ns.UI_InChainView())
+        end)
+
+        it("Back sits in the toolbar after the filters, not over the tree", function()
+            local q = chained()
+            ns.UI_OpenQuest("vc", q.id)
+            local _, backTo, _, backX, backY = ns.UI.chainBack:GetPoint(1)
+            local _, filtersTo, _, filtersX, filtersY = ns.UI.filtersButton:GetPoint(1)
+            assert.are.equal(filtersTo, backTo) -- placed like the toolbar's own controls
+            assert.are_not.equal(ns.UI.treeScroll, backTo)
+            assert.are.equal(filtersY, backY) -- on the same line
+            assert.is_true(backX > filtersX) -- after the filters
+            ns.UI.chainBack:Click() -- and gone with the chain view
+            assert.is_false(ns.UI.chainBack:IsShown())
+        end)
+
         it("reads top to bottom: a quest sits below the quest it requires", function()
             local q = chained()
             ns.UI_OpenQuest("vc", q.id)

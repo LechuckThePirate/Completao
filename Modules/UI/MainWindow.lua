@@ -937,7 +937,10 @@ function ns.UI_Refresh()
     for _, w in ipairs(treeWidgets) do w:Show() end
     local d = ns.entries[selectedId]
     if focusChain and not d then focusChain = nil end
-    frame.chainBack:SetShown(focusChain ~= nil)
+    if frame.chainBack:IsShown() ~= (focusChain ~= nil) then
+        frame.chainBack:SetShown(focusChain ~= nil)
+        frame.layoutToolbar() -- it takes its place in the toolbar, or gives it back
+    end
     -- in the chain view the title says which chain: its first quest
     local head = focusChain and chainHead(d, focusChain)
     frame.header:SetText(d and (ns.EntryName(d) .. (head and ("  -  " .. ns.QuestTitle(head.id, head.name)) or "")) or "")
@@ -1433,9 +1436,13 @@ local function createFrame()
     local box = T.CreateSearchBox(body, 200, ns.L["Search by title"])
     searchBox = box
     toolbarItems[#toolbarItems + 1] = { frame = box, w = 204, h = 24, dy = 1 }
-    box:HookScript("OnTextChanged", function(self)
-        searchText = strtrim(self:GetText() or ""):lower()
-        focusChain = nil
+    -- only a change by the player counts: the game also tells of the box being emptied by the addon (opening a quest),
+    -- and later than that, which would undo the chain view just opened
+    box:HookScript("OnTextChanged", function(self, userInput)
+        local text = strtrim(self:GetText() or ""):lower()
+        if text == searchText then return end
+        searchText = text
+        if userInput then focusChain = nil end
         ns.RequestRefresh()
     end)
 
@@ -1561,10 +1568,9 @@ local function createFrame()
     treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
 
-    -- the chain view's way back to the whole tree, in the tree's top-left corner
+    -- the chain view's way back to the whole tree: in the toolbar, after the filters (never over the tree)
     local back = T.CreateGhostButton(body, ns.L["Back to all quests"], 150, 22)
-    back:SetPoint("TOPLEFT", treeScroll, "TOPLEFT", 8, -8)
-    back:SetFrameLevel(treeScroll:GetFrameLevel() + 20)
+    toolbarItems[#toolbarItems + 1] = { frame = back, w = 150, h = 24, dy = 1 }
     local backText = back:GetFontString()
     if backText then backText:SetPoint("LEFT", 18, 0) end
     T.SetGlyph(back, "chevronLeft", "LEFT", 10, 0)
@@ -1585,13 +1591,14 @@ local function createFrame()
     -- filters in rows by width; the tree starts under the last row
     local function layoutToolbar()
         local width = frame:GetWidth() - toolbarLeft - 32 - drawerInset()
-        local h = ns.FlowLayout(body, toolbarItems, toolbarLeft, top + 28, width, 10, 2)
+        local h = ns.FlowLayout(body, toolbarItems, toolbarLeft, top + 28, width, 10, 2, true)
         ns.TREE_TOP = top + 28 + h + 8
         treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
         ns.Detail_Layout()
     end
     layoutToolbar()
     frame:HookScript("OnSizeChanged", layoutToolbar)
+    frame.layoutToolbar = layoutToolbar
 
     -- what ends at the right edge of the main area: the title, the hint and the toolbar's rows
     local function placeRight()

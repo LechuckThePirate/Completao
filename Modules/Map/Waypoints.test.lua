@@ -117,6 +117,15 @@ describe("Waypoints", function()
             _G.CreateVector2D = nil
         end)
 
+        it("tells which way a location lies: counterclockwise from north (world x), as the game counts the facing", function()
+            local function at(x, y) return { area = elwynn.area, map = elwynn.map, x = x, y = y } end
+            ns.ResolveMap = function(loc) return loc.x and 1429 end
+            assert.near(0, ns.BearingTo(at(60, 50)), 1e-9)           -- north
+            assert.near(math.pi / 2, ns.BearingTo(at(50, 60)), 1e-9) -- west
+            assert.near(-math.pi / 2, ns.BearingTo(at(50, 40)), 1e-9) -- east
+            assert.is_nil(ns.BearingTo(at(50, 50)))                   -- standing on it
+        end)
+
         it("is the yards from the player to the location", function()
             assert.near(math.sqrt((0.5 - 0.421) ^ 2 + (0.5 - 0.659) ^ 2) * 1000, ns.DistanceTo(elwynn), 1e-6)
         end)

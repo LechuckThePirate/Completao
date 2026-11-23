@@ -23,7 +23,7 @@ local TITLE_H = 18 -- the title bar
 local LOCK_SIZE = 16 -- the padlock in it (and the Auto button beside it)
 local BAR_SIDE = 5 + 2 * LOCK_SIZE + 4 -- room the padlock and the Auto button take at the left of the title bar
 local TOP = 8 -- where the quest's icon and title start: right at the top, the title bar floats above the window
-local ARROW_ROOM = 64 -- the direction arrow and the distance, at the right of the title
+local ARROW_ROOM = 78 -- the direction arrow and the distance, at the right of the title
 local WIDTH_MIN, WIDTH_MAX = 200, 420
 local CHECK_W = 16 -- room for the check before a done objective
 -- no heavy border: translucent obsidian and a fine brass edge
@@ -147,6 +147,8 @@ local function create()
     frame:SetBackdropBorderColor(T.rgba("brass", 0.9))
     frame:SetMovable(true)
     frame:EnableMouse(true)
+    -- the title bar floats above the window: its strip counts as part of it, so it can be dragged by it
+    frame:SetHitRectInsets(0, 0, -TITLE_H, 0)
     frame:RegisterForDrag("LeftButton")
     -- a click on the window (not a drag) opens the main window on the tracked quests; dragging also ends in a
     -- mouse-up, so that one doesn't count
@@ -243,10 +245,10 @@ local function create()
 
     -- the direction to the step the waypoint is on, and how far it is, at the right of the title
     frame.arrow = frame:CreateTexture(nil, "OVERLAY")
-    frame.arrow:SetSize(18, 18)
-    frame.arrow:SetPoint("TOPRIGHT", -PAD, -TOP + 1)
+    frame.arrow:SetSize(28, 28)
+    frame.arrow:SetPoint("TOPRIGHT", -PAD + 2, -TOP + 5)
     frame.arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
-    frame.arrow:SetVertexColor(T.rgba("gold"))
+    frame.arrow:SetVertexColor(1, 0.86, 0.12) -- a bright yellow, to see it at a glance
     frame.arrow:Hide()
     frame.dist = T.Text(frame, "data", "muted")
     frame.dist:SetPoint("RIGHT", frame.arrow, "LEFT", -3, 0)
@@ -301,6 +303,10 @@ local function getLine(i)
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     button:EnableMouse(mouseOn)
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    -- the lines cover most of the window: a drag that starts on one moves the window, as on its background
+    button:RegisterForDrag("LeftButton")
+    button:SetScript("OnDragStart", function() frame:GetScript("OnDragStart")(frame) end)
+    button:SetScript("OnDragStop", function() frame:GetScript("OnDragStop")(frame) end)
     button:SetScript("OnClick", function(self, which)
         if which == "RightButton" then ns.Focus_ChooseQuest(frame) return end
         ns.PopupMenu_Hide()

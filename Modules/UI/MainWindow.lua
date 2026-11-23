@@ -1870,22 +1870,8 @@ local function createFrame()
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
-    -- behind the tree, still as it scrolls and zooms: a faint runic sigil, added onto the stone
-    local sigil = treeScroll:CreateTexture(nil, "BACKGROUND")
-    sigil:SetTexture(T.MEDIA .. "TreeSigil")
-    sigil:SetBlendMode("ADD")
-    sigil:SetAlpha(0.2)
-    -- and under it, a dark veil over the window's cracked stone, so the nodes stand out from it
-    local shade = treeScroll:CreateTexture(nil, "BACKGROUND", nil, -1)
-    shade:SetAllPoints()
-    shade:SetColorTexture(T.rgba("obsidian", 0.6))
-    sigil:SetPoint("CENTER")
-    sigil:SetSize(400, 400)
-    treeScroll:HookScript("OnSizeChanged", function(self)
-        local side = math.min(self:GetWidth() or 0, self:GetHeight() or 0) * 0.95
-        if side > 0 then sigil:SetSize(side, side) end
-    end)
-    frame.treeSigil = sigil
+    -- behind the tree, still as it scrolls and zooms: the runic sigil over a dark veil (the same as behind the tables)
+    frame.treeSigil = T.SigilBackground(treeScroll)
 
     -- the chain view's way back to the whole tree: in the toolbar, after the filters (never over the tree)
     local back = T.CreateGhostButton(body, ns.L["Back to all quests"], 150, 22)

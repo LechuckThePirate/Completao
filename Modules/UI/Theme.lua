@@ -166,6 +166,26 @@ function T.Parchment(f, layer, sublevel, page)
     return tall, wide
 end
 
+-- The background of the quest tree and of the tables: a faint runic sigil, added onto the stone, over a dark veil that
+-- calms the window's cracked stone so what is on it stands out. Both stay as the content scrolls; the sigil follows the
+-- size of `f` (its smaller side).
+function T.SigilBackground(f)
+    local shade = f:CreateTexture(nil, "BACKGROUND", nil, -2)
+    shade:SetAllPoints()
+    shade:SetColorTexture(T.rgba("obsidian", 0.6))
+    local sigil = f:CreateTexture(nil, "BACKGROUND", nil, -1)
+    sigil:SetTexture(T.MEDIA .. "TreeSigil")
+    sigil:SetBlendMode("ADD")
+    sigil:SetAlpha(0.2)
+    sigil:SetPoint("CENTER")
+    sigil:SetSize(400, 400)
+    f:HookScript("OnSizeChanged", function(self)
+        local side = math.min(self:GetWidth() or 0, self:GetHeight() or 0) * 0.95
+        if side > 0 then sigil:SetSize(side, side) end
+    end)
+    return sigil, shade
+end
+
 -- The gold frame (BorderGold9Slice: 2 px burnished gold, rivets in the corners) drawn around `f` with eight
 -- textures: corners at their size, edges stretched. `size` = how big a corner is drawn (16 by default),
 -- `out` = how far outside the frame it goes.

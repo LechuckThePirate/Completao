@@ -173,6 +173,26 @@ describe("FocusWindow", function()
         assert.is_true(ns.UI:IsShown())
     end)
 
+    it("it can be dragged by an objective's line and by the strip of its floating title bar", function()
+        focus()
+        -- the title bar sits above the window: that strip is part of the window for the mouse
+        assert.are.same({ 0, 0, -18, 0 }, frame._set.SetHitRectInsets)
+        local started, stopped = 0, 0
+        frame.StartMoving = function() started = started + 1 end
+        frame.StopMovingOrSizing = function() stopped = stopped + 1 end
+        local line = lineWith("Boars")
+        assert.is_not_nil(line._scripts.OnDragStart)
+        line._scripts.OnDragStart(line)
+        line._scripts.OnDragStop(line)
+        assert.are.equal(1, started)
+        assert.are.equal(1, stopped)
+        assert.is_not_nil(ns.char.focusWindow) -- its place is saved
+        assert.is_nil(ns.UI) -- and the drag was no click: the main window stays closed
+        ns.char.focusLocked = true -- locked: no moving
+        line._scripts.OnDragStart(line)
+        assert.are.equal(1, started)
+    end)
+
     it("an objective only sets its waypoint, it doesn't open the main window", function()
         focus()
         lineWith("Boars"):Click()

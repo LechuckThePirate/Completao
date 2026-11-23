@@ -306,6 +306,17 @@ describe("Search", function()
         assert.are.equal(id, ns.Detail_Current().id)
     end)
 
+    it("the table has the quest tree's background: the runic sigil over a dark veil, and translucent rows", function()
+        ns.UI_SetSearchMode(true, "search")
+        local sheet = ns.UI.searchPanel
+        assert.matches("TreeSigil$", sheet.sigil._set.SetTexture[1])
+        assert.are.equal("ADD", sheet.sigil._set.SetBlendMode[1])
+        assert.are.equal(ns.UI.treeSigil._set.SetTexture[1], sheet.sigil._set.SetTexture[1]) -- the same as the tree's
+        for _, r in ipairs(ShownRows()) do
+            assert.is_true(select(4, r:GetBackdropColor()) < 0.8, "a row the sigil shows through")
+        end
+    end)
+
     it("remembers the table's order between sessions", function()
         panel.head.dist:Click()
         panel.head.dist:Click() -- distance, reversed

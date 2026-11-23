@@ -803,7 +803,8 @@ local function fillRow(row, i, y, focusTag)
     row:SetPoint("TOPLEFT", 0, -y)
     row:SetPoint("RIGHT", panel.content, "RIGHT", 0, 0)
     -- zebra: card and obsidian, by turns
-    row:SetBackdropColor(T.rgba(i % 2 == 0 and "card" or "obsidian", 0.92))
+    -- zebra, translucent enough for the sigil behind to show through
+    row:SetBackdropColor(T.rgba(i % 2 == 0 and "card" or "obsidian", i % 2 == 0 and 0.72 or 0.5))
     -- the quest whose step has the waypoint: gold border
     if focusTag and focusTag:find(q.id .. ":", 1, true) == 1 then
         row:SetBackdropBorderColor(T.rgba("gold"))
@@ -1168,6 +1169,9 @@ function ns.Search_Create(parent)
         layoutForm()
         requestRefresh(true)
     end)
+
+    -- the same background as the quest tree's: the runic sigil over a dark veil, still as the rows scroll
+    panel.sigil = T.SigilBackground(panel)
 
     panel.scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
     panel.scroll:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, -2)

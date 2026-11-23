@@ -110,19 +110,23 @@ function ns.DistanceBetween(a, b)
     return d
 end
 
--- Distances read in meters unless the client is in a yards locale (US and UK English); the game gives
--- them in yards. ns.char.distanceUnit = "yd" | "m" forces one.
+-- The game gives distances in yards. They are shown in meters except in the US region (as the game does with its own
+-- waypoint, and as TomTom does in Europe); where the client can't tell the region, by its language (US and UK English
+-- read in yards). The preferences' "Distance units" forces one: ns.char.distanceUnit = "yd" | "m"; nil is automatic.
 local YARD = 0.9144
+local REGION_US = 1
+function ns.UseMetric()
+    local unit = ns.char and ns.char.distanceUnit
+    if unit then return unit == "m" end
+    local region = GetCurrentRegion and GetCurrentRegion()
+    if region and region > 0 then return region ~= REGION_US end
+    local locale = GetLocale()
+    return locale ~= "enUS" and locale ~= "enGB"
+end
+
 function ns.FormatDistance(yards)
     if not yards then return "" end
-    local unit = ns.char and ns.char.distanceUnit
-    local metric
-    if unit then
-        metric = unit == "m"
-    else
-        local locale = GetLocale()
-        metric = locale ~= "enUS" and locale ~= "enGB"
-    end
+    local metric = ns.UseMetric()
     local d = metric and yards * YARD or yards
     local small, big = metric and "%d m" or "%d yd", metric and "%.1f km" or "%.1fk yd"
     return d < 1000 and small:format(math.floor(d)) or big:format(d / 1000)

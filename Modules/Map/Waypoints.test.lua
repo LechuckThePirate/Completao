@@ -130,6 +130,23 @@ describe("Waypoints", function()
             assert.near(math.sqrt((0.5 - 0.421) ^ 2 + (0.5 - 0.659) ^ 2) * 1000, ns.DistanceTo(elwynn), 1e-6)
         end)
 
+        it("goes by the server's region when the client says it: meters everywhere but the US, whatever the language", function()
+            WowMock.locale = "enUS" -- an English client on a European server (as TomTom there, in meters)
+            _G.GetCurrentRegion = function() return 3 end
+            assert.is_true(ns.UseMetric())
+            assert.are.equal("320 m", ns.FormatDistance(350))
+            _G.GetCurrentRegion = function() return 1 end -- the US region (also Latin America and Oceania): yards
+            WowMock.locale = "esMX"
+            assert.is_false(ns.UseMetric())
+            assert.are.equal("350 yd", ns.FormatDistance(350))
+            ns.char = { distanceUnit = "m" } -- forced in the preferences
+            assert.are.equal("320 m", ns.FormatDistance(350))
+            _G.GetCurrentRegion = nil
+            WowMock.locale = "esES" -- no region known: by language, as before
+            ns.char = {}
+            assert.is_true(ns.UseMetric())
+        end)
+
         it("reads in meters, except in the US and UK English locales (or as forced)", function()
             WowMock.locale = "esES"
             assert.are.equal("320 m", ns.FormatDistance(350))

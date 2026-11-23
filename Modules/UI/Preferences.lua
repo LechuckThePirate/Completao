@@ -245,6 +245,37 @@ local function create()
         function() return not ns.HelpersOff() end,
         function(value) ns.Focus_SetHelpers(value) end)
 
+    -- Distance units: automatic by the server's region (meters outside the US, yards in it), or one forced. A drop-down at
+    -- the foot of the General page; its text says the choice.
+    do
+        local UNITS = { { value = nil, name = L["Automatic"] }, { value = "m", name = L["Meters"] }, { value = "yd", name = L["Yards"] } }
+        local unitButton = T.CreateGhostButton(general, nil, 260, 22)
+        unitButton:SetPoint("TOPLEFT", X + 4, -236)
+        local unitText = unitButton:GetFontString()
+        if unitText then unitText:ClearAllPoints(); unitText:SetPoint("LEFT", 8, 0); unitText:SetPoint("RIGHT", -18, 0); unitText:SetJustifyH("LEFT") end
+        T.SetGlyph(unitButton, "chevronDown", "RIGHT", -9, 0)
+        local function label()
+            local shown = L["Automatic"]
+            for _, u in ipairs(UNITS) do
+                if u.value == ns.char.distanceUnit then shown = u.name end
+            end
+            if not ns.char.distanceUnit then shown = shown .. " (" .. (ns.UseMetric() and L["Meters"] or L["Yards"]) .. ")" end
+            return L["Distance units: %s"]:format(shown)
+        end
+        unitButton:SetScript("OnClick", function(self)
+            local options = {}
+            for i, u in ipairs(UNITS) do options[i] = { name = u.name } end
+            ns.PopupMenu(self, options, function(_, i)
+                ns.char.distanceUnit = UNITS[i].value
+                self:SetText(label())
+                ns.Focus_Refresh()
+                ns.Search_Refresh()
+            end, 260)
+        end)
+        widgets[#widgets + 1] = { Refresh = function() unitButton:SetText(label()) end }
+        prefs.unitButton = unitButton
+    end
+
     -- each view (the tree, the search, the quest log, the tracked quests, the ones to turn in) keeps its own filters; on,
     -- they are one for all of them. Off unless ticked.
     widgets[#widgets + 1] = makeCheck(profile, -34 - STEP, L["Same filters in every view"],

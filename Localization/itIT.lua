@@ -263,4 +263,8 @@ ns.AddLocale({ "itIT" }, {
     ["Same filters in every view"] = "Stessi filtri in tutte le viste",
     ["Hides the loose quests, the ones that no quest of the zone leads to or follows."] =
         "Nasconde le missioni isolate, quelle che nessuna missione della zona precede o segue.",
+    ["Automatic"] = "Automatico",
+    ["Meters"] = "Metri",
+    ["Yards"] = "Iarde",
+    ["Distance units: %s"] = "Unità di distanza: %s",
 })

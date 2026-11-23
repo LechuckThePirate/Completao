@@ -262,4 +262,8 @@ ns.AddLocale({ "ptBR" }, {
     ["Same filters in every view"] = "Mesmos filtros em todas as visões",
     ["Hides the loose quests, the ones that no quest of the zone leads to or follows."] =
         "Oculta as missões soltas, as que nenhuma missão da zona antecede nem segue.",
+    ["Automatic"] = "Automático",
+    ["Meters"] = "Metros",
+    ["Yards"] = "Jardas",
+    ["Distance units: %s"] = "Unidades de distância: %s",
 })

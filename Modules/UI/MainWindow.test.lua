@@ -656,6 +656,23 @@ describe("MainWindow", function()
         assert.is_true(checked > 100)
     end)
 
+    it("a locked node whose requirement is in another zone says which, in red, instead of just Locked", function()
+        WowMock.Reset()
+        WowMock.faction = "Horde"
+        WowMock.race = { "Undead", "Scourge", 5 }
+        ns = OpenAddon("rol")
+        ns.char.filters = {}
+        ns.UI_Refresh()
+        local node = ShownNodes()[95216]
+        assert.is_not_nil(node)
+        assert.are.equal("locked", node.status)
+        assert.matches("^Requires: A Recipe For Death %(3/3%)", node.sub._text)
+        WowMock.done[451] = true
+        ns.UI_Refresh()
+        assert.are_not.equal("locked", ShownNodes()[95216].status)
+        assert.is_nil(ShownNodes()[95216].sub._text:find("Requires", 1, true))
+    end)
+
     it("a tree smaller than the view sits in its middle", function()
         local scroll = ns.UI.treeScroll
         local holder = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)

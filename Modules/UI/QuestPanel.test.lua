@@ -302,6 +302,29 @@ describe("QuestPanel", function()
         assert.are.equal(9, #wide) -- corners, edges and middle
     end)
 
+    it("a quest that needs another one (of another zone) says so in red, with a link to it that opens its tree", function()
+        WowMock.faction = "Horde"
+        local plague = ns.FindQuestDef(95216) -- The New Plague, in Ruins of Lordaeron; needs A Recipe For Death (3/3)
+        assert.is_not_nil(plague)
+        assert.are.same({ 451 }, plague.requires)
+        local status, reasons = ns.QuestStatus(plague)
+        assert.are.equal("locked", status)
+        assert.matches("^Requires: A Recipe For Death %(3/3%)", reasons[1])
+        ns.Detail_Show(plague)
+        local text = panelText()
+        assert.is_truthy(text:find("|cffff5555Requires: |Hcompletao:quest:451|hA Recipe For Death (3/3)", 1, true))
+        local content = WowMock.Find(function(f) return f._scripts.OnHyperlinkClick and f._parent and f._parent._kind == "ScrollFrame" end)
+        content._scripts.OnHyperlinkClick(content, "completao:quest:451")
+        assert.are.equal(451, ns.Detail_Current().id)
+        assert.are.equal("z130", ns.char.selected) -- its own zone's tree, the chain
+        assert.is_true(ns.UI_InChainView())
+        -- done: green, no "Requires"
+        WowMock.done[451] = true
+        ns.Detail_Show(plague)
+        assert.is_truthy(panelText():find("|cff33cc33|Hcompletao:quest:451|hA Recipe For Death", 1, true))
+        assert.is_nil(panelText():find("Requires: |Hcompletao", 1, true))
+    end)
+
     it("a quest of a chain has a chain icon after its title, a link that opens the chain's tree", function()
         local chained, loose
         for _, q in ipairs(ns.entries.vc.quests) do

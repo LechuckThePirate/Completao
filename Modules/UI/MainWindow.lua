@@ -242,11 +242,41 @@ end
 
 -- What a node says under its title, and in which color: the state when there is one to tell (completed, locked, lost,
 -- ready to turn in, in progress), else its level and the zone it starts in, in the game's difficulty color.
+-- The quest it still needs that is not part of this entry's tree (another zone's chain, a dungeon's...): there is no line
+-- to it, so the node says it, "Requires: <quest>" in red, instead of a bare "Locked".
+local entryIds = {} -- the quest ids of each entry (a quest can be listed in several entries)
+local function inEntry(entryId, id)
+    local set = entryIds[entryId]
+    if not set then
+        set = {}
+        local d = ns.entries[entryId]
+        for _, other in ipairs(d and d.quests or {}) do set[other.id] = true end
+        entryIds[entryId] = set
+    end
+    return set[id] == true
+end
+
+local function outsideRequirement(q)
+    for _, id in ipairs(q.requires or {}) do
+        if not ns.IsQuestDone(id) and not inEntry(q.entryId, id) then
+            local def = ns.FindQuestDef(id)
+            return ns.L["Requires: "] .. ns.QuestTitle(id, def and def.name)
+        end
+    end
+end
+
 local function nodeSubtitle(q, status, ready)
     if status == "done" then
         local alt = not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
         return alt and ns.L["Completed by %s"]:format(alt) or STATUS_LABELS.done, { T.rgba("gold") }
-    elseif status == "locked" or status == "missed" then
+    elseif status == "locked" then
+        local outside = outsideRequirement(q)
+        if outside then return outside, { T.rgba("danger") } end
+        if q.minLevel and UnitLevel("player") < q.minLevel then
+            return ns.L["Level %d required"]:format(q.minLevel), { T.rgba("danger") }
+        end
+        return STATUS_LABELS.locked, { T.rgba("danger") }
+    elseif status == "missed" then
         return STATUS_LABELS[status], { T.rgba("danger") }
     elseif ready then
         return ns.L["Ready to turn in"], { T.rgba("ready") }

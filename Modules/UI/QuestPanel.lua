@@ -110,18 +110,25 @@ local function buildText(q)
         parts[#parts + 1] = T.code("gold") .. title .. "|r\n" .. body
     end
 
+    -- a quest the player must have done: its name is a link (with a chain icon) to its own chain, when the addon knows it
+    local function questLink(id)
+        local def = ns.FindQuestDef(id)
+        local name = ns.QuestTitle(id, def and def.name)
+        if not (def and def.entryId) then return name end
+        return ("|Hcompletao:quest:%d|h%s %s|h"):format(id, name, T.ActionIconText("chain", 12))
+    end
+
     local req = {}
     for _, id in ipairs(q.requires or {}) do
-        local def = ns.FindQuestDef(id)
-        local met = C_QuestLog.IsQuestFlaggedCompleted(id)
-        req[#req + 1] = (met and "|cff33cc33" or "|cffff5555") .. ns.QuestTitle(id, def and def.name) .. "|r"
+        local met = ns.IsQuestDone(id)
+        -- not done: "Requires: <quest>" in red, so it is clear why the quest giver doesn't give it yet
+        req[#req + 1] = met and ("|cff33cc33" .. questLink(id) .. "|r") or ("|cffff5555" .. L["Requires: "] .. questLink(id) .. "|r")
     end
     if q.requiresAny and #q.requiresAny > 0 then
         local names, met = {}, false
         for _, id in ipairs(q.requiresAny) do
-            met = met or C_QuestLog.IsQuestFlaggedCompleted(id)
-            local def = ns.FindQuestDef(id)
-            names[#names + 1] = ns.QuestTitle(id, def and def.name)
+            met = met or ns.IsQuestDone(id)
+            names[#names + 1] = questLink(id)
         end
         req[#req + 1] = (met and "|cff33cc33" or "|cffff5555") .. L["One of: "] .. table.concat(names, " / ") .. "|r"
     end
@@ -558,12 +565,16 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
     detail.content:SetHyperlinksEnabled(true)
     detail.content:SetScript("OnHyperlinkClick", function(_, link)
         local pin = pinLinks[tonumber(link:match("^completao:pin:(%d+)$") or 0)]
-        if pin then ns.ShowOnMap(pin.loc, pin.label) end
+        if pin then ns.ShowOnMap(pin.loc, pin.label) return end
+        -- a required quest: open it in its own tree, whichever zone or dungeon it is in
+        local required = ns.FindQuestDef(tonumber(link:match("^completao:quest:(%d+)$") or 0))
+        if required and required.entryId then ns.UI_OpenQuest(required.entryId, required.id) end
     end)
     detail.content:SetScript("OnHyperlinkEnter", function(self, link)
-        if not link:find("^completao:pin:") then return end
+        local tip = link:find("^completao:pin:") and L["Show on map"] or link:find("^completao:quest:") and L["View chain"]
+        if not tip then return end
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-        GameTooltip:SetText(L["Show on map"])
+        GameTooltip:SetText(tip)
         GameTooltip:Show()
     end)
     detail.content:SetScript("OnHyperlinkLeave", GameTooltip_Hide)

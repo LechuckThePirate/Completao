@@ -6,7 +6,7 @@ local _, ns = ...
 -- belongs to the character. The rest of the addon uses ns.char without knowing which one is behind it.
 local SWITCHABLE = {
     windowAlpha = true, fadeAlpha = true, fadeAlphaCombat = true, quiet = true, minimap = true, zoom = true, window = true,
-    filters = true, viewFilters = true, sharedFilters = true,
+    filters = true, viewFilters = true, sharedFilters = true, distanceUnit = true,
     openWithQuestLog = true, openOnQuestLog = true, clickThroughCombat = true, clickThroughMoving = true,
     sideCollapsed = true, focusWindow = true, focusLocked = true, focusAuto = true, focusLive = true, followBlizzardFocus = true,
     setBlizzardFocus = true, hideDone = true, hideBlizzardTracker = true, tabTarget = true, helpersOff = true, consolidateAlts = true,

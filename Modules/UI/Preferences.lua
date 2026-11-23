@@ -245,6 +245,15 @@ local function create()
         function() return not ns.HelpersOff() end,
         function(value) ns.Focus_SetHelpers(value) end)
 
+    -- each view (the tree, the search, the quest log, the tracked quests, the ones to turn in) keeps its own filters; on,
+    -- they are one for all of them. Off unless ticked.
+    widgets[#widgets + 1] = makeCheck(profile, -34 - STEP, L["Same filters in every view"],
+        function() return ns.char.sharedFilters end,
+        function(value)
+            ns.char.sharedFilters = value or nil
+            ns.UI_FiltersChanged()
+        end)
+
     -- the maintenance buttons, at the foot under every tab
     local footer = prefs:CreateTexture(nil, "ARTWORK")
     footer:SetColorTexture(T.rgba("brass"))
@@ -254,7 +263,8 @@ local function create()
         { L["Reset window position"], function() ns.UI_ResetWindow() end },
         { L["Reset zoom"], function() ns.UI_SetZoom(1) end },
         { L["Reset filters"], function()
-            ns.char.filters = {}
+            ns.char.filters = {} -- every view's
+            ns.char.viewFilters = nil
             ns.UI_SyncFilters()
         end },
         { L["What's new"], function() ns.Welcome_Show() end },

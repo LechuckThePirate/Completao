@@ -1010,6 +1010,7 @@ function ns.UI_Refresh()
     if not frame then return end
     if frame.consolidateSwitch then frame.consolidateSwitch.Update() end
     if frame.updateProgress then frame.updateProgress() end
+    ns.RefreshFilterMenus() -- each view has its own filters: the menus show those of the one on show
     -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
     -- ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"

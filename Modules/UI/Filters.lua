@@ -3,10 +3,45 @@ local L = ns.L
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- One set of filters for every view that lists quests (the tree and the list of an entry, the search, the quest log, the
--- tracked quests and the ones to turn in): the same options, the same words ("Hide ..."), the same meaning, one store
--- (ns.char.filters, saved with the settings) and one menu. A view only adds what it needs on top: its own title box
--- (the text typed in is that view's alone) and, for the tables, which quests it lists to begin with.
+-- tracked quests and the ones to turn in): the same options, the same words ("Hide ..."), the same meaning and one menu.
+-- Each view keeps its own (changing "Chains only" in one doesn't touch the others), unless the setting "Same filters in
+-- every view" (ns.char.sharedFilters) is on. The tree's are ns.char.filters, which the zones of the side panel also read
+-- (and what is shared goes in); the other views' are in ns.char.viewFilters[view]. "Show other faction" is always one for
+-- the whole addon: it decides which zones exist.
 --   hideLow, hideHigh, hideDone, hideRepeatable, otherFaction, chainsOnly, itemsOnly, rewardClass, rewardSub
+
+-- The view being looked at: "tree" (also an entry's list), "search", "log", "tracked" or "turnin".
+function ns.CurrentFilterView()
+    if ns.UI_IsSearchMode and ns.UI_IsSearchMode() and ns.Search_Mode then return ns.Search_Mode() end
+    return "tree"
+end
+
+-- The filters of a view (the current one by default).
+function ns.ViewFilters(view)
+    view = view or ns.CurrentFilterView()
+    if view == "tree" or ns.char.sharedFilters then return ns.char.filters end
+    local all = ns.char.viewFilters
+    if not all then
+        all = {}
+        ns.char.viewFilters = all
+    end
+    local f = all[view]
+    if not f then
+        f = {}
+        all[view] = f
+    end
+    return f
+end
+
+-- One filter's value in the current view; the faction one is the whole addon's.
+function ns.FilterGet(key)
+    if key == "otherFaction" then return ns.char.filters.otherFaction end
+    return ns.ViewFilters()[key]
+end
+
+function ns.FilterSet(key, value)
+    if key == "otherFaction" then ns.char.filters.otherFaction = value else ns.ViewFilters()[key] = value end
+end
 
 ns.FILTER_OPTIONS = {
     { key = "hideLow", label = L["Hide low level"], tip = L["Hides quests that are grey for your level (trivial)."] },
@@ -170,7 +205,7 @@ end
 -- character can't see: the search).
 function ns.QuestFilter(d, opts)
     opts = opts or {}
-    local f = ns.char.filters
+    local f = ns.ViewFilters(opts.view)
     local isOnQuest = opts.isOnQuest or C_QuestLog.IsOnQuest
     local chains
     if d and (f.hideLow or f.hideHigh) then chains = ns.ChainInfo(d, isOnQuest) end
@@ -215,10 +250,10 @@ end
 
 -- The texts of the filters in force, for the line under the toolbar: "Hide low level", "Reward type: Armor > Leather"...
 function ns.FilterParts()
-    local f = ns.char.filters
+    local f = ns.ViewFilters()
     local parts = {}
     for _, opt in ipairs(ns.FILTER_OPTIONS) do
-        if f[opt.key] then parts[#parts + 1] = opt.label end
+        if ns.FilterGet(opt.key) then parts[#parts + 1] = opt.label end
     end
     if f.rewardClass then
         local name = L["Reward type:"]
@@ -248,7 +283,7 @@ end
 
 -- Every filter menu made (each view has its own button): their checks and reward pickers show the same store.
 function ns.RefreshFilterMenus()
-    local f = ns.char.filters
+    local f = ns.ViewFilters()
     for _, button in ipairs(menus) do
         local typeName, subName = L["Any"], L["Any"]
         for _, t in ipairs(ns.RewardTypes()) do
@@ -280,8 +315,8 @@ function ns.CreateFilterMenu(parent, onChange)
     end
     button = ns.FilterMenu(parent, {
         options = ns.FILTER_OPTIONS,
-        get = function(key) return ns.char.filters[key] end,
-        set = function(key, on) ns.char.filters[key] = on end,
+        get = ns.FilterGet,
+        set = ns.FilterSet,
         onChange = changed,
         footer = function(menu)
             local footer = CreateFrame("Frame", nil, menu)
@@ -300,9 +335,10 @@ function ns.CreateFilterMenu(parent, onChange)
             footer.subButton:SetPoint("TOPLEFT", 0, -50)
             return footer
         end,
-        footerActive = function() return ns.char.filters.rewardClass and 1 or 0 end,
+        footerActive = function() return ns.ViewFilters().rewardClass and 1 or 0 end,
         clearFooter = function()
-            ns.char.filters.rewardClass, ns.char.filters.rewardSub = nil, nil
+            local f = ns.ViewFilters()
+            f.rewardClass, f.rewardSub = nil, nil
             ns.PopupMenu_Hide()
         end,
     })
@@ -315,19 +351,20 @@ function ns.CreateFilterMenu(parent, onChange)
         local options = { { name = L["Any"] } }
         for _, t in ipairs(ns.RewardTypes()) do options[#options + 1] = t end
         pick(self, options, function(opt)
-            ns.char.filters.rewardClass, ns.char.filters.rewardSub = opt.id, nil
+            local f = ns.ViewFilters()
+            f.rewardClass, f.rewardSub = opt.id, nil
             changed()
         end)
     end)
     button.subButton:SetScript("OnClick", function(self)
         local options = { { name = L["Any"] } }
         for _, t in ipairs(ns.RewardTypes()) do
-            if t.id == ns.char.filters.rewardClass then
+            if t.id == ns.ViewFilters().rewardClass then
                 for _, s in ipairs(t.subs) do options[#options + 1] = s end
             end
         end
         pick(self, options, function(opt)
-            ns.char.filters.rewardSub = opt.id
+            ns.ViewFilters().rewardSub = opt.id
             changed()
         end)
     end)

@@ -26,33 +26,70 @@ describe("Filters (one set for every view)", function()
             assert.is_not_nil(searchMenu().checks[key], key)
             assert.are.equal(toolbarMenu().checks[key].label._text, searchMenu().checks[key].label._text)
         end
-        -- a change in one is seen in the other
+        -- each view keeps its own: a change in the tree is not one in the search
         local check = toolbarMenu().checks.hideDone
         check:SetChecked(true); check:Click()
         assert.is_true(ns.char.filters.hideDone)
-        assert.is_true(searchMenu().checks.hideDone:GetChecked())
-        searchMenu().checks.hideLow:SetChecked(true); searchMenu().checks.hideLow:Click()
-        assert.is_true(toolbarMenu().checks.hideLow:GetChecked())
-        assert.are.equal("Filters (2)", toolbarMenu():GetText())
-        assert.are.equal("Filters (2)", searchMenu():GetText())
+        ns.UI_SetSearchMode(true, "search")
+        assert.is_false(searchMenu().checks.hideDone:GetChecked())
+        assert.are.equal("Filters", searchMenu():GetText())
+        searchMenu().checks.chainsOnly:SetChecked(true); searchMenu().checks.chainsOnly:Click()
+        assert.is_true(ns.char.viewFilters.search.chainsOnly)
+        assert.is_nil(ns.char.filters.chainsOnly)
+        ns.UI_SetSearchMode(true, "log") -- nor in the quest log
+        assert.is_false(searchMenu().checks.chainsOnly:GetChecked())
+        ns.UI_SetSearchMode(true, "search")
+        assert.is_true(searchMenu().checks.chainsOnly:GetChecked()) -- and the search kept it
+        ns.UI_OpenQuest("vc", vc.quests[1].id) -- back in the tree: its own
+        assert.is_false(toolbarMenu().checks.chainsOnly:GetChecked())
+        assert.is_true(toolbarMenu().checks.hideDone:GetChecked())
     end)
 
-    it("the reward type is the same filter everywhere, and says so in both lines", function()
-        ns.char.filters.rewardClass = 2
+    it("Show other faction is one for the whole addon, whatever the view", function()
+        ns.UI_SetSearchMode(true, "log")
+        searchMenu().checks.otherFaction:SetChecked(true); searchMenu().checks.otherFaction:Click()
+        assert.is_true(ns.char.filters.otherFaction)
+        ns.UI_SetSearchMode(true, "search")
+        assert.is_true(searchMenu().checks.otherFaction:GetChecked())
+        assert.is_nil((ns.char.viewFilters or {}).log and ns.char.viewFilters.log.otherFaction)
+    end)
+
+    it("with Same filters in every view they are one set, the tree's", function()
+        ns.char.sharedFilters = true
+        ns.UI_FiltersChanged()
+        ns.UI_SetSearchMode(true, "search")
+        searchMenu().checks.hideLow:SetChecked(true); searchMenu().checks.hideLow:Click()
+        assert.is_true(ns.char.filters.hideLow)
+        ns.UI_SetSearchMode(true, "log")
+        assert.is_true(searchMenu().checks.hideLow:GetChecked())
+        ns.UI_OpenQuest("vc", vc.quests[1].id)
+        assert.is_true(toolbarMenu().checks.hideLow:GetChecked())
+        ns.char.sharedFilters = nil
+        ns.UI_FiltersChanged()
+        ns.UI_SetSearchMode(true, "search")
+        assert.is_false(searchMenu().checks.hideLow:GetChecked()) -- the search's own again, untouched
+    end)
+
+    it("the reward type is a filter like the rest, and says so in the line and the count", function()
+        ns.UI_SetSearchMode(true, "search")
+        ns.ViewFilters().rewardClass = 2
         ns.RefreshFilterMenus()
-        assert.is_false(toolbarMenu().itemsOnly:IsEnabled())
         assert.is_false(searchMenu().itemsOnly:IsEnabled())
         assert.matches("^Reward type:", ns.FilterParts()[1])
         assert.are.equal("Filters (1)", searchMenu():GetText())
     end)
 
-    it("the line of every view names what is on, from the same list", function()
+    it("the line of every view names what is on, from the same words", function()
         ns.char.filters = { hideLow = true, chainsOnly = true }
         assert.are.same({ "Hide low level", "Chains only" }, ns.FilterParts())
         ns.UI_Refresh()
         assert.matches("Filters: Hide low level  |  Chains only", ns.UI.filterSummary.text._text, 1, true)
         ns.UI_SetSearchMode(true, "search")
-        assert.matches("Filters: Hide low level  |  Chains only", ns.UI.searchPanel.summary.text._text, 1, true)
+        assert.are.same({}, ns.FilterParts()) -- the search's own are none
+        ns.ViewFilters().hideDone = true
+        assert.are.same({ "Hide completed" }, ns.FilterParts())
+        ns.UI_FiltersChanged()
+        assert.matches("Filters: Hide completed", ns.UI.searchPanel.summary.text._text, 1, true)
     end)
 
     describe("the predicate", function()
@@ -126,10 +163,10 @@ describe("Filters (one set for every view)", function()
             return list
         end
         assert.are.same({ [166] = true, [167] = true }, shown())
-        ns.char.filters.itemsOnly = true
+        ns.ViewFilters("log").itemsOnly = true -- its own, not the tree's
         ns.UI_FiltersChanged()
         assert.are.same({ [166] = true }, shown()) -- the same "only with item rewards" as everywhere
-        ns.char.filters = {}
+        ns.ViewFilters("log").itemsOnly = nil
         ns.UI_FiltersChanged()
         assert.are.same({ [166] = true, [167] = true }, shown())
     end)

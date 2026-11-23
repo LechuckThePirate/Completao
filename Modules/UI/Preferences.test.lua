@@ -45,7 +45,7 @@ describe("Preferences", function()
         -- click-through in combat, click-through while moving, autofocus tracked quests, live focus, follow
         -- Blizzard's tracker, focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide
         -- Blizzard's tracker, Tab targets quest creatures first, quest helpers
-        assert.are.equal(15, #checks)
+        assert.are.equal(16, #checks) -- (the last, same filters in every view, after those below)
         assert.is_true(checks[15]:GetChecked()) -- the quest helpers are on by default
         checks[15]:SetChecked(false); checks[15]:Click()
         assert.is_true(ns.char.helpersOff)
@@ -139,7 +139,7 @@ describe("Preferences", function()
                 end
             end
         end
-        assert.are.equal(18, total) -- 15 checkboxes and 3 sliders
+        assert.are.equal(19, total) -- 16 checkboxes and 3 sliders
     end)
 
     it("the opacity while moving comes from the slider", function()

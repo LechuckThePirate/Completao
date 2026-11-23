@@ -262,4 +262,5 @@ ns.AddLocale({ "itIT" }, {
     ["Tracker & Waypoints"] = "Tracker e waypoint",
     ["Profile / Data"] = "Profilo / dati",
     ["Hides the quests that give no item (fixed or to choose)."] = "Nasconde le missioni che non danno alcun oggetto (fisso o a scelta).",
+    ["Same filters in every view"] = "Stessi filtri in tutte le viste",
 })

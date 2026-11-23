@@ -80,14 +80,15 @@ describe("Search", function()
         assert.is_false(summary:IsShown())
     end)
 
-    it("completed quests are hidden with Hide completed (in the same store as the tree's filter)", function()
+    it("completed quests are hidden with Hide completed, in the search's own filters", function()
         typeText("defias brother")
         WowMock.done[166] = true
         ns.Search_Refresh()
         assert.is_true(ids(ShownRows())[166]) -- nothing hidden by default
         local doneCheck = panel.filters.checks.hideDone
         doneCheck:SetChecked(true); doneCheck:Click()
-        assert.is_true(ns.char.filters.hideDone)
+        assert.is_true(ns.char.viewFilters.search.hideDone)
+        assert.is_nil(ns.char.filters.hideDone) -- not the tree's
         assert.is_nil(ids(ShownRows())[166])
     end)
 

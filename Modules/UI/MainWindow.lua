@@ -463,16 +463,18 @@ local function renderTree(d)
         end
         emptyText:SetText(hasData and ns.L["No quests match the filters."] or ns.L["No quest data yet."])
     end
-    -- Top to bottom: a quest's depth in its chain (the layout's column) is its row on screen, and the quests of one
-    -- depth go side by side, each row centered under the widest one.
+    -- Top to bottom, each chain in a band of its own (Graph.lua): the layout's column is the row on screen and its
+    -- row the place across, in quest widths.
     canvas:SetSize(
         math.max(1, PAD * 2 + layout.rows * NODE_W + (layout.rows - 1) * GAP_X),
         math.max(1, PAD * 2 + layout.cols * NODE_H + (layout.cols - 1) * GAP_Y))
-    local perDepth = {}
-    for _, n in pairs(layout.nodes) do perDepth[n.col] = (perDepth[n.col] or 0) + 1 end
+    local across = {} -- where the quests of each row on screen are, for the corridors between them
+    for _, n in pairs(layout.nodes) do
+        across[n.col] = across[n.col] or {}
+        table.insert(across[n.col], n.row)
+    end
     local function posOf(n)
-        local shift = (layout.rows - perDepth[n.col]) / 2
-        return PAD + (n.row + shift) * (NODE_W + GAP_X), PAD + n.col * (NODE_H + GAP_Y)
+        return PAD + n.row * (NODE_W + GAP_X), PAD + n.col * (NODE_H + GAP_Y)
     end
     syncHolder()
 
@@ -658,13 +660,15 @@ local function renderTree(d)
     -- the free vertical corridor of a depth nearest to x: the gaps beside and between its quests (any x when the
     -- depth has none)
     local function corridorX(depth, x)
-        local n = perDepth[depth] or 0
-        if n == 0 then return x end
-        local shift = (layout.rows - n) / 2
+        local places = across[depth]
+        if not places then return x end
         local best
-        for k = 0, n do
-            local cx = PAD + (k + shift) * (NODE_W + GAP_X) - GAP_X / 2
-            if not best or math.abs(cx - x) < math.abs(best - x) then best = cx end
+        for _, place in ipairs(places) do
+            -- the middle of the gap on either side of this quest (quests of a row are at least a width apart)
+            local left = PAD + place * (NODE_W + GAP_X)
+            for _, cx in ipairs({ left - GAP_X / 2, left + NODE_W + GAP_X / 2 }) do
+                if not best or math.abs(cx - x) < math.abs(best - x) then best = cx end
+            end
         end
         return best
     end

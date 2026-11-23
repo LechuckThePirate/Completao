@@ -1,8 +1,6 @@
 local _, ns = ...
 
--- Column layout: the column is the depth (longest path from a root within the entry); rows are
--- ordered by the average row of the parents. (The window draws it top to bottom: a column is a row of quests
--- side by side on screen, so MAX_PER_COL is how many go across before the next line.)
+-- How many quests go across a shelf of the tree (BuildLayout) before the next one starts below.
 ns.MAX_PER_COL = 6
 
 local function parentsOf(q)
@@ -35,6 +33,13 @@ function ns.IsInChain(q)
     return set[q.id] == true
 end
 
+-- The layout, read top to bottom: each chain (quests joined by prerequisites) in a band of its own, so a chain's
+-- quests are always together and its connections never cross another chain. Inside a band, a quest's row is its depth
+-- (the longest path from the chain's start) and the quests of one depth are side by side, centered in the band, in
+-- the order of their parents (so lines cross as little as can be). Bands go side by side in shelves at most
+-- MAX_PER_COL quests wide; the loose quests (chains of one) come after the chains, filling shelves the same way.
+-- Returns nodes[id] = { quest, col = row on screen, row = place across (in quest widths, may be a half) }, the edges,
+-- cols (rows on screen), rows (widest line, in quest widths) and count.
 function ns.BuildLayout(quests, visible)
     local set, list = {}, {}
     for _, q in ipairs(quests) do
@@ -60,50 +65,90 @@ function ns.BuildLayout(quests, visible)
         return d
     end
 
-    local columns, maxCol = {}, 0
+    -- the chains: groups of quests joined by prerequisites (among the visible ones)
+    local root = {}
+    local function find(x)
+        while root[x] ~= x do root[x] = root[root[x]]; x = root[x] end
+        return x
+    end
+    for _, q in ipairs(list) do root[q.id] = q.id end
+    local edges = {}
     for _, q in ipairs(list) do
-        local c = getDepth(q.id)
-        columns[c] = columns[c] or {}
-        table.insert(columns[c], q)
-        maxCol = math.max(maxCol, c)
-    end
-
-    -- A column with more than MAX_PER_COL quests is spread over several visual columns, so a zone with a
-    -- hundred loose quests isn't a hundred boxes in one line.
-    local nodes, edges, maxRows, visualCols = {}, {}, 0, 0
-    for c = 0, maxCol do
-        local col = columns[c] or {}
-        local function key(q)
-            local sum, n = 0, 0
-            for _, reqId in ipairs(parentsOf(q)) do
-                if nodes[reqId] then
-                    sum = sum + nodes[reqId].lrow
-                    n = n + 1
-                end
-            end
-            return n > 0 and sum / n or math.huge
-        end
-        local keys = {}
-        for _, q in ipairs(col) do keys[q] = key(q) end
-        table.sort(col, function(a, b)
-            if keys[a] ~= keys[b] then return keys[a] < keys[b] end
-            return a.id < b.id
-        end)
-        for i, q in ipairs(col) do
-            local lrow = i - 1
-            nodes[q.id] = {
-                quest = q, lrow = lrow,
-                col = visualCols + math.floor(lrow / ns.MAX_PER_COL), row = lrow % ns.MAX_PER_COL,
-            }
-            for _, reqId in ipairs(parentsOf(q)) do
-                if set[reqId] then
-                    edges[#edges + 1] = { from = reqId, to = q.id }
-                end
+        for _, reqId in ipairs(parentsOf(q)) do
+            if set[reqId] then
+                edges[#edges + 1] = { from = reqId, to = q.id }
+                local a, b = find(q.id), find(reqId)
+                if a ~= b then root[a] = b end
             end
         end
-        visualCols = visualCols + math.max(1, math.ceil(#col / ns.MAX_PER_COL))
-        maxRows = math.max(maxRows, math.min(#col, ns.MAX_PER_COL))
+    end
+    local groups, byRoot = {}, {}
+    for _, q in ipairs(list) do
+        local r = find(q.id)
+        local g = byRoot[r]
+        if not g then
+            g = { quests = {}, level = math.huge, first = q.id }
+            byRoot[r] = g
+            groups[#groups + 1] = g
+        end
+        g.quests[#g.quests + 1] = q
+        g.level = math.min(g.level, q.level or q.minLevel or math.huge)
+        g.first = math.min(g.first, q.id)
+    end
+    -- chains first, then the loose quests; each by level, then by the lowest id
+    table.sort(groups, function(a, b)
+        local ca, cb = #a.quests > 1, #b.quests > 1
+        if ca ~= cb then return ca end
+        if a.level ~= b.level then return a.level < b.level end
+        return a.first < b.first
+    end)
+
+    -- each chain laid out in its band: its depths, each one ordered by where its parents are, then centered
+    local nodes = {}
+    for _, g in ipairs(groups) do
+        local byDepth, height, width = {}, 0, 0
+        for _, q in ipairs(g.quests) do
+            local d = getDepth(q.id)
+            byDepth[d] = byDepth[d] or {}
+            table.insert(byDepth[d], q)
+            height = math.max(height, d + 1)
+        end
+        for d = 0, height - 1 do width = math.max(width, #(byDepth[d] or {})) end
+        g.height, g.width, g.places = height, width, {}
+        for d = 0, height - 1 do
+            local row = byDepth[d] or {}
+            local key = {}
+            for _, q in ipairs(row) do
+                local sum, n = 0, 0
+                for _, reqId in ipairs(parentsOf(q)) do
+                    if g.places[reqId] then
+                        sum, n = sum + g.places[reqId], n + 1
+                    end
+                end
+                key[q] = n > 0 and sum / n or math.huge
+            end
+            table.sort(row, function(a, b)
+                if key[a] ~= key[b] then return key[a] < key[b] end
+                return a.id < b.id
+            end)
+            local shift = (width - #row) / 2
+            for i, q in ipairs(row) do g.places[q.id] = shift + i - 1 end
+        end
     end
 
-    return { nodes = nodes, edges = edges, cols = visualCols, rows = maxRows, count = #list }
+    -- the bands, side by side in shelves at most MAX_PER_COL wide (a wider chain takes a shelf of its own)
+    local shelfTop, shelfHeight, x, widest = 0, 0, 0, 0
+    for _, g in ipairs(groups) do
+        if x > 0 and x + g.width > ns.MAX_PER_COL then
+            shelfTop, shelfHeight, x = shelfTop + shelfHeight, 0, 0
+        end
+        for _, q in ipairs(g.quests) do
+            nodes[q.id] = { quest = q, col = shelfTop + getDepth(q.id), row = x + g.places[q.id] }
+        end
+        x = x + g.width
+        widest = math.max(widest, x)
+        shelfHeight = math.max(shelfHeight, g.height)
+    end
+
+    return { nodes = nodes, edges = edges, cols = shelfTop + shelfHeight, rows = widest, count = #list }
 end

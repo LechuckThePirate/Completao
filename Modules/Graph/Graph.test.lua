@@ -48,6 +48,42 @@ describe("Graph.BuildLayout", function()
         assert.are.equal(1, layout.nodes[ns.MAX_PER_COL + 1].col)
     end)
 
+    it("keeps each chain in a band of its own, the loose quests after the chains", function()
+        local layout = ns.BuildLayout({
+            { id = 10 },                                  -- loose
+            { id = 1 }, { id = 2, requires = { 1 } }, { id = 3, requires = { 1 } }, -- chain A, two wide
+            { id = 4 }, { id = 5, requires = { 4 } },     -- chain B
+            { id = 11 },                                  -- loose
+        })
+        local function span(ids)
+            local lo, hi = math.huge, -math.huge
+            for _, id in ipairs(ids) do
+                lo, hi = math.min(lo, layout.nodes[id].row), math.max(hi, layout.nodes[id].row)
+            end
+            return lo, hi
+        end
+        local aLo, aHi = span({ 1, 2, 3 })
+        local bLo, bHi = span({ 4, 5 })
+        assert.is_true(aHi < bLo or bHi < aLo) -- the chains don't mix
+        assert.is_true(aLo < bLo) -- in order (the lowest id first, with no levels)
+        assert.are.equal(1, layout.nodes[2].col)
+        assert.are.equal(1, layout.nodes[3].col)
+        assert.are.equal((layout.nodes[2].row + layout.nodes[3].row) / 2, layout.nodes[1].row) -- centered over its two
+        for _, id in ipairs({ 10, 11 }) do
+            local n = layout.nodes[id]
+            assert.is_true(n.col > 0 or n.row > bHi, "loose quest " .. id .. " after the chains")
+        end
+    end)
+
+    it("a quest's place follows its parents, so lines cross as little as can be", function()
+        local layout = ns.BuildLayout({
+            { id = 1 }, { id = 2, requires = { 1 } }, { id = 3, requires = { 1 } },
+            { id = 9, requires = { 3 } }, { id = 8, requires = { 2 } }, -- ids against the parents' order
+        })
+        assert.is_true(layout.nodes[2].row < layout.nodes[3].row)
+        assert.is_true(layout.nodes[8].row < layout.nodes[9].row) -- under 2 and under 3, not by id
+    end)
+
     it("survives cycles in the data", function()
         assert.has_no.errors(function()
             ns.BuildLayout({ { id = 1, requires = { 2 } }, { id = 2, requires = { 1 } } })

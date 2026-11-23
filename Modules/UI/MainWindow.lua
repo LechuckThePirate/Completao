@@ -291,62 +291,7 @@ local function listMode()
     return ns.char ~= nil and ns.char.entryView == "list" and not focusChain and not fullscreen
 end
 
--- Chains of an entry: each group of quests connected by prerequisites. Returns, by quest id, its chain's
--- data: size (number of quests), allDone (all done; loose done quests included), started (some done or in
--- the log), allLow (all low level) and headsTooHigh (every quest the chain starts with -- those with no
--- prerequisite inside it -- is above your level).
-local function chainInfo(d)
-    local set, parent = {}, {}
-    for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) then set[q.id] = q; parent[q.id] = q.id end
-    end
-    local function find(x)
-        while parent[x] ~= x do parent[x] = parent[parent[x]]; x = parent[x] end
-        return x
-    end
-    for id, q in pairs(set) do
-        for _, p in ipairs(ns.ParentsOf(q)) do
-            if set[p] then
-                local a, b = find(id), find(p)
-                if a ~= b then parent[a] = b end
-            end
-        end
-    end
-    local chains = {}
-    local function chainOf(root)
-        local c = chains[root]
-        if not c then
-            c = { size = 0, allDone = true, started = false, allLow = true, heads = 0, headsHigh = 0 }
-            chains[root] = c
-        end
-        return c
-    end
-    for id, q in pairs(set) do
-        local c = chainOf(find(id))
-        c.size = c.size + 1
-        local isDone = ns.IsQuestDone(id)
-        if not isDone then c.allDone = false end
-        if isDone or C_QuestLog.IsOnQuest(id) then c.started = true end
-        if not ns.IsLowLevel(q) then c.allLow = false end
-        local isHead = true
-        for _, p in ipairs(ns.ParentsOf(q)) do
-            if set[p] then isHead = false break end
-        end
-        if isHead then
-            c.heads = c.heads + 1
-            if ns.IsTooHigh(q) then c.headsHigh = c.headsHigh + 1 end
-        end
-    end
-    local info = {}
-    for id in pairs(set) do
-        local c = chains[find(id)]
-        info[id] = {
-            size = c.size, allDone = c.allDone, started = c.started, allLow = c.allLow,
-            headsTooHigh = c.heads > 0 and c.headsHigh == c.heads,
-        }
-    end
-    return info
-end
+-- (The chains of an entry and the filters on them are in Filters.lua, shared by every view.)
 
 -- The quests connected to `id` by prerequisites (itself included) among the visible ones of the entry, as a set.
 local function chainMembers(d, id)
@@ -407,47 +352,13 @@ local function chainHead(d, set)
     return head
 end
 
--- Visibility predicate for an entry's tree: faction/race + the user's filters.
--- By level, chains are shown or hidden as a whole, so they are never cut in half:
---  * "too high" hides a chain when every quest it starts with is above your level; if you can start it,
---    all its steps show, even higher ones.
---  * "low level" hides a chain only when all its quests are grey.
--- A chain you have started (some quest done or in the log) is never hidden by level, and loose quests are
--- hidden by their own level unless they are in your log. "Completed" hides each completed quest.
+-- The predicate of an entry's tree and list: the filters every view shares (Filters.lua) with this view's own title box;
+-- in the chain view, the chain alone, whole, whatever the filters say.
 local function makeFilter(d)
-    local f = ns.char.filters
-    local chains
-    if f.hideLow or f.hideHigh then chains = chainInfo(d) end
-    local needle = searchText ~= "" and searchText or nil
     if focusChain then
         return function(q) return ns.QuestVisible(q, d) and focusChain[q.id] == true end
     end
-    return function(q)
-        if not ns.QuestVisible(q, d) then return false end
-        local c = chains and chains[q.id]
-        local onQuest = C_QuestLog.IsOnQuest(q.id)
-        -- "Chains only": the quests no quest of the entry leads to or follows are left out (the ones in the log stay)
-        if f.chainsOnly and not onQuest and not ns.IsInChain(q) then return false end
-        -- completed: each one on its own, even if its chain goes on (untick the filter to see them)
-        if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
-        -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
-        if f.hideRepeatable and q.repeatable and not onQuest and ns.RepeatableDone(q.id) then return false end
-        if c and c.size > 1 then
-            if not c.started then
-                if f.hideHigh and c.headsTooHigh then return false end
-                if f.hideLow and c.allLow then return false end
-            end
-        elseif not onQuest then
-            if f.hideLow and ns.IsLowLevel(q) then return false end
-            if f.hideHigh and ns.IsTooHigh(q) then return false end
-        end
-        if needle then
-            local cached = C_QuestLog.GetTitleForQuestID(q.id)
-            local hit = (cached and cached:lower():find(needle, 1, true)) or q.name:lower():find(needle, 1, true)
-            if not hit then return false end
-        end
-        return true
-    end
+    return ns.QuestFilter(d, { text = searchText })
 end
 
 local function renderTree(d)
@@ -1108,7 +1019,7 @@ function ns.UI_Refresh()
         frame.chainBack:Hide()
         frame.placeSearchPanel()
         frame.searchPanel:Show()
-        ns.Search_Refresh()
+        ns.Search_FiltersChanged() -- (its own form: the filters line may have changed)
         ns.Detail_Layout() -- with a quest's panel open, the table ends above it
         return
     end
@@ -1119,6 +1030,7 @@ function ns.UI_Refresh()
         w:SetShown((not list or w.keepInList == true) and not (fullscreen and w.hideFull))
     end
     frame.viewSwitch.Update()
+    frame.refreshSummary() -- (the widgets above were all shown: the line shows only with filters on)
     if frame.chainBack:IsShown() ~= (focusChain ~= nil) then
         frame.chainBack:SetShown(focusChain ~= nil)
         frame.layoutToolbar() -- it takes its place in the toolbar, or gives it back
@@ -1212,6 +1124,13 @@ end
 
 function ns.UI_IsSearchMode()
     return searchMode
+end
+
+-- A filter changed in some view's menu: every view redraws with it (the chain view ends, the menus all show the same).
+function ns.UI_FiltersChanged()
+    focusChain = nil
+    ns.RefreshFilterMenus()
+    ns.UI_Refresh()
 end
 
 -- The chain view: a quest of a chain (in the entry on show) leaves the tree with that chain alone. Returns whether
@@ -1711,29 +1630,24 @@ local function createFrame()
     end)
 
     -- The filters live in a "Filters" drop-down next to the search box (FilterMenu.lua).
-    local filtersButton = ns.FilterMenu(body, {
-        options = {
-            { key = "hideLow", label = ns.L["Hide low level"], tip = ns.L["Hides quests that are grey for your level (trivial)."] },
-            { key = "hideHigh", label = ns.L["Hide too high"], tip = ns.L["Hides quests you cannot take yet, because of your level."] },
-            { key = "hideDone", label = ns.L["Hide completed"],
-                tip = ns.L["Hides the quests you have completed, also inside unfinished chains."] },
-            { key = "hideRepeatable", label = ns.L["Hide repeatable done"],
-                tip = ns.L["Hides the repeatable quests you have already turned in once; the ones you have never done still show."] },
-            { key = "otherFaction", label = ns.L["Show other faction"],
-                tip = ns.L["Shows the quests and zones of the opposite faction, hidden by default."] },
-            { key = "chainsOnly", label = ns.L["Chains only"],
-                tip = ns.L["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] },
-        },
-        get = function(key) return ns.char.filters[key] end,
-        set = function(key, on) ns.char.filters[key] = on end,
-        onChange = function()
-            focusChain = nil
-            ns.UI_Refresh()
-        end,
-    })
+    -- (the same menu, store and words as in every table: Filters.lua)
+    local filtersButton = ns.CreateFilterMenu(body, function() ns.UI_FiltersChanged() end)
+    -- under the toolbar, in words, which filters are on (the button only counts them); a click opens the filters
+    local filterSummary = ns.FilterSummary(body, filtersButton)
+    local summaryOn = false
+    function frame.refreshSummary()
+        local was = summaryOn
+        summaryOn = filterSummary.Refresh()
+        if searchMode then filterSummary:Hide() end
+        if was ~= summaryOn and frame.layoutToolbar then frame.layoutToolbar() end -- the tree starts under it
+    end
+    frame.filterSummary = filterSummary
     toolbarItems[#toolbarItems + 1] = { frame = filtersButton, w = 110, h = 24, dy = 1 }
     frame.filtersButton, frame.filtersMenu, frame.clearFilters = filtersButton, filtersButton.menu, filtersButton.clear
-    frame.updateFilters = filtersButton.Update
+    frame.updateFilters = function()
+        ns.RefreshFilterMenus()
+        frame.refreshSummary()
+    end
 
     -- Tree | List: how the entry's quests are shown (saved per character); the chain view is always a tree
     local switchBox = CreateFrame("Frame", nil, body)
@@ -1897,6 +1811,12 @@ local function createFrame()
     local function layoutToolbar()
         local width = frame:GetWidth() - toolbarLeft - 32 - drawerInset()
         local h = ns.FlowLayout(body, toolbarItems, toolbarLeft, top + 28, width, 10, 2, true)
+        if summaryOn then
+            filterSummary:ClearAllPoints()
+            filterSummary:SetPoint("TOPLEFT", body, "TOPLEFT", toolbarLeft + 2, -(top + 28 + h + 4))
+            filterSummary:SetPoint("RIGHT", body, "RIGHT", -(32 + drawerInset()), 0)
+            h = h + 18
+        end
         ns.TREE_TOP = top + 28 + h + 8
         treeScroll:SetPoint("TOPLEFT", treeLeft(), -ns.TREE_TOP)
         frame.placeSearchPanel()
@@ -1942,6 +1862,8 @@ local function createFrame()
     treeWidgets = { frame.header, searchBox, hint, treeScroll }
     treeWidgets[#treeWidgets + 1] = frame.filtersButton
     treeWidgets[#treeWidgets + 1] = frame.viewSwitch
+    treeWidgets[#treeWidgets + 1] = frame.filterSummary
+    frame.filterSummary.keepInList = true
     -- hidden with the tree on the whole screen: the hint and the Tree | List switch (it is always the tree there)
     hint.hideFull, frame.viewSwitch.hideFull = true, true
     -- kept in the List view: the title, the search box, the filters and the Tree | List switch

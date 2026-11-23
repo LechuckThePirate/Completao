@@ -61,7 +61,7 @@ local panel
 -- room the table's scroll bar takes (it only shows when the rows don't fit)
 local barInset = 0
 local state = {
-    text = "", low = false, high = false, done = false, itemsOnly = false, class = nil, subclass = nil,
+    text = "",
     sort = "level", desc = false, -- table order: "name" | "level" | "where" | "distance" | "xp" | "money", by the header
 }
 local rows = {}
@@ -74,74 +74,21 @@ local function xpString(xp)
     return BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or tostring(xp)
 end
 
--- An item's class and subclass, with their names in the client's language. This is "instant" client
--- information (the item doesn't need to be cached).
-local itemClassCache = {}
-local function itemClass(id)
-    local c = itemClassCache[id]
-    if c == nil then
-        c = false
-        local f = (C_Item and C_Item.GetItemInfoInstant) or GetItemInfoInstant
-        if f then
-            local _, typeName, subName, _, icon, classID, subclassID = f(id)
-            if classID then
-                c = { class = classID, sub = subclassID, typeName = typeName, subName = subName, icon = icon }
-            end
-        end
-        itemClassCache[id] = c
-    end
-    return c or nil
-end
+local itemClass = ns.RewardItemClass -- (Filters.lua)
 
 local function rewardIds(r)
     return ns.RewardItemIds(r)
-end
-
--- Reward types present in the data: { {id, name, subs = { {id, name} }} }, by name.
-local rewardTypes
-local function getRewardTypes()
-    if rewardTypes then return rewardTypes end
-    local byClass = {}
-    for _, r in pairs(ns.REWARDS or {}) do
-        for _, id in ipairs(rewardIds(r)) do
-            local c = itemClass(id)
-            if c and c.typeName then
-                local t = byClass[c.class]
-                if not t then
-                    t = { id = c.class, name = c.typeName, subs = {}, seen = {} }
-                    byClass[c.class] = t
-                end
-                if c.sub and c.subName and not t.seen[c.sub] then
-                    t.seen[c.sub] = true
-                    t.subs[#t.subs + 1] = { id = c.sub, name = c.subName }
-                end
-            end
-        end
-    end
-    rewardTypes = {}
-    for _, t in pairs(byClass) do
-        table.sort(t.subs, function(a, b) return a.name < b.name end)
-        rewardTypes[#rewardTypes + 1] = t
-    end
-    table.sort(rewardTypes, function(a, b) return a.name < b.name end)
-    return rewardTypes
-end
-
-local function matchesReward(q)
-    if not state.class then return true end
-    local r = ns.REWARDS and ns.REWARDS[q.id]
-    if not r then return false end
-    for _, id in ipairs(rewardIds(r)) do
-        local c = itemClass(id)
-        if c and c.class == state.class and (not state.subclass or c.sub == state.subclass) then return true end
-    end
-    return false
 end
 
 -- View: "search" (form + results), "log" (the quests in the log, in the same table), "tracked" (the ones
 -- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not). The last three can
 -- group their quests ("Group by").
 local mode = "search"
+
+-- The title typed in the box of each table view (the quest log, the tracked quests, the ones to turn in): a search in one
+-- only reaches that view's quests, and each view keeps its own text. (The search view keeps it in `state`; an entry's
+-- list uses the tree's own box, in the main window, which already limits it to the entry.)
+local viewText = {}
 
 local function isTracked(id)
     -- the clients with no list of their own to read: the one the addon keeps (QuestTracking.lua)
@@ -246,39 +193,40 @@ local function visibleQuests()
     return candidates
 end
 
--- Every quest that matches the form.
+-- How the filters read a title here: the client's, else the data's name, kept lowercase (every keystroke compares thousands).
+local function matchText(q, needle)
+    local title, isName = lowerTitle(q)
+    return (title:find(needle, 1, true) or (not isName and lowerName(q):find(needle, 1, true))) and true or false
+end
+
+-- The predicate of each entry (its chains are looked at as a whole), for a title typed in: the shared filters
+-- (Filters.lua), the same in every view.
+local function filterOfEntry(cache, d, text)
+    local key = d or false
+    local pass = cache[key]
+    if not pass then
+        pass = ns.QuestFilter(d, { text = text, isOnQuest = isOnQuest, matchText = matchText, assumeVisible = true })
+        cache[key] = pass
+    end
+    return pass
+end
+
+-- Every quest that passes the filters and the title typed in the search box.
 local function search()
-    local found = {}
-    local needle = state.text ~= "" and state.text or nil
-    local lowByLevel = {} -- IsLowLevel only depends on the level, and asks the client
+    local found, cache = {}, {}
     for _, c in ipairs(visibleQuests()) do
-        local q, d = c.q, c.d
-        local ok = true
-        local onQuest = isOnQuest(q.id)
-        if not state.done and ns.IsQuestDone(q.id) and not onQuest then ok = false end
-        if ok and not onQuest then
-            local level = q.level or q.minLevel
-            local low = level and lowByLevel[level]
-            if low == nil then
-                low = ns.IsLowLevel(q)
-                if level then lowByLevel[level] = low end
-            end
-            if not state.low and low then ok = false end
-            if ok and not state.high and ns.IsTooHigh(q) then ok = false end
-        end
-        if ok and needle then
-            local title, isName = lowerTitle(q)
-            ok = title:find(needle, 1, true) or (not isName and lowerName(q):find(needle, 1, true))
-            ok = ok and true or false
-        end
-        if ok and not matchesReward(q) then ok = false end
-        if ok and state.itemsOnly then
-            local r = ns.REWARDS and ns.REWARDS[q.id]
-            ok = r ~= nil and #rewardIds(r) > 0
-        end
-        if ok then found[#found + 1] = { quest = q, entry = d } end
+        if filterOfEntry(cache, c.d, state.text)(c.q) then found[#found + 1] = { quest = c.q, entry = c.d } end
     end
     return found
+end
+
+-- The same for a list of the quest log's views.
+local function filterLog(list, text)
+    local kept, cache = {}, {}
+    for _, f in ipairs(list) do
+        if filterOfEntry(cache, f.entry, text)(f.quest) then kept[#kept + 1] = f end
+    end
+    return kept
 end
 
 -- Where a quest's next step is. Out of the log the steps aren't worked out (ns.QuestSteps asks the client for the
@@ -901,6 +849,9 @@ function draw()
     for i = groupsUsed + 1, #groupRows do groupRows[i]:Hide() end
     panel.content:SetHeight(math.max(1, height))
     panel.empty:SetShown(#found == 0)
+    -- a view with a title typed in that matches nothing: say so, not that the view is empty
+    local typed = mode ~= "search" and mode ~= "entry" and (viewText[mode] or "") ~= ""
+    panel.empty:SetText(typed and L["No quests match the search."] or panel.emptyDefault or L["No quests match the search."])
 end
 
 local function refresh(moved)
@@ -916,7 +867,9 @@ local function refresh(moved)
         local list
         if mode == "search" then list = search()
         elseif mode == "entry" then list = entryQuests()
-        else list = logQuests(mode ~= "log" and mode or nil) end
+        else
+            list = filterLog(logQuests(mode ~= "log" and mode or nil), viewText[mode])
+        end
         found = groupFound(sortFound(prepare(list)))
     elseif moved and sortState().sort ~= "distance" then
         -- same rows in the same order: only the distance column changes
@@ -945,26 +898,6 @@ local function requestRefresh(keep)
     end)
 end
 
-local function updateDropdowns()
-    local typeName, subName = L["Any"], L["Any"]
-    for _, t in ipairs(getRewardTypes()) do
-        if t.id == state.class then
-            typeName = t.name
-            for _, s in ipairs(t.subs) do
-                if s.id == state.subclass then subName = s.name end
-            end
-        end
-    end
-    panel.typeButton:SetText(typeName)
-    panel.subButton:SetText(subName)
-    panel.subButton:SetEnabled(state.class ~= nil)
-    -- with a reward type picked every quest already gives an item: the checkbox would change nothing
-    local byType = state.class ~= nil
-    panel.itemsOnly:SetEnabled(not byType)
-    panel.itemsOnly.label:SetTextColor(byType and 0.5 or 1, byType and 0.5 or 0.82, byType and 0.5 or 0)
-    panel.filters.Update()
-end
-
 function ns.Search_Create(parent)
     panel = CreateFrame("Frame", nil, parent)
     panel:Hide()
@@ -976,59 +909,16 @@ function ns.Search_Create(parent)
 
     local box = T.CreateSearchBox(panel, 240, L["Quest title"])
     box:HookScript("OnTextChanged", function(self)
-        state.text = strtrim(self:GetText() or ""):lower()
+        local text = strtrim(self:GetText() or ""):lower()
+        if mode == "search" then state.text = text else viewText[mode] = text end
         requestRefresh()
     end)
     panel.box = box
 
-    -- what to include, "only with items" and the reward's type, in a "Filters" drop-down (FilterMenu.lua): the type and its
-    -- subtype are two pickers under the checkboxes
-    local filters = ns.FilterMenu(panel, {
-        options = {
-            { key = "low", label = L["Include low level"] },
-            { key = "high", label = L["Include too high"] },
-            { key = "done", label = L["Include completed"] },
-            { key = "itemsOnly", label = L["Only quests with item rewards"] },
-        },
-        get = function(key) return state[key] end,
-        set = function(key, on) state[key] = on end,
-        onChange = requestRefresh,
-        footer = function(menu)
-            local footer = CreateFrame("Frame", nil, menu)
-            footer:SetSize(158, 76)
-            local line = footer:CreateTexture(nil, "ARTWORK")
-            line:SetColorTexture(1, 1, 1, 0.15)
-            line:SetHeight(1)
-            line:SetPoint("TOPLEFT", 0, 0)
-            line:SetPoint("TOPRIGHT", 0, 0)
-            local label = footer:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-            label:SetPoint("TOPLEFT", 2, -8)
-            label:SetText(L["Reward type:"])
-            panel.typeButton = makeDropdown(footer, 150)
-            panel.typeButton:SetPoint("TOPLEFT", 0, -24)
-            panel.subButton = makeDropdown(footer, 150)
-            panel.subButton:SetPoint("TOPLEFT", 0, -50)
-            return footer
-        end,
-        footerActive = function() return state.class and 1 or 0 end,
-        clearFooter = function()
-            state.class, state.subclass = nil, nil
-            ns.PopupMenu_Hide()
-            if panel.itemsOnly then updateDropdowns() end
-        end,
-    })
-    panel.filters = filters
-    -- only quests that give some item (fixed or to choose): off while a reward type is chosen
-    local itemsOnly = filters.checks.itemsOnly
-    itemsOnly:SetMotionScriptsWhileDisabled(true)
-    itemsOnly:SetScript("OnEnter", function(self)
-        if self:IsEnabled() then return end
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:AddLine(L["A reward type is selected: every result already gives an item."], 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    itemsOnly:SetScript("OnLeave", GameTooltip_Hide)
-    panel.itemsOnly = itemsOnly
+    -- the same filters, menu and words as in every view (Filters.lua), and under the form a line saying which are on
+    local filters = ns.CreateFilterMenu(panel, function() ns.UI_FiltersChanged() end)
+    panel.filters, panel.typeButton, panel.subButton, panel.itemsOnly = filters, filters.typeButton, filters.subButton, filters.itemsOnly
+    panel.summary = ns.FilterSummary(panel, filters)
 
     -- form in rows by width; the table header goes under the last row
     local formItems = {
@@ -1038,9 +928,20 @@ function ns.Search_Create(parent)
     local function layoutForm()
         local width = panel:GetWidth() - 8
         if width <= 0 then return end
-        -- the log view has no form: the table starts under the title
-        for _, it in ipairs(formItems) do it.frame:SetShown(mode == "search") end
-        local h = mode == "search" and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
+        -- the box and the filters are in every table view (an entry's list uses the tree's toolbar, above it)
+        local formed = mode ~= "entry"
+        box:SetShown(formed)
+        filters:SetShown(formed)
+        local h = formed and ns.FlowLayout(panel, formItems, 8, 28, width, 12, 6) or -8
+        local lined = formed and panel.summary.Refresh()
+        if lined then
+            panel.summary:ClearAllPoints()
+            panel.summary:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -(28 + h + 5))
+            panel.summary:SetPoint("RIGHT", panel, "RIGHT", -(8 + barInset), 0)
+            h = h + 18
+        elseif not formed then
+            panel.summary:Hide()
+        end
         -- the log views' "Group by", at the right of the title
         local grouped = mode ~= "search" and mode ~= "entry"
         panel.groupButton:SetShown(grouped)
@@ -1057,28 +958,6 @@ function ns.Search_Create(parent)
         panel.head:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -top)
         panel.head:SetPoint("RIGHT", panel, "RIGHT", -barInset, 0)
     end
-    panel.typeButton:SetScript("OnClick", function(self)
-        local options = { { name = L["Any"] } }
-        for _, t in ipairs(getRewardTypes()) do options[#options + 1] = t end
-        openMenu(self, options, function(opt)
-            state.class, state.subclass = opt.id, nil
-            updateDropdowns()
-            requestRefresh()
-        end)
-    end)
-    panel.subButton:SetScript("OnClick", function(self)
-        local options = { { name = L["Any"] } }
-        for _, t in ipairs(getRewardTypes()) do
-            if t.id == state.class then
-                for _, s in ipairs(t.subs) do options[#options + 1] = s end
-            end
-        end
-        openMenu(self, options, function(opt)
-            state.subclass = opt.id
-            updateDropdowns()
-            requestRefresh()
-        end)
-    end)
     panel.count = T.Text(panel, "small", "muted")
 
     panel.groupButton = makeDropdown(panel, 130)
@@ -1195,7 +1074,7 @@ function ns.Search_Create(parent)
     panel.empty:SetText(L["No quests match the search."])
 
     panel:SetScript("OnShow", function()
-        updateDropdowns()
+        ns.RefreshFilterMenus()
         panel.updateGroupButton()
         stale = true -- the log may have changed while it was hidden
         refresh()
@@ -1222,6 +1101,12 @@ function ns.Search_Refresh()
     requestRefresh()
 end
 
+-- The filters changed (in any view's menu): the form's line may have changed, and the table is worked out again.
+function ns.Search_FiltersChanged()
+    if panel and panel.layoutForm then panel.layoutForm() end
+    requestRefresh()
+end
+
 -- "entry": the quests of the entry on show in the main window, as a table (its "List" view, MainWindow.lua).
 local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In", entry = "" }
 local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.", entry = "No quests match the filters.",
@@ -1234,7 +1119,11 @@ function ns.Search_SetMode(m)
     if not panel then return end
     ns.PopupMenu_Hide()
     panel.title:SetText(L[TITLES[mode]])
-    panel.empty:SetText(L[EMPTY[mode]])
+    panel.emptyDefault = L[EMPTY[mode]]
+    panel.empty:SetText(panel.emptyDefault)
+    -- the box shows the text of this view
+    local own = mode == "search" and state.text or viewText[mode] or ""
+    if (panel.box:GetText() or "") ~= own then panel.box:SetText(own) end
     panel.updateSortLabels()
     panel.updateGroupButton()
     panel.layoutForm()

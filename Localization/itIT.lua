@@ -131,9 +131,6 @@ ns.AddLocale({ "itIT" }, {
     ["Search quests..."] = "Cerca missioni...",
     ["Search quests"] = "Cerca missioni",
     ["Quest title"] = "Titolo della missione",
-    ["Include low level"] = "Includi basso livello",
-    ["Include too high"] = "Includi troppo alte",
-    ["Include completed"] = "Includi completate",
     ["Reward type:"] = "Tipo di ricompensa:",
     ["Any"] = "Qualsiasi",
     ["Quest"] = "Missione",
@@ -264,4 +261,5 @@ ns.AddLocale({ "itIT" }, {
     ["Interface & Opacity"] = "Interfaccia e opacità",
     ["Tracker & Waypoints"] = "Tracker e waypoint",
     ["Profile / Data"] = "Profilo / dati",
+    ["Hides the quests that give no item (fixed or to choose)."] = "Nasconde le missioni che non danno alcun oggetto (fisso o a scelta).",
 })

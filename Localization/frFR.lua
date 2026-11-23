@@ -132,9 +132,6 @@ ns.AddLocale({ "frFR" }, {
     ["Search quests..."] = "Rechercher des quêtes...",
     ["Search quests"] = "Rechercher des quêtes",
     ["Quest title"] = "Titre de la quête",
-    ["Include low level"] = "Inclure bas niveau",
-    ["Include too high"] = "Inclure trop hautes",
-    ["Include completed"] = "Inclure terminées",
     ["Reward type:"] = "Type de récompense :",
     ["Any"] = "Tous",
     ["Quest"] = "Quête",
@@ -265,4 +262,5 @@ ns.AddLocale({ "frFR" }, {
     ["Interface & Opacity"] = "Interface et opacité",
     ["Tracker & Waypoints"] = "Suivi et waypoints",
     ["Profile / Data"] = "Profil / données",
+    ["Hides the quests that give no item (fixed or to choose)."] = "Masque les quêtes qui ne donnent aucun objet (fixe ou au choix).",
 })

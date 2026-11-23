@@ -593,6 +593,21 @@ describe("MainWindow", function()
         end)
     end)
 
+    it("a line under the toolbar names the filters that are on, and is not there with none", function()
+        local line = ns.UI.filterSummary
+        ns.char.filters = {}
+        ns.UI_Refresh()
+        assert.is_false(line:IsShown())
+        local topBefore = ns.TREE_TOP
+        ns.char.filters.hideLow, ns.char.filters.hideDone = true, true
+        ns.UI_Refresh()
+        assert.is_true(line:IsShown())
+        assert.matches("Filters: Hide low level  |  Hide completed", line.text._text, 1, true)
+        assert.is_true(ns.TREE_TOP > topBefore) -- the tree starts under the line
+        ns.UI_SetSearchMode(true, "log")
+        assert.is_false(line:IsShown()) -- not over the tables
+    end)
+
     it("a drag that starts on a quest moves the view, and its release is no click", function()
         ns.UI_Refresh()
         local id, node = next((ShownNodes()))
@@ -700,6 +715,22 @@ describe("MainWindow", function()
             assert.is_nil(ns.char.entryView)
             assert.is_true(ns.UI.treeScroll:IsShown())
             assert.is_false(ns.UI.searchPanel:IsShown())
+        end)
+
+        it("in the List view the toolbar's search box narrows the list to this entry's quests only", function()
+            ns.UI.viewSwitch.list:Click()
+            local all = #ShownRows()
+            local box = WowMock.Find(function(f) return f._kind == "EditBox" and f.Instructions
+                and f.Instructions._text == "Search by title" end)
+            local name = ShownRows()[1].quest.name:sub(1, 6):lower()
+            box:SetText(name)
+            for _, h in ipairs(box._hooks.OnTextChanged) do h(box, true) end
+            local rows = ShownRows()
+            assert.is_true(#rows >= 1 and #rows <= all)
+            for _, r in ipairs(rows) do
+                assert.are.equal("vc", r.entry.id) -- never another zone's quests
+                assert.matches(name, r.quest.name:lower(), 1, true)
+            end
         end)
 
         it("the List view follows the filters, and the chain view is a tree; Back goes to the list again", function()

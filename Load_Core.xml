@@ -16,4 +16,5 @@
     <Script file="Modules\Settings\Settings.lua"/>
     <Script file="Modules\UI\Layout.lua"/>
     <Script file="Modules\UI\Theme.lua"/>
+    <Script file="Modules\UI\Filters.lua"/>
 </Ui>

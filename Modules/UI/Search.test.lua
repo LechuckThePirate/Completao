@@ -65,14 +65,30 @@ describe("Search", function()
         assert.is_true(#rows < 10)
     end)
 
-    it("completed quests only show with Include completed", function()
+    it("a line under the form names the filters in force, none by default; a click on it opens them", function()
+        local summary = panel.summary
+        assert.is_false(summary:IsShown()) -- the same filters as in every view, all off to begin with
+        panel.filters.checks.hideLow:SetChecked(true); panel.filters.checks.hideLow:Click()
+        assert.is_true(summary:IsShown())
+        assert.matches("Filters: Hide low level", summary.text._text, 1, true)
+        panel.filters.checks.itemsOnly:SetChecked(true); panel.filters.checks.itemsOnly:Click()
+        assert.matches("Hide low level  |  Only quests with item rewards", summary.text._text, 1, true)
+        assert.is_false(panel.filters.menu:IsShown())
+        summary:Click()
+        assert.is_true(panel.filters.menu:IsShown())
+        panel.filters.clear._scripts.OnClick(panel.filters.clear)
+        assert.is_false(summary:IsShown())
+    end)
+
+    it("completed quests are hidden with Hide completed (in the same store as the tree's filter)", function()
         typeText("defias brother")
         WowMock.done[166] = true
         ns.Search_Refresh()
-        assert.is_nil(ids(ShownRows())[166])
-        local doneCheck = panel.filters.checks.done
+        assert.is_true(ids(ShownRows())[166]) -- nothing hidden by default
+        local doneCheck = panel.filters.checks.hideDone
         doneCheck:SetChecked(true); doneCheck:Click()
-        assert.is_true(ids(ShownRows())[166])
+        assert.is_true(ns.char.filters.hideDone)
+        assert.is_nil(ids(ShownRows())[166])
     end)
 
     it("the reward type is picked inside the Filters drop-down, counts as a filter and Clear filters takes it off", function()
@@ -378,11 +394,31 @@ describe("Search", function()
             ns.UI_SetSearchMode(true, "log")
         end)
 
-        it("lists the quests in the log, without the form", function()
+        it("lists the quests in the log, with the same title box and filters as the search", function()
             local rows = ShownRows()
             assert.are.equal(2, #rows)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown())
+            assert.is_false(panel.summary:IsShown()) -- no filter on
         end)
+
+        it("the title box searches only this view; each view keeps its own text, and the search its own", function()
+            typeText("defias")
+            assert.are.same({ [166] = true }, ids(ShownRows())) -- the log, narrowed
+            typeText("zzzz")
+            assert.are.equal(0, #ShownRows())
+            assert.are.equal("No quests match the search.", panel.empty._text) -- not "your log is empty"
+            typeText("defias")
+            WowMock.log[#WowMock.log + 1] = { questID = 167, title = "Other", level = 20 }
+            ns.UI_SetSearchMode(true, "tracked") -- another view: nothing typed there
+            assert.are.equal("", panel.box:GetText())
+            ns.UI_SetSearchMode(true, "log")
+            assert.are.equal("defias", panel.box:GetText()) -- the log kept its text
+            ns.UI_SetSearchMode(true, "search") -- and the search is not narrowed by it
+            assert.are.equal("", panel.box:GetText())
+            assert.is_true(#ShownRows() > 50)
+        end)
+
 
         it("is the played character's own, whatever Consolidate alts says", function()
             CompletaoDB.chars["Altie-Realm"] = { name = "Altie", realm = "Realm", done = { [166] = true, [167] = true } }
@@ -576,7 +612,7 @@ describe("Search", function()
             local rows = ShownRows()
             assert.are.equal(1, #rows)
             assert.are.equal(999999, rows[1].quest.id)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown()) -- (the same box and filters as in every view)
             assert.are.equal("tracked", ns.Search_Mode())
         end)
 
@@ -712,7 +748,7 @@ describe("Search", function()
             assert.are.equal(2, #rows)
             assert.are.equal(168, rows[1].quest.id)
             assert.are.equal(166, rows[2].quest.id)
-            assert.is_false(panel.box:IsShown())
+            assert.is_true(panel.filters:IsShown())
             assert.is_not_nil(WowMock.Find(function(f) return f:IsShown() and type(f._text) == "string" and f._text:find("Turn in: 168", 1, true) end))
             -- its own order changes with the headers but is not saved over the other tables'
             panel.head.dist:Click()

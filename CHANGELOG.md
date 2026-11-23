@@ -11,6 +11,8 @@
 - New: a button in the tree's corner puts the tree on the whole screen, without the side panel or the list; again (or closing the window) puts it back.
 - New: a tree smaller than the view is drawn in its middle, and dragging from a quest moves the view too (a click without moving still opens it).
 - New: quests of a chain show a chain icon after their name, in the tables and in their details; a click on it opens that chain.
+- Changed: one set of filters for every view (the tree, the zone list, the search, the quest log, the tracked quests and the ones to turn in): the same options, in the same words ("Hide low level", "Hide completed"...) and the same meaning, saved with the settings, plus the reward type and "only with item rewards", which were only in the search. A line under the toolbar says which filters are on, and a click on it opens them.
+- New: the quest log, tracked and to-turn-in tables have their own title box, which searches only that view; the zone list uses the toolbar's box, which only reaches that zone.
 - New: picking a quest of a chain shows that chain alone, with its name in the title; "Back to all quests" returns to the whole tree.
 - New: in a quest's details, where it starts and ends has a map pin to click instead of the coordinates.
 - Changed: next to the quest drawer, the table hides its least needed columns (rewards, money, XP...) so quest titles stay readable.

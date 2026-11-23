@@ -250,8 +250,6 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Unfocus"] = "Desenfocar",
     ["Back to all quests"] = "Volver a todas",
     ["Chains only"] = "Solo cadenas",
-    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
-        "Oculta las quests sueltas, las que no vienen de otra quest de la zona ni llevan a ninguna; las de tu registro se quedan.",
     ["Tree"] = "Árbol",
     ["List"] = "Lista",
     ["The quests as chain trees"] = "Las quests como árboles de cadenas",
@@ -263,4 +261,6 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Profile / Data"] = "Perfil / datos",
     ["Hides the quests that give no item (fixed or to choose)."] = "Oculta las quests que no dan ningún objeto (fijo o a elegir).",
     ["Same filters in every view"] = "Mismos filtros en todas las vistas",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows."] =
+        "Oculta las quests sueltas, las que no vienen de otra quest de la zona ni llevan a ninguna.",
 })

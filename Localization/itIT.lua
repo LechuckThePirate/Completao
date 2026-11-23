@@ -250,8 +250,6 @@ ns.AddLocale({ "itIT" }, {
     ["Unfocus"] = "Rilascia",
     ["Back to all quests"] = "Torna a tutte",
     ["Chains only"] = "Solo catene",
-    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
-        "Nasconde le missioni isolate, quelle che nessuna missione della zona precede o segue; quelle del tuo registro restano.",
     ["Tree"] = "Albero",
     ["List"] = "Elenco",
     ["The quests as chain trees"] = "Le missioni come alberi di catene",
@@ -263,4 +261,6 @@ ns.AddLocale({ "itIT" }, {
     ["Profile / Data"] = "Profilo / dati",
     ["Hides the quests that give no item (fixed or to choose)."] = "Nasconde le missioni che non danno alcun oggetto (fisso o a scelta).",
     ["Same filters in every view"] = "Stessi filtri in tutte le viste",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows."] =
+        "Nasconde le missioni isolate, quelle che nessuna missione della zona precede o segue.",
 })

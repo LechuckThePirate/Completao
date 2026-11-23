@@ -250,8 +250,6 @@ ns.AddLocale({ "deDE" }, {
     ["Unfocus"] = "Lösen",
     ["Back to all quests"] = "Zurück zu allen",
     ["Chains only"] = "Nur Questreihen",
-    ["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] =
-        "Blendet einzelne Quests aus, die keiner Quest der Zone folgen und zu keiner führen; die in deinem Questlog bleiben.",
     ["Tree"] = "Baum",
     ["List"] = "Liste",
     ["The quests as chain trees"] = "Die Quests als Questreihen-Bäume",
@@ -263,4 +261,6 @@ ns.AddLocale({ "deDE" }, {
     ["Profile / Data"] = "Profil / Daten",
     ["Hides the quests that give no item (fixed or to choose)."] = "Blendet Quests aus, die keinen Gegenstand geben (fest oder zur Auswahl).",
     ["Same filters in every view"] = "Dieselben Filter in allen Ansichten",
+    ["Hides the loose quests, the ones that no quest of the zone leads to or follows."] =
+        "Blendet einzelne Quests aus, die keiner Quest der Zone folgen und zu keiner führen.",
 })

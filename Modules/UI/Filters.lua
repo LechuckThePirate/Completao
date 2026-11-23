@@ -53,7 +53,7 @@ ns.FILTER_OPTIONS = {
     { key = "otherFaction", label = L["Show other faction"],
         tip = L["Shows the quests and zones of the opposite faction, hidden by default."] },
     { key = "chainsOnly", label = L["Chains only"],
-        tip = L["Hides the loose quests, the ones that no quest of the zone leads to or follows; the ones in your log stay."] },
+        tip = L["Hides the loose quests, the ones that no quest of the zone leads to or follows."] },
     { key = "itemsOnly", label = L["Only quests with item rewards"] },
 }
 
@@ -199,7 +199,8 @@ end
 --    quest it starts with is above your level, "low level" one whose quests are all grey; a chain you have started (some
 --    quest done or in the log) is never hidden by level, and loose quests are hidden by their own level unless they are
 --    in your log. "Completed" hides each completed quest on its own.
---  * The quests in your log are never hidden by completed, repeatable, level or chains only.
+--  * The quests in your log are never hidden by completed, repeatable or level (they are what you are doing); "chains only"
+--    does hide the loose ones.
 -- opts: text (what is typed in), isOnQuest (for a client with no IsOnQuest of its own: the view reads the log once),
 -- matchText(q, needle) (the view's cached way of reading titles), assumeVisible (the view already left out what the
 -- character can't see: the search).
@@ -215,7 +216,8 @@ function ns.QuestFilter(d, opts)
     return function(q)
         if not opts.assumeVisible and not ns.QuestVisible(q, d) then return false end
         local onQuest = isOnQuest(q.id)
-        if f.chainsOnly and not onQuest and not ns.IsInChain(q) then return false end
+        -- "chains only": the loose quests go, the ones in the log too (it is what was asked for)
+        if f.chainsOnly and not ns.IsInChain(q) then return false end
         if f.hideDone and ns.IsQuestDone(q.id) and not onQuest then return false end
         -- repeatable: the game never marks them done, so this is how they are put aside (the one in the log stays)
         if f.hideRepeatable and q.repeatable and not onQuest and ns.RepeatableDone(q.id) then return false end

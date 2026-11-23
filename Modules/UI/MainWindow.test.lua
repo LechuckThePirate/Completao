@@ -695,9 +695,9 @@ describe("MainWindow", function()
             ns.UI_Refresh()
             assert.is_nil(ShownNodes()[single.id])
             assert.is_not_nil(ShownNodes()[chainQuest.id])
-            WowMock.onQuest[single.id] = true -- unless it is in the log
+            WowMock.onQuest[single.id] = true -- the ones in the log too: they are not part of a chain
             ns.UI_Refresh()
-            assert.is_not_nil(ShownNodes()[single.id])
+            assert.is_nil(ShownNodes()[single.id])
         end)
 
         it("List shows the entry's quests in the table under the toolbar, and it is remembered", function()

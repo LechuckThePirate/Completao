@@ -119,13 +119,15 @@ describe("Filters (one set for every view)", function()
             assert.is_true(pass(q))
         end)
 
-        it("Chains only keeps the chains and the quests in the log", function()
+        it("Chains only keeps the chains and hides the loose quests, the ones in the log too", function()
             ns.char.filters.chainsOnly = true
             assert.is_true(pass(chained()))
             local q = loose()
             assert.is_false(pass(q))
-            WowMock.onQuest[q.id] = true
-            assert.is_true(pass(q))
+            WowMock.onQuest[q.id] = true -- doing it doesn't make it part of a chain
+            assert.is_false(pass(q))
+            WowMock.onQuest[chained().id] = true
+            assert.is_true(pass(chained()))
         end)
 
         it("by level a chain is hidden as a whole, never cut in half", function()

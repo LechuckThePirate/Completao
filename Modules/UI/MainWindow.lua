@@ -1132,6 +1132,13 @@ function ns.UI_SetTreeFullscreen(on)
     ns.UI_Refresh()
 end
 
+-- The world map is about to open (a pin, "Map"): the window goes back to its normal size, the tree off the whole screen
+-- and the quest page off maximized, or the map would open under it, unseen.
+function ns.UI_RestoreForMap()
+    if fullscreen then ns.UI_SetTreeFullscreen(false) end
+    ns.Detail_Restore()
+end
+
 function ns.UI_IsTreeFullscreen()
     return fullscreen
 end

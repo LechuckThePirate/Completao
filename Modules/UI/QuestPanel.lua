@@ -703,6 +703,14 @@ function ns.OpenQuestInLog(questID)
     return openQuest(questID)
 end
 
+-- Back from maximized to the drawer (the map is about to open, and this would cover it).
+function ns.Detail_Restore()
+    if maximized and detail then
+        maximized = false
+        layout()
+    end
+end
+
 function ns.Detail_Layout()
     -- only with the panel open: when closed, layout() would show the tree again (wrong with the search open)
     if detail and detail:IsShown() then layout() end

@@ -213,6 +213,9 @@ function ns.ShowOnMap(loc, title)
         ns.Print(ns.L["No map location available for this quest giver."])
         return false
     end
+    -- the map opens under our window when this covers the screen (the tree on the whole screen, a maximized quest page):
+    -- put it back to its normal size so the map is seen
+    if ns.UI_RestoreForMap then ns.UI_RestoreForMap() end
     if hasCoords(loc) then ns.SetWaypoint(loc, title) else ns.ClearMapPin() end
     local opened = false
     if OpenWorldMap then

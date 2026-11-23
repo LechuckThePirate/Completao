@@ -586,6 +586,22 @@ describe("MainWindow", function()
             assert.is_true(ns.UI_IsListMode())
         end)
 
+        it("opening the world map (a pin, \"Map\") puts the window back to normal, or the map would open under it", function()
+            ns.UI_SetTreeFullscreen(true)
+            ns.Detail_Show(ns.entries.vc.quests[1])
+            assert.is_true(ns.UI_IsTreeFullscreen())
+            local opened
+            _G.OpenWorldMap = function(map) opened = map end
+            ns.ResolveZone = function() return 1429 end
+            ns.SetWaypoint = function() end
+            ns.ShowOnMap({ x = 10, y = 10, map = 1429 }, "Somewhere")
+            _G.OpenWorldMap = nil
+            assert.are.equal(1429, opened)
+            assert.is_false(ns.UI_IsTreeFullscreen())
+            assert.is_true(ns.UI.treeScroll:IsShown() or ns.Detail_Current() ~= nil)
+            assert.are.equal(1, ns.UI:GetNumPoints()) -- the window at its own place and size, not stretched over the screen
+        end)
+
         it("closing the window leaves the full screen", function()
             ns.UI_SetTreeFullscreen(true)
             ns.UI:Hide()

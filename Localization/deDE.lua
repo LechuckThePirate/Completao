@@ -267,4 +267,6 @@ ns.AddLocale({ "deDE" }, {
     ["Meters"] = "Meter",
     ["Yards"] = "Yards",
     ["Distance units: %s"] = "Entfernungseinheit: %s",
+    ["Expand all"] = "Alle aufklappen",
+    ["Collapse all"] = "Alle zuklappen",
 })

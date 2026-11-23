@@ -266,4 +266,6 @@ ns.AddLocale({ "ptBR" }, {
     ["Meters"] = "Metros",
     ["Yards"] = "Jardas",
     ["Distance units: %s"] = "Unidades de distância: %s",
+    ["Expand all"] = "Expandir tudo",
+    ["Collapse all"] = "Recolher tudo",
 })

@@ -534,6 +534,23 @@ describe("Search", function()
             assert.are.equal(6, #layout())
         end)
 
+        it("Expand all and Collapse all fold every group at once, and are there only while grouped", function()
+            assert.is_false(panel.expandAll:IsShown()) -- not grouped yet
+            assert.is_false(panel.collapseAll:IsShown())
+            groupBy("Zone")
+            assert.is_true(panel.expandAll:IsShown())
+            assert.is_true(panel.collapseAll:IsShown())
+            local all = #layout()
+            panel.collapseAll:Click()
+            local folded = layout()
+            assert.is_true(#folded < all)
+            for _, entry in ipairs(folded) do assert.is_true(type(entry) == "string", "only headers: " .. tostring(entry)) end
+            panel.expandAll:Click()
+            assert.are.equal(all, #layout())
+            ns.UI_SetSearchMode(true, "search") -- no grouping there
+            assert.is_false(panel.expandAll:IsShown())
+        end)
+
         it("is saved per view: the tracked quests have their own", function()
             groupBy("Zone")
             assert.are.same({ log = "zone" }, ns.char.tableGroup)

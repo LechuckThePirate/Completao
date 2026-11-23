@@ -268,4 +268,6 @@ ns.AddLocale({ "frFR" }, {
     ["Meters"] = "Mètres",
     ["Yards"] = "Yards",
     ["Distance units: %s"] = "Unités de distance : %s",
+    ["Expand all"] = "Tout développer",
+    ["Collapse all"] = "Tout réduire",
 })

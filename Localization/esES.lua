@@ -267,4 +267,6 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["Meters"] = "Metros",
     ["Yards"] = "Yardas",
     ["Distance units: %s"] = "Unidades de distancia: %s",
+    ["Expand all"] = "Expandir todo",
+    ["Collapse all"] = "Contraer todo",
 })

@@ -946,6 +946,7 @@ function ns.Search_Create(parent)
         local grouped = mode ~= "search" and mode ~= "entry"
         panel.groupButton:SetShown(grouped)
         panel.groupLabel:SetShown(grouped)
+        if panel.updateFoldButtons then panel.updateFoldButtons() end
         panel.groupButton:ClearAllPoints()
         panel.groupButton:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -(2 + barInset), 0)
         panel.count:ClearAllPoints()
@@ -964,7 +965,32 @@ function ns.Search_Create(parent)
     panel.groupLabel = T.Text(panel, "small", "muted")
     panel.groupLabel:SetPoint("RIGHT", panel.groupButton, "LEFT", -6, 0)
     panel.groupLabel:SetText(L["Group by:"])
-    panel.updateGroupButton = function() panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]]) end
+    -- Expand all / Collapse all, left of "Group by": only while the table is grouped
+    panel.collapseAll = T.CreateIconButton(panel, "minus", 20, L["Collapse all"])
+    panel.collapseAll:SetPoint("RIGHT", panel.groupLabel, "LEFT", -8, 0)
+    panel.expandAll = T.CreateIconButton(panel, "plus", 20, L["Expand all"])
+    panel.expandAll:SetPoint("RIGHT", panel.collapseAll, "LEFT", -2, 0)
+    panel.collapseAll:SetScript("OnClick", function()
+        for _, g in ipairs(groups) do
+            if g.fold then folded[g.fold] = true end
+        end
+        draw()
+    end)
+    panel.expandAll:SetScript("OnClick", function()
+        for _, g in ipairs(groups) do
+            if g.fold then folded[g.fold] = nil end
+        end
+        draw()
+    end)
+    function panel.updateFoldButtons()
+        local on = mode ~= "search" and mode ~= "entry" and groupBy() ~= "none"
+        panel.collapseAll:SetShown(on)
+        panel.expandAll:SetShown(on)
+    end
+    panel.updateGroupButton = function()
+        panel.groupButton:SetText(L[GROUP_LABELS[groupBy()]])
+        panel.updateFoldButtons()
+    end
     panel.groupButton:SetScript("OnClick", function(self)
         local options = {}
         for _, g in ipairs(GROUPS) do options[#options + 1] = { name = L[g.label], key = g.key } end

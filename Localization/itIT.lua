@@ -267,4 +267,6 @@ ns.AddLocale({ "itIT" }, {
     ["Meters"] = "Metri",
     ["Yards"] = "Iarde",
     ["Distance units: %s"] = "Unità di distanza: %s",
+    ["Expand all"] = "Espandi tutto",
+    ["Collapse all"] = "Comprimi tutto",
 })

@@ -260,7 +260,7 @@ local function create()
     local chromeAlpha, sinceArrow = 0, 0
     for _, part in ipairs(frame.chrome) do part:SetAlpha(0) end
     frame:SetScript("OnUpdate", function(self, elapsed)
-        local want = self:IsMouseOver(TITLE_H + 2, 0, 0, 0) and 1 or 0
+        local want = (ns.shotsChrome or self:IsMouseOver(TITLE_H + 2, 0, 0, 0)) and 1 or 0
         if chromeAlpha ~= want then
             chromeAlpha = want > chromeAlpha and math.min(want, chromeAlpha + elapsed * 6) or math.max(want, chromeAlpha - elapsed * 3)
             for _, part in ipairs(self.chrome) do part:SetAlpha(chromeAlpha) end

@@ -1207,6 +1207,18 @@ function ns.UI_SetSearchMode(on, kind)
     if searchMode then ns.Search_Focus() end
 end
 
+-- Shows an entry's tree (or list) by its id, as a click on it in the side panel does (also for /completao shots).
+function ns.UI_SelectEntry(id)
+    local d = ns.entries[id]
+    if not (d and frame) then return false end
+    searchMode = false
+    expandedCat = d.category
+    ns.char.category = expandedCat
+    selectEntry(id)
+    ns.UI_Refresh()
+    return true
+end
+
 -- A search result: opens its entry's tree with the quest selected (green path, panel open) and centers it
 -- in the view.
 function ns.UI_OpenQuest(entryId, questId)

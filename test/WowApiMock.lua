@@ -283,6 +283,7 @@ GetRealmName = function() return "Realm" end
 BreakUpLargeNumbers = function(n) return tostring(n) end
 GetCoinTextureString = function(c) return c .. "c" end
 GetTime = function() return WowMock.time or 0 end
+time = os.time -- the game's own (os.time)
 HandleModifiedItemClick = function(link) WowMock.linked = link end
 GetQuestGreenRange = function() return 8 end
 

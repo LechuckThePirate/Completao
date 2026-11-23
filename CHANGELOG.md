@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: `/completao shots [entry id]` takes the screenshots of the CurseForge page by itself (main window, chain, details, full-screen tree, list, search, log, tracked, focus window, each preferences tab, minimap button, TomTom arrow and map marker); after a `/reload`, `node tools/shots.mjs` crops them into `images/screencaps/`.
 - New: a whole new look for the main window ("Cartographic Codex"): dark obsidian with a fine gold frame, a header with the compass medallion, the title plate and your overall progress, and a side panel on burnt parchment.
 - New: the side panel puts the four views first, each with a count (quests in the log, tracked, ready to turn in), and a filter box to find a zone, dungeon or class by name; every entry shows a thin bar of how much of it is done.
 - New: a quest's details open in a drawer on the right, on parchment, so the table or the tree stays in sight beside it; its actions are plates with one word and an icon (Focus, Waypoint, Chain, Open, Map, Abandon), the full action in their tooltip.

@@ -703,6 +703,10 @@ function ns.OpenQuestInLog(questID)
     return openQuest(questID)
 end
 
+function ns.Detail_Frame()
+    return detail
+end
+
 -- Back from maximized to the drawer (the map is about to open, and this would cover it).
 function ns.Detail_Restore()
     if maximized and detail then

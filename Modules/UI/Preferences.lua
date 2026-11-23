@@ -312,6 +312,10 @@ local function create()
     prefs:Hide() -- frames are born shown: hidden until the first Prefs_Toggle (which would close it otherwise)
 end
 
+function ns.Prefs_IsShown()
+    return prefs ~= nil and prefs:IsShown()
+end
+
 function ns.Prefs_Toggle()
     if not prefs then create() end
     prefs:SetShown(not prefs:IsShown())

@@ -606,6 +606,41 @@ describe("MainWindow", function()
         assert.are.equal(id, ns.Detail_Current().id)
     end)
 
+    it("connections never run over a quest: they go through the gaps between them", function()
+        WowMock.level = 60
+        ns.char.filters = {}
+        local function rect(f)
+            local p = f._points[#f._points]
+            return p[4], -p[5], f._w or 0, f._h or 0 -- x, y (down), width, height on the canvas
+        end
+        local checked = 0
+        for _, d in ipairs(ns.entryList) do
+            if d.category == "zones" or d.category == "dungeons" then
+                ns.UI_OpenQuest(d.id, d.quests[1] and d.quests[1].id or 0)
+                ns.UI_LeaveChain()
+                ns.Detail_Hide()
+                ns.UI_Refresh()
+                local boxes = {}
+                for _, b in pairs((ShownNodes())) do
+                    local x, y = rect(b)
+                    boxes[#boxes + 1] = { x = x + 6, y = y + 6, w = 204 - 12, h = 80 - 12 } -- inside the frame (a rail ends on its edge)
+                end
+                for _, t in ipairs(WowMock.FindAll(function(f)
+                    return f._kind == "Texture" and f._shown and f._set.SetTexture
+                        and tostring(f._set.SetTexture[1]):find("Rail[RI][ur][no]") and f._points and #f._points > 0
+                end)) do
+                    local x, y, w, h = rect(t)
+                    for _, box in ipairs(boxes) do
+                        local overlaps = x < box.x + box.w and box.x < x + w and y < box.y + box.h and box.y < y + h
+                        assert.is_false(overlaps, ("%s: a rail over a quest at %d,%d"):format(d.id, box.x, box.y))
+                    end
+                    checked = checked + 1
+                end
+            end
+        end
+        assert.is_true(checked > 100)
+    end)
+
     it("a tree smaller than the view sits in its middle", function()
         local scroll = ns.UI.treeScroll
         local holder = WowMock.Find(function(f) return f._parent == scroll and f._kind == "Frame" end)

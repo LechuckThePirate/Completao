@@ -654,6 +654,20 @@ local function renderTree(d)
         t:Show()
     end
     local function lane(k) return ((k % 5) - 2) * 5 end
+    local function depthY(depth) return PAD + depth * (NODE_H + GAP_Y) end
+    -- the free vertical corridor of a depth nearest to x: the gaps beside and between its quests (any x when the
+    -- depth has none)
+    local function corridorX(depth, x)
+        local n = perDepth[depth] or 0
+        if n == 0 then return x end
+        local shift = (layout.rows - n) / 2
+        local best
+        for k = 0, n do
+            local cx = PAD + (k + shift) * (NODE_W + GAP_X) - GAP_X / 2
+            if not best or math.abs(cx - x) < math.abs(best - x) then best = cx end
+        end
+        return best
+    end
     local function drawEdge(e)
         local a, b = layout.nodes[e.from], layout.nodes[e.to]
         local ax, ay = posOf(a)
@@ -675,17 +689,29 @@ local function renderTree(d)
                     gem(xB, yGap)
                 end
             else
-                local xSide = bx - GAP_X / 2 + lane(a.col) / 2 -- the corridor left of the child's column
-                local yAbove = yB - GAP_Y / 2 + lane(a.col) -- the gap above the child
+                -- down level by level: through each depth in between it takes the free corridor (between two
+                -- quests, or beside the row) nearest to where it is, moving across in the gap above it, so it
+                -- never runs over a quest of another chain
+                local x, y = xA, yGap
                 rail(xA, yA, xA, yGap)
-                rail(xA, yGap, xSide, yGap)
-                rail(xSide, yGap, xSide, yAbove)
-                rail(xSide, yAbove, xB, yAbove)
-                rail(xB, yAbove, xB, yB)
-                gem(xA, yGap)
-                gem(xSide, yGap)
-                gem(xSide, yAbove)
-                gem(xB, yAbove)
+                for depth = a.col + 1, b.col - 1 do
+                    local cx = corridorX(depth, x) + lane(a.row + a.col) / 2
+                    if cx ~= x then
+                        rail(x, y, cx, y)
+                        gem(x, y)
+                        gem(cx, y)
+                        x = cx
+                    end
+                    local below = depthY(depth) + NODE_H + GAP_Y / 2 + lane(a.row) -- the gap under that depth
+                    rail(x, y, x, below)
+                    y = below
+                end
+                if x ~= xB then
+                    rail(x, y, xB, y)
+                    gem(x, y)
+                    gem(xB, y)
+                end
+                rail(xB, y, xB, yB)
             end
         end
         arrow(xB, yB + 3)

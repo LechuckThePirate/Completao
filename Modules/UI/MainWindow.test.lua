@@ -526,6 +526,43 @@ describe("MainWindow", function()
         end)
     end)
 
+    it("a node's frame, halo and subtitle follow its state, and the walked path is a rail of runes", function()
+        local child, parent
+        local vc = ns.entries.vc
+        for _, q in ipairs(vc.quests) do
+            for _, p in ipairs(ns.ParentsOf(q)) do
+                local def = ns.FindQuestDef(p)
+                if not child and def and def.entryId == "vc" and ns.QuestVisible(def, vc) and ns.QuestVisible(q, vc) then
+                    child, parent = q, p
+                end
+            end
+        end
+        ns.char.filters = {} -- every quest of the tree on show
+        WowMock.done[parent] = true
+        ns.UI_Refresh()
+        local nodes = ShownNodes()
+        assert.matches("NodeBronze$", nodes[parent].frameFile)
+        assert.are.equal("Completed", nodes[parent].sub._text)
+        assert.is_true(nodes[parent].glowFrame:IsShown())
+        local runes = WowMock.Find(function(f)
+            return f._kind == "Texture" and f._shown and f._set.SetTexture and tostring(f._set.SetTexture[1]):find("RailRunes$")
+        end)
+        assert.is_not_nil(runes)
+        WowMock.done[parent] = nil
+        ns.UI_Refresh()
+        local locked
+        for _, b in pairs(ShownNodes()) do
+            if b.status == "locked" then locked = b end
+        end
+        assert.is_not_nil(locked)
+        assert.matches("NodeLocked$", locked.frameFile) -- rusty iron in chains, no halo
+        assert.is_false(locked.glowFrame:IsShown())
+        assert.are.equal("Locked", locked.sub._text)
+        ns.Detail_Show(ns.FindQuestDef(parent)) -- the quest whose details are open: gold
+        ns.UI_Refresh()
+        assert.matches("NodeGold$", ShownNodes()[parent].frameFile)
+    end)
+
     describe("Chains only, and the Tree | List switch", function()
         local function loose()
             for _, q in ipairs(ns.entries.vc.quests) do

@@ -556,3 +556,72 @@ buttonPlate("ButtonStone.tga", [rgb("2E3139"), rgb("17191E")], [rgb("5B5E66"), r
     }
     writeTGA("Emblem.tga", img);
 }
+
+// ---------------------------------------------------------------------------------------------- the quest tree's pieces
+// From the maintainer's sheets in images/originals (tree_frames, tree_halo, tree_connectors, tree_sigil), all on black.
+
+// A region of an image, fitted into w x h (aspect kept, centered, black around it; or stretched to it), as RGBA.
+function fit(file, x, y, cw, ch, w, h, stretch) {
+    const r = spawnSync("ffmpeg", ["-loglevel", "error", "-i", join(root, "images", "originals", file), "-vf",
+        stretch ? `crop=${cw}:${ch}:${x}:${y},scale=${w}:${h}:flags=lanczos`
+            : `crop=${cw}:${ch}:${x}:${y},scale=${w}:${h}:force_original_aspect_ratio=decrease:flags=lanczos,` +
+            `pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:black`, "-f", "rawvideo", "-pix_fmt", "rgba", "-"], { maxBuffer: 1 << 28 });
+    if (r.status !== 0) throw new Error(`ffmpeg failed: ${r.stderr}`);
+    return { w, h, px: new Float32Array(r.stdout) };
+}
+
+// 13. Node frames, 256 x 256 each (9-slice, 56 px corners): iron (available / in the log), bronze (done), rusty iron
+// in chains (locked), polished gold (selected). Their stone panel stays; the black around them goes.
+for (const [name, box] of [["NodeIron", [42, 67, 430, 390]], ["NodeBronze", [555, 69, 423, 386]],
+    ["NodeLocked", [30, 552, 456, 430]], ["NodeGold", [550, 564, 434, 405]]]) {
+    const img = fit("tree_frames.png", box[0] - 2, box[1] - 2, box[2] + 4, box[3] + 4, 256, 256);
+    knockOutBackdrop(img, 24);
+    writeTGA(`${name}.tga`, img);
+}
+
+// 14. Node halo, 512 x 256 (9-slice, 64 px corners): a white glow around the frame's shape, drawn additively (black
+// adds nothing) and tinted by status in the game.
+{
+    const img = fit("tree_halo.png", 97, 49, 830, 409, 512, 256);
+    for (let i = 0; i < img.w * img.h; i++) {
+        const v = Math.max(img.px[i * 4], img.px[i * 4 + 1], img.px[i * 4 + 2]);
+        img.px[i * 4] = img.px[i * 4 + 1] = img.px[i * 4 + 2] = v;
+        img.px[i * 4 + 3] = 255;
+    }
+    writeTGA("NodeHalo.tga", img);
+}
+
+// 15. Rails, 512 x 32, seamless left to right (the last 48 px fade into the first ones): iron with green runes (the
+// path walked) and plain iron (what is ahead). Drawn tiled along each connection.
+function rail(name, x, y, cw, ch) {
+    const F = 48, W = 512;
+    const src = fit("tree_connectors.png", x, y, cw, ch, W + F, 32, true); // the bar alone, filling the height
+    const img = blank(W, 32);
+    for (let yy = 0; yy < 32; yy++) {
+        for (let xx = 0; xx < W; xx++) {
+            const o = (yy * W + xx) * 4, a = (yy * (W + F) + xx) * 4;
+            for (let k = 0; k < 3; k++) {
+                const c = src.px[a + k];
+                img.px[o + k] = xx < F ? c * (xx / F) + src.px[(yy * (W + F) + W + xx) * 4 + k] * (1 - xx / F) : c;
+            }
+            img.px[o + 3] = 255;
+        }
+    }
+    writeTGA(name, img);
+}
+rail("RailRunes.tga", 70, 37, 880, 36);
+rail("RailIron.tga", 70, 194, 880, 52);
+
+// 16. The connections' gem (at their bends) and arrowhead (into a quest), 64 x 64, cut out of the black.
+for (const [name, box] of [["RailGem", [71, 314, 120, 121]], ["RailArrow", [480, 343, 65, 103]]]) {
+    const img = fit("tree_connectors.png", box[0] - 3, box[1] - 3, box[2] + 6, box[3] + 6, 64, 64);
+    knockOutBackdrop(img, 24);
+    writeTGA(`${name}.tga`, img);
+}
+
+// 17. The runic sigil behind the tree, 512 x 512, drawn additively (black adds nothing).
+{
+    const img = fit("tree_sigil.png", 0, 0, 1024, 1024, 512, 512);
+    for (let i = 0; i < img.w * img.h; i++) img.px[i * 4 + 3] = 255;
+    writeTGA("TreeSigil.tga", img);
+}

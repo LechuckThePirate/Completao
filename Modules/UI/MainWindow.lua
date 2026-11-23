@@ -3,9 +3,9 @@ local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly 
 local T = ns.Theme
 
 -- the tree reads top to bottom: GAP_Y between depths (room for the connections), GAP_X between quests side by side
-local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 175, 54, 26, 44, 20
+local LIST_W, NODE_W, NODE_H, GAP_X, GAP_Y, PAD = 210, 190, 64, 28, 46, 24
 local NODE_ICON, NODE_ICONS = 14, 5 -- size and most of the reward item icons in a node
-local NODE_PAD = 9 -- room the metal frame of a node takes
+local NODE_PAD = 10 -- room the metal frame of a node takes
 
 -- The icon of an item, from what the client knows of it without loading it (a question mark when it knows nothing).
 local function itemIcon(id)
@@ -51,7 +51,8 @@ local treeBarUpdate -- re-checks whether the tree needs its scroll bar (see crea
 local MIN_W, MIN_H, DEFAULT_W, DEFAULT_H = 700, 380, 1120, 620
 
 local selectedId, expandedCat, listInitialized, viewRestored
-local headerButtons, listButtons, nodeButtons, lines = {}, {}, {}, {}
+local headerButtons, listButtons, nodeButtons = {}, {}, {}
+local rails, gems, arrows = {}, {}, {} -- the tree's connections
 local frame, canvas, emptyText
 -- The scroll child. The canvas inside it is scaled by the zoom, but the client limits the scroll to the
 -- child's own size (it ignores the scale), so the holder is kept at the size the canvas has on screen.
@@ -115,18 +116,24 @@ local function onNodeClick(self, button)
     if entered and frame.scrollToQuest then frame.scrollToQuest(self.quest.id) end
 end
 
+-- The frames of a node by state (images/originals/tree_frames): iron (available, in the log), bronze (done), rusty
+-- iron in chains (locked or lost), polished gold (the quest whose details are open).
+local FRAMES = {
+    iron = T.MEDIA .. "NodeIron", bronze = T.MEDIA .. "NodeBronze", locked = T.MEDIA .. "NodeLocked", gold = T.MEDIA .. "NodeGold",
+}
+
 local function getNodeButton(i)
     local b = nodeButtons[i]
     if b then return b end
     b = CreateFrame("Button", nil, canvas)
     b:SetSize(NODE_W, NODE_H)
-    -- a stone plate in a metal frame; around it a halo in the status's color (none when locked), which pulses
-    -- on the quest in the log. The halo is a frame of its own under the plate, so it can fade by itself.
+    -- the halo: a soft glow around the frame, added onto what is behind it and tinted by status (none when locked);
+    -- it pulses on the quest in the log. A frame of its own under the node's, so it can fade by itself.
     b.glowFrame = CreateFrame("Frame", nil, b)
     b.glowFrame:SetAllPoints()
     b.glowFrame:SetFrameLevel(math.max(0, b:GetFrameLevel() - 1))
-    b.glow = T.NineSlice(b.glowFrame, T.MEDIA .. "NodeGlow", 128, 64, 24, 22, 11, "BACKGROUND", 0, true)
-    b.plate = T.NineSlice(b, T.MEDIA .. "NodeFrame", 128, 64, 16, 14, 0, "BACKGROUND", 1, true)
+    b.glow = T.NineSlice(b.glowFrame, T.MEDIA .. "NodeHalo", 512, 256, 64, 24, 11, "BACKGROUND", 0, true)
+    for _, tex in ipairs(b.glow) do tex:SetBlendMode("ADD") end
     b.pulse = b.glowFrame:CreateAnimationGroup()
     local fade = b.pulse:CreateAnimation("Alpha")
     fade:SetFromAlpha(1)
@@ -134,23 +141,26 @@ local function getNodeButton(i)
     fade:SetDuration(0.9)
     fade:SetSmoothing("IN_OUT")
     b.pulse:SetLooping("BOUNCE")
-    -- locked: a padlock before the title
-    b.lock = b:CreateTexture(nil, "OVERLAY")
-    b.lock:SetSize(12, 12)
-    b.lock:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD + 1)
-    T.SetStatusIcon(b.lock, "lock")
-    b.lock:Hide()
+    -- the frame: a 9-slice of the state's picture, its stone panel in the middle
+    b.plate = T.NineSlice(b, FRAMES.iron, 256, 256, 56, 20, 0, "BACKGROUND", 1, true)
+    b.frameFile = FRAMES.iron
+    -- the title, centered, and under it the level and zone (or the state: completed, locked...)
     b.text = T.Text(b, "quest")
-    b.text:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD + 2)
-    b.text:SetPoint("BOTTOMRIGHT", -NODE_PAD, 18) -- (the XP line takes the bottom of the box)
-    b.text:SetJustifyH("LEFT")
-    b.text:SetJustifyV("TOP")
+    b.text:SetPoint("TOPLEFT", NODE_PAD, -NODE_PAD)
+    b.text:SetPoint("TOPRIGHT", -NODE_PAD, -NODE_PAD)
+    b.text:SetJustifyH("CENTER")
+    b.text:SetWordWrap(false)
+    b.sub = T.Text(b, "small")
+    b.sub:SetPoint("TOPLEFT", b.text, "BOTTOMLEFT", 0, -2)
+    b.sub:SetPoint("TOPRIGHT", b.text, "BOTTOMRIGHT", 0, -2)
+    b.sub:SetJustifyH("CENTER")
+    b.sub:SetWordWrap(false)
+    -- the bottom row: the money and small icons of the items the quest gives on the left, the XP on the right
     b.xp = T.Text(b, "data", "muted")
-    b.xp:SetPoint("BOTTOMRIGHT", -NODE_PAD, 7)
+    b.xp:SetPoint("BOTTOMRIGHT", -NODE_PAD - 2, NODE_PAD - 1)
     b.xp:SetJustifyH("RIGHT")
-    -- the bottom-left of the box: the money, then small icons of the items the quest gives (textures, so a click still reaches the box)
     b.money = T.Text(b, "data", "muted")
-    b.money:SetPoint("BOTTOMLEFT", NODE_PAD, 7)
+    b.money:SetPoint("BOTTOMLEFT", NODE_PAD + 2, NODE_PAD - 1)
     b.money:SetJustifyH("LEFT")
     b.icons = {}
     for k = 1, NODE_ICONS do
@@ -191,13 +201,36 @@ local function getNodeButton(i)
     return b
 end
 
-local function getLine(i)
-    local l = lines[i]
-    if l then return l end
-    l = canvas:CreateLine(nil, "BACKGROUND")
-    l:SetThickness(2)
-    lines[i] = l
-    return l
+-- What a node says under its title, and in which color: the state when there is one to tell (completed, locked, lost,
+-- ready to turn in, in progress), else its level and the zone it starts in, in the game's difficulty color.
+local function nodeSubtitle(q, status, ready)
+    if status == "done" then
+        local alt = not C_QuestLog.IsQuestFlaggedCompleted(q.id) and ns.DoneByAltsText(q.id)
+        return alt and ns.L["Completed by %s"]:format(alt) or STATUS_LABELS.done, { T.rgba("gold") }
+    elseif status == "locked" or status == "missed" then
+        return STATUS_LABELS[status], { T.rgba("danger") }
+    elseif ready then
+        return ns.L["Ready to turn in"], { T.rgba("ready") }
+    elseif status == "active" then
+        return STATUS_LABELS.active, { T.rgba("active") }
+    end
+    local level = q.level or q.minLevel
+    local zone = q.start and q.start.area and C_Map.GetAreaInfo(q.start.area)
+    local text = ((level and ("[" .. level .. "] ") or "") .. (zone or "")):gsub(" $", "")
+    return text, level and { ns.QuestLevelColorRGB(level) } or { T.rgba("muted") }
+end
+
+-- The connections' pieces, reused between redraws: rails (tiled along a straight run), the gems at their bends and
+-- the arrowheads into a quest.
+local RAIL_W, RAIL_PERIOD = 7, 112 -- thickness, and the length one repeat of the rail's picture takes
+local RAIL_RUNES, RAIL_IRON = T.MEDIA .. "RailRunes", T.MEDIA .. "RailIron"
+local function pooled(pool, i, layer, file)
+    local t = pool[i]
+    if t then return t end
+    t = canvas:CreateTexture(nil, layer)
+    if file then t:SetTexture(file) end
+    pool[i] = t
+    return t
 end
 
 -- Tree filters: options saved in ns.char.filters + the search text.
@@ -205,8 +238,6 @@ local HIGH_LEVEL_ALPHA, LOW_LEVEL_ALPHA = 0.5, 0.72
 -- with a quest selected: whatever isn't part of its chain is dimmed; its path goes green
 local OFF_CHAIN_ALPHA, OFF_CHAIN_LINE_ALPHA = 0.3, 0.2
 local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.35, 1.6, 1.15
-local CHAIN_COLOR = { T.rgba("ready") }
-local GOLD_LINE, FUTURE_LINE = { T.rgba("gold") }, { T.rgba("muted") }
 local searchText = ""
 local searchBox
 -- Chain view: picking a quest of a chain (in the tree, a search result, "View chain", another addon) shows that chain
@@ -444,25 +475,32 @@ local function renderTree(d)
         i = i + 1
         local b = getNodeButton(i)
         local status, reasons = ns.QuestStatus(n.quest)
-        local c = STATUS_COLORS[status]
         b.quest, b.status, b.reasons = n.quest, status, reasons
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", canvas, "TOPLEFT", nx, -ny)
-        T.SliceColor(b.glow, c[1], c[2], c[3], 0.85)
-        b.glowFrame:SetShown(status ~= "locked")
-        if status == "active" then
+        -- the frame and the halo by state: the quest whose details are open in gold with a bright halo; done in
+        -- bronze with a soft gold one; locked or lost in rusty iron and chains (lost with a faint red one); the rest in
+        -- iron with a green halo, which pulses on the quest in the log
+        local picked = ns.Detail_Current() and ns.Detail_Current().id == n.quest.id
+        local file = picked and FRAMES.gold or status == "done" and FRAMES.bronze
+            or (status == "locked" or status == "missed") and FRAMES.locked or FRAMES.iron
+        if b.frameFile ~= file then
+            for _, tex in ipairs(b.plate) do tex:SetTexture(file) end
+            b.frameFile = file
+        end
+        local halo, haloAlpha
+        if picked then halo, haloAlpha = "goldLight", 1
+        elseif status == "done" then halo, haloAlpha = "gold", 0.5
+        elseif status == "missed" then halo, haloAlpha = "danger", 0.45
+        elseif status ~= "locked" then halo, haloAlpha = "ready", 0.8 end
+        b.glowFrame:SetShown(halo ~= nil)
+        if halo then T.SliceColor(b.glow, T.rgba(halo, haloAlpha)) end
+        if status == "active" and not picked then
             if not b.pulse:IsPlaying() then b.pulse:Play() end
         else
             b.pulse:Stop()
             b.glowFrame:SetAlpha(1)
         end
-        -- the quest whose details are open: the gold frame
-        local picked = ns.Detail_Current() and ns.Detail_Current().id == n.quest.id
-        if picked and not b.goldBorder then T.ApplyGoldBorder(b, 12, 2) end
-        if b.goldBorder then T.SetGoldBorderShown(b, picked) end
-        local locked = status == "locked"
-        b.lock:SetShown(locked)
-        b.text:SetPoint("TOPLEFT", locked and NODE_PAD + 14 or NODE_PAD, -NODE_PAD + 2)
         local elite = ns.IsEliteQuest(n.quest.id)
         b.elite = elite
         if elite then
@@ -481,19 +519,22 @@ local function renderTree(d)
         b.readyToTurnIn = status == "active" and ns.IsReadyToTurnIn(n.quest.id)
         b.ready:SetShown(b.readyToTurnIn)
         b.text:SetText(ns.QuestTitle(n.quest.id, n.quest.name))
+        local sub, subColor = nodeSubtitle(n.quest, status, b.readyToTurnIn)
+        b.sub:SetText(sub)
+        b.sub:SetTextColor(subColor[1], subColor[2], subColor[3])
         local xp = ns.QuestXP(n.quest.id)
         b.xp:SetText(xp > 0 and ("%s %s"):format(BreakUpLargeNumbers and BreakUpLargeNumbers(xp) or xp, ns.L["XP"]) or "")
         local reward = ns.REWARDS and ns.REWARDS[n.quest.id]
         b.money:SetText(reward and reward.money and ns.CoinString(reward.money) or "")
         -- the item icons go after the money while they fit before the XP
-        local x = NODE_PAD + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
-        local limit = NODE_W - NODE_PAD - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
+        local x = NODE_PAD + 2 + (reward and reward.money and b.money:GetStringWidth() + 4 or 0)
+        local limit = NODE_W - NODE_PAD - 2 - (xp > 0 and b.xp:GetStringWidth() + 4 or 0)
         local ids = reward and ns.RewardItemIds(reward) or {}
         for k, icon in ipairs(b.icons) do
             local itemId = ids[k]
             if itemId and x + NODE_ICON <= limit then
                 icon:ClearAllPoints()
-                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, 6)
+                icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, NODE_PAD - 3)
                 icon.itemID = itemId
                 icon.tex:SetTexture(itemIcon(itemId))
                 icon:Show()
@@ -502,7 +543,7 @@ local function renderTree(d)
                 icon:Hide()
             end
         end
-        -- locked ones stay readable: muted slate, not dark grey on black
+        -- locked ones stay readable: muted slate, not dark grey on the stone
         if status == "locked" or status == "missed" then
             b.text:SetTextColor(T.rgba("muted"))
         elseif n.quest.repeatable then
@@ -523,68 +564,111 @@ local function renderTree(d)
         byId[id] = b
     end
 
-    -- Connections run through the gaps between boxes: down from the middle of the parent's bottom edge to the gap
-    -- under it, across that gap, and down into the middle of the child's top edge. A child more than one depth
-    -- below goes down the corridor beside its own column first. Lines out of the same parent share a trunk; each
-    -- parent's crossing takes its own lane in the gap, so they don't run on top of each other.
-    local segCount = 0
-    local lineAlpha, lineThickness = 0.85, 2
-    local function segment(x1, y1, x2, y2, c)
+    -- Connections run through the gaps between boxes, as iron rails: down from the middle of the parent's bottom
+    -- edge to the gap under it, across that gap, and down into the middle of the child's top edge, where an arrowhead
+    -- points in. A child more than one depth below goes down the corridor beside its own column first. Each bend
+    -- has a gem. Lines out of the same parent share a trunk; each parent's crossing takes its own lane in the gap.
+    -- The path the player has walked (out of a done quest) and the selected quest's chain are rails with glowing
+    -- runes; what is still ahead is plain iron.
+    local railCount, gemCount, arrowCount = 0, 0, 0
+    local railFile, railAlpha = RAIL_IRON, 1
+    local function rail(x1, y1, x2, y2)
         if x1 == x2 and y1 == y2 then return end
-        segCount = segCount + 1
-        local l = getLine(segCount)
-        l:SetThickness(lineThickness)
-        l:SetColorTexture(c[1], c[2], c[3], lineAlpha)
-        l:SetStartPoint("TOPLEFT", canvas, x1, -y1)
-        l:SetEndPoint("TOPLEFT", canvas, x2, -y2)
-        l:Show()
+        railCount = railCount + 1
+        local t = pooled(rails, railCount, "BORDER")
+        t:SetTexture(railFile, "REPEAT", "REPEAT")
+        t:SetAlpha(railAlpha)
+        t:ClearAllPoints()
+        local half = RAIL_W / 2
+        if y1 == y2 then
+            local len = math.abs(x2 - x1) + RAIL_W
+            t:SetPoint("TOPLEFT", canvas, "TOPLEFT", math.min(x1, x2) - half, -(y1 - half))
+            t:SetSize(len, RAIL_W)
+            t:SetTexCoord(0, len / RAIL_PERIOD, 0, 1)
+        else
+            -- a vertical run: the picture turned a quarter, so its runes run along it
+            local len = math.abs(y2 - y1) + RAIL_W
+            local k = len / RAIL_PERIOD
+            t:SetPoint("TOPLEFT", canvas, "TOPLEFT", x1 - half, -(math.min(y1, y2) - half))
+            t:SetSize(RAIL_W, len)
+            t:SetTexCoord(0, 0, k, 0, 0, 1, k, 1)
+        end
+        t:Show()
     end
-    local function lane(k) return ((k % 5) - 2) * 4 end
-    local function drawEdge(e, c)
+    local function gem(x, y)
+        gemCount = gemCount + 1
+        local t = pooled(gems, gemCount, "ARTWORK", T.MEDIA .. "RailGem")
+        t:SetSize(14, 14)
+        t:SetAlpha(railAlpha)
+        t:ClearAllPoints()
+        t:SetPoint("CENTER", canvas, "TOPLEFT", x, -y)
+        t:Show()
+    end
+    local function arrow(x, y)
+        arrowCount = arrowCount + 1
+        local t = pooled(arrows, arrowCount, "ARTWORK", T.MEDIA .. "RailArrow")
+        t:SetSize(16, 16)
+        t:SetAlpha(railAlpha)
+        t:ClearAllPoints()
+        t:SetPoint("BOTTOM", canvas, "TOPLEFT", x, -y)
+        t:Show()
+    end
+    local function lane(k) return ((k % 5) - 2) * 5 end
+    local function drawEdge(e)
         local a, b = layout.nodes[e.from], layout.nodes[e.to]
         local ax, ay = posOf(a)
         local bx, by = posOf(b)
         local xA, yA = ax + NODE_W / 2, ay + NODE_H
         local xB, yB = bx + NODE_W / 2, by
         if b.col <= a.col then
-            segment(xA, yA, xB, yB, c) -- shouldn't happen (a child above or beside its parent)
+            -- shouldn't happen (a child above or beside its parent): across, then down
+            rail(xA, yA, xB, yA)
+            rail(xB, yA, xB, yB)
         else
             local yGap = yA + GAP_Y / 2 + lane(a.row) -- the gap under the parent
             if b.col == a.col + 1 then
-                segment(xA, yA, xA, yGap, c)
-                segment(xA, yGap, xB, yGap, c)
-                segment(xB, yGap, xB, yB, c)
+                rail(xA, yA, xA, yGap)
+                rail(xA, yGap, xB, yGap)
+                rail(xB, yGap, xB, yB)
+                if xA ~= xB then
+                    gem(xA, yGap)
+                    gem(xB, yGap)
+                end
             else
                 local xSide = bx - GAP_X / 2 + lane(a.col) / 2 -- the corridor left of the child's column
                 local yAbove = yB - GAP_Y / 2 + lane(a.col) -- the gap above the child
-                segment(xA, yA, xA, yGap, c)
-                segment(xA, yGap, xSide, yGap, c)
-                segment(xSide, yGap, xSide, yAbove, c)
-                segment(xSide, yAbove, xB, yAbove, c)
-                segment(xB, yAbove, xB, yB, c)
+                rail(xA, yA, xA, yGap)
+                rail(xA, yGap, xSide, yGap)
+                rail(xSide, yGap, xSide, yAbove)
+                rail(xSide, yAbove, xB, yAbove)
+                rail(xB, yAbove, xB, yB)
+                gem(xA, yGap)
+                gem(xSide, yGap)
+                gem(xSide, yAbove)
+                gem(xB, yAbove)
             end
         end
-        -- an arrowhead where it enters the child: which way the chain goes
-        segment(xB - 4, yB - 6, xB, yB, c)
-        segment(xB + 4, yB - 6, xB, yB, c)
+        arrow(xB, yB + 3)
     end
-    -- first the normal connections (fainter with a quest selected): gold where the player has been (out of a done
-    -- quest), translucent slate towards what is still ahead; on top the selected path's, in green
+    -- first what is ahead (fainter with a quest selected), then on top the walked path and the selected chain
     for _, e in ipairs(layout.edges) do
-        if not (chainSet and chainSet[e.from] and chainSet[e.to]) then
-            local walked = byId[e.from].status == "done"
-            lineAlpha, lineThickness = chainSet and OFF_CHAIN_LINE_ALPHA or (walked and 0.9 or 0.45), 2
-            drawEdge(e, walked and GOLD_LINE or FUTURE_LINE)
+        local inChain = chainSet and chainSet[e.from] and chainSet[e.to]
+        if not inChain and byId[e.from].status ~= "done" then
+            railFile, railAlpha = RAIL_IRON, chainSet and OFF_CHAIN_LINE_ALPHA or 0.9
+            drawEdge(e)
         end
     end
-    if chainSet then
-        lineAlpha, lineThickness = 1, 3
-        for _, e in ipairs(layout.edges) do
-            if chainSet[e.from] and chainSet[e.to] then drawEdge(e, CHAIN_COLOR) end
+    for _, e in ipairs(layout.edges) do
+        local inChain = chainSet and chainSet[e.from] and chainSet[e.to]
+        if inChain or byId[e.from].status == "done" then
+            railFile, railAlpha = RAIL_RUNES, (chainSet and not inChain) and OFF_CHAIN_LINE_ALPHA or 1
+            drawEdge(e)
         end
     end
     for k = i + 1, #nodeButtons do nodeButtons[k]:Hide() end
-    for k = segCount + 1, #lines do lines[k]:Hide() end
+    for k = railCount + 1, #rails do rails[k]:Hide() end
+    for k = gemCount + 1, #gems do gems[k]:Hide() end
+    for k = arrowCount + 1, #arrows do arrows[k]:Hide() end
     if treeBarUpdate then treeBarUpdate() end
 end
 
@@ -1674,6 +1758,18 @@ local function createFrame()
     canvas:SetSize(1, 1)
     treeScroll:SetScrollChild(holder)
     frame.treeScroll = treeScroll
+    -- behind the tree, still as it scrolls and zooms: a faint runic sigil, added onto the stone
+    local sigil = treeScroll:CreateTexture(nil, "BACKGROUND")
+    sigil:SetTexture(T.MEDIA .. "TreeSigil")
+    sigil:SetBlendMode("ADD")
+    sigil:SetAlpha(0.4)
+    sigil:SetPoint("CENTER")
+    sigil:SetSize(400, 400)
+    treeScroll:HookScript("OnSizeChanged", function(self)
+        local side = math.min(self:GetWidth() or 0, self:GetHeight() or 0) * 0.95
+        if side > 0 then sigil:SetSize(side, side) end
+    end)
+    frame.treeSigil = sigil
 
     -- the chain view's way back to the whole tree: in the toolbar, after the filters (never over the tree)
     local back = T.CreateGhostButton(body, ns.L["Back to all quests"], 150, 22)

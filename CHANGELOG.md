@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed: zoomed out, the quest names in the tree were too small to read. Below 75 % each quest shows its name alone, bigger and on up to two lines (hover it for the rest).
 - Fixed: on Russian, Korean and Chinese clients, quest and zone names showed as empty boxes in the new window; the text now uses the game's own font for the client's language.
 
 ## 2.0.0

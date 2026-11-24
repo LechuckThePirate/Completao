@@ -101,7 +101,10 @@ local function saveList()
 end
 
 -- Stacks the pins top to bottom under the first one's own position; each one's height depends on whether it (and
--- only it) is expanded, and (expanded) on its own saved size.
+-- only it) is expanded, and (expanded) on its own saved size. Sizes are re-applied every time (live, while the
+-- grip is dragged), but a pin's anchor is only touched when its place in the stack actually changes -- top pin, or
+-- which pin it now follows -- never on every call, or a resize in progress would re-anchor the very pin being
+-- resized back to its last saved position each tick, undoing a move that hasn't been dragged-and-dropped again.
 local function layoutStack()
     local prev
     for _, id in ipairs(order) do
@@ -111,11 +114,16 @@ local function layoutStack()
         p.frame:SetSize(p.w, h)
         p.scrollArea:SetShown(expanded)
         p.grip:SetShown(expanded)
-        p.frame:ClearAllPoints()
-        if prev then
+        if prev == nil then
+            if p.stackedUnder ~= nil then
+                p.frame:ClearAllPoints()
+                applyPosition(p.frame)
+                p.stackedUnder = nil
+            end
+        elseif p.stackedUnder ~= prev then
+            p.frame:ClearAllPoints()
             p.frame:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -GAP)
-        else
-            applyPosition(p.frame)
+            p.stackedUnder = prev
         end
         prev = p.frame
     end
@@ -195,6 +203,7 @@ end
 
 local function createPinFrame(p)
     p.w, p.treeH = p.w or DEFAULT_W, p.treeH or DEFAULT_TREE_H
+    p.stackedUnder = "unset" -- forces layoutStack's first call to anchor it, whichever role it gets
 
     local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
     frame:SetFrameStrata("MEDIUM")

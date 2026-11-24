@@ -151,6 +151,17 @@ describe("PinnedChains", function()
         assert.are.equal(newTreeH, ns.char.pinnedChains[1].treeH)
     end)
 
+    it("resizing never moves the window back to wherever it was last saved", function()
+        enterChain(10):Click()
+        local frame = ns.Pin_Frame(10)
+        frame:ClearAllPoints()
+        frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 400, -300) -- as if freshly dragged, not yet saved again
+        local grip = pinGrip(10)
+        dragGrip(grip, 40, 0)
+        local point, _, relPoint, x, y = frame:GetPoint(1)
+        assert.are.same({ "TOPLEFT", "TOPLEFT", 400, -300 }, { point, relPoint, x, y })
+    end)
+
     it("widening one pin widens the whole stack (so the bars line up); its height is its own", function()
         enterChain(10):Click()
         local _, _, treeH10Before = ns.Pin_Geometry(10)

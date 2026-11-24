@@ -66,13 +66,16 @@ function ns.Pin_Resizer()
 end
 
 -- Where the stack's top window sits; saved like the focus window's (ns.char.pinnedWindow).
+-- A corner anchor (never "RIGHT"/"CENTER"/...): with only one point pinned, growing the frame (the resize grip)
+-- would otherwise grow it from the middle outward on that axis, not from one edge like an ordinary window.
+local CORNERS = { TOPLEFT = true, TOPRIGHT = true, BOTTOMLEFT = true, BOTTOMRIGHT = true }
 local function applyPosition(frame)
     frame:ClearAllPoints()
     local saved = ns.char and ns.char.pinnedWindow
-    if saved then
+    if saved and CORNERS[saved.point] then
         frame:SetPoint(saved.point, UIParent, saved.relPoint, saved.x, saved.y)
     else
-        frame:SetPoint("RIGHT", UIParent, "RIGHT", -60, -140)
+        frame:SetPoint("TOPLEFT", UIParent, "TOPRIGHT", -340, -200)
     end
 end
 

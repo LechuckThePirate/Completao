@@ -90,12 +90,24 @@ describe("PinnedChains", function()
         return WowMock.Find(function(f) return f._kind == "ScrollFrame" and f._scrollChild == holder end)
     end
 
-    -- the pin's own resize grip (not the main window's, which looks the same)
+    -- the pin's own resize grip: a Button, child of its frame, with the size-grabber texture (its bar is also a
+    -- draggable Button there, so OnDragStart alone would match that instead)
     local function pinGrip(id)
         local pinFrame = ns.Pin_Frame(id)
         return WowMock.Find(function(f)
-            return f._kind == "Button" and f._parent == pinFrame and f._scripts.OnMouseDown and f._scripts.OnMouseUp
+            return f._kind == "Button" and f._parent == pinFrame and f._set.SetNormalTexture
+                and tostring(f._set.SetNormalTexture[1]):find("SizeGrabber") ~= nil
         end)
+    end
+
+    -- drags the grip by (dx, dy) screen pixels (WoW's own axes: x right, y up)
+    local function dragGrip(grip, dx, dy)
+        WowMock.cursor = { 0, 0 }
+        grip._scripts.OnDragStart(grip)
+        WowMock.cursor = { dx, dy }
+        local resizer = ns.Pin_Resizer()
+        resizer._scripts.OnUpdate(resizer, 0.05)
+        grip._scripts.OnDragStop(grip)
     end
 
     it("the wheel zooms the pinned tree, centered where it is", function()
@@ -126,18 +138,30 @@ describe("PinnedChains", function()
         assert.are_not.equal(before, scrollArea:GetHorizontalScroll())
     end)
 
-    it("the grip resizes the window; the new size is kept and saved", function()
+    it("the grip resizes the window (wider and taller); the new size is kept and saved", function()
         enterChain(10):Click()
         local _, w, treeH = ns.Pin_Geometry(10)
         local grip = pinGrip(10)
         assert.is_not_nil(grip)
-        grip:GetParent():SetSize(w + 60, treeH + 22 + 4 + 60)
-        grip._scripts.OnMouseUp(grip)
+        dragGrip(grip, 60, -60) -- right (wider) and down (WoW's y is up, so negative = down = taller)
         local _, newW, newTreeH = ns.Pin_Geometry(10)
         assert.are.equal(w + 60, newW)
         assert.are.equal(treeH + 60, newTreeH)
         assert.are.equal(newW, ns.char.pinnedChains[1].w)
         assert.are.equal(newTreeH, ns.char.pinnedChains[1].treeH)
+    end)
+
+    it("widening one pin widens the whole stack (so the bars line up); its height is its own", function()
+        enterChain(10):Click()
+        local _, _, treeH10Before = ns.Pin_Geometry(10)
+        ns.UI.chainBack:Click()
+        enterChain(2):Click() -- the accordion: 2 is now expanded, 10 folded
+        local grip = pinGrip(2)
+        dragGrip(grip, 60, 0)
+        local _, w2 = ns.Pin_Geometry(2)
+        local _, w10, treeH10 = ns.Pin_Geometry(10)
+        assert.are.equal(w2, w10) -- the folded pin widened too
+        assert.are.equal(treeH10Before, treeH10) -- but its own tree height is untouched
     end)
 
     it("survives a /reload: saved pins are restored", function()

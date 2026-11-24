@@ -22,6 +22,13 @@ local pins = {}  -- [questId] = { entryId, questId, frame, bar, scrollArea, hold
 local order = {} -- questId, in pin order (top to bottom; mirrors ns.char.pinnedChains)
 local ready = false -- the quest log is loaded (see restore, at the end)
 
+-- Dragging the grip: like panning (below), driven by OnUpdate rather than StartSizing/StopMovingOrSizing, which
+-- some clients don't fire reliably for a frame anchored to another floating frame instead of UIParent. One grip is
+-- ever visible at a time (only the expanded pin has one), so one dragger, shared, is enough. Widening or narrowing
+-- (not the height) is applied to every pin, so the stack's bars stay the same width as its tree.
+local resizer = CreateFrame("Frame", nil, UIParent)
+resizer:Hide()
+
 local function questDef(id)
     local def = ns.FindQuestDef(id)
     if def then return def end
@@ -51,6 +58,11 @@ end
 -- The pin's own floating frame (its bar, scroll area, resize grip...); used by tests.
 function ns.Pin_Frame(questId)
     return pins[questId] and pins[questId].frame
+end
+
+-- The grip's shared drag-driver (see createPinFrame); used by tests to tick a resize in progress.
+function ns.Pin_Resizer()
+    return resizer
 end
 
 -- Where the stack's top window sits; saved like the focus window's (ns.char.pinnedWindow).
@@ -119,6 +131,20 @@ local function syncPinHolder(p)
     p.treeView.canvas:SetPoint("TOPLEFT", p.holder, "TOPLEFT", p.offX / scale, -p.offY / scale)
 end
 
+-- Live, while the grip is dragged (see createPinFrame): wider or narrower applies to the whole stack, taller or
+-- shorter only to the pin being resized.
+resizer:SetScript("OnUpdate", function(self)
+    local p = self.pin
+    local cx, cy = GetCursorPosition()
+    local scale = p.frame:GetEffectiveScale()
+    local w = math.max(MIN_W, math.min(MAX_W, self.startW + (cx - self.startX) / scale))
+    local treeH = math.max(MIN_TREE_H, math.min(MAX_TREE_H, self.startTreeH + (self.startY - cy) / scale))
+    for _, id in ipairs(order) do pins[id].w = w end
+    p.treeH = treeH
+    layoutStack()
+    syncPinHolder(p)
+end)
+
 local function scrollTo(p, x, y)
     local maxX = math.max(0, p.holder:GetWidth() - p.scrollArea:GetWidth())
     local maxY = math.max(0, p.holder:GetHeight() - p.scrollArea:GetHeight())
@@ -174,14 +200,6 @@ local function createPinFrame(p)
     frame:SetBackdropColor(T.rgba("obsidian", 0.9))
     frame:SetBackdropBorderColor(T.rgba("brass", 0.9))
     frame:SetMovable(true)
-    frame:SetResizable(true)
-    local minH, maxH = BAR_H + GAP + MIN_TREE_H, BAR_H + GAP + MAX_TREE_H
-    if frame.SetResizeBounds then
-        frame:SetResizeBounds(MIN_W, minH, MAX_W, maxH)
-    else
-        frame:SetMinResize(MIN_W, minH)
-        frame:SetMaxResize(MAX_W, maxH)
-    end
 
     -- the bar: the quest's name and an unpin (x); clicking it (not the x) folds/unfolds the tree
     local bar = CreateFrame("Button", nil, frame)
@@ -276,14 +294,16 @@ local function createPinFrame(p)
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-    grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end)
-    grip:SetScript("OnMouseUp", function()
-        frame:StopMovingOrSizing()
-        p.w = math.max(MIN_W, math.min(MAX_W, frame:GetWidth()))
-        p.treeH = math.max(MIN_TREE_H, math.min(MAX_TREE_H, frame:GetHeight() - BAR_H - GAP))
-        syncPinHolder(p)
+    grip:RegisterForDrag("LeftButton")
+    grip:SetScript("OnDragStart", function()
+        resizer.pin = p
+        resizer.startX, resizer.startY = GetCursorPosition()
+        resizer.startW, resizer.startTreeH = p.w, p.treeH
+        resizer:Show()
+    end)
+    grip:SetScript("OnDragStop", function()
+        resizer:Hide()
         saveList()
-        layoutStack()
     end)
     p.grip = grip
 

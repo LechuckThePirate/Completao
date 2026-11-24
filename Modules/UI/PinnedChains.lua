@@ -234,10 +234,13 @@ local function createPinFrame(p)
         if order[1] == p.questId then savePosition(frame) end
     end)
 
-    -- the tree: scrollable (wheel zoom, drag to pan), like the main window's, but its own per pin
+    -- the tree: scrollable (wheel zoom, drag to pan), like the main window's, but its own per pin. A corner short
+    -- of the grip (below): the main window's own grip sits clear of its treeScroll the same way, so the scroll
+    -- area's mouse handling never competes with it for the click.
+    local GRIP_SIZE = 16
     local scrollArea = CreateFrame("ScrollFrame", nil, frame)
     scrollArea:SetPoint("TOPLEFT", 0, -(BAR_H + GAP))
-    scrollArea:SetPoint("BOTTOMRIGHT", 0, 0)
+    scrollArea:SetPoint("BOTTOMRIGHT", -GRIP_SIZE, GRIP_SIZE)
     scrollArea:EnableMouse(true)
     scrollArea:RegisterForDrag("LeftButton")
     p.scrollArea = scrollArea
@@ -287,10 +290,13 @@ local function createPinFrame(p)
     end)
     scrollArea:HookScript("OnSizeChanged", function() syncPinHolder(p) end)
 
-    -- the resize grip: the whole window grows or shrinks (the tree area, under the bar); saved once released
+    -- the resize grip: the whole window grows or shrinks (the tree area, under the bar); saved once released.
+    -- Clear of the scroll area (above) and raised well over it, so it always gets the click, never the tree
+    -- scrolling underneath it.
     local grip = CreateFrame("Button", nil, frame)
-    grip:SetSize(16, 16)
-    grip:SetPoint("BOTTOMRIGHT", -3, 3)
+    grip:SetSize(GRIP_SIZE, GRIP_SIZE)
+    grip:SetPoint("BOTTOMRIGHT", 0, 0)
+    grip:SetFrameLevel(scrollArea:GetFrameLevel() + 10)
     grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
     grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
     grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")

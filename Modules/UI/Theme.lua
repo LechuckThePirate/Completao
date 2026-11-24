@@ -36,14 +36,21 @@ T.colors = {
     sienna = hex("7A3510"), -- headings and marks on parchment
 }
 
+-- FRIZQT__.TTF has no Cyrillic, Korean or Chinese glyphs, and quest and zone names come in the client's language, so the
+-- text takes the client's own standard font (FRIZQT__.TTF on the Latin clients, FRIZQT___CYR.TTF on ruRU, their own
+-- file on koKR / zhCN / zhTW). The logo and the numbers are Latin text, but the Asian clients may lack those files.
+local STANDARD = _G.STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+local ASIAN = { koKR = true, zhCN = true, zhTW = true }
+local asian = GetLocale and ASIAN[GetLocale()]
+
 T.fonts = {
-    logo = { "Fonts\\MORPHEUS.TTF", 17 },
-    title = { "Fonts\\FRIZQT__.TTF", 15 },
-    heading = { "Fonts\\FRIZQT__.TTF", 12 },
-    quest = { "Fonts\\FRIZQT__.TTF", 11 },
-    body = { "Fonts\\FRIZQT__.TTF", 11 },
-    small = { "Fonts\\FRIZQT__.TTF", 10 },
-    data = { "Fonts\\ARIALN.TTF", 11 },
+    logo = { asian and STANDARD or "Fonts\\MORPHEUS.TTF", 17 },
+    title = { STANDARD, 15 },
+    heading = { STANDARD, 12 },
+    quest = { STANDARD, 11 },
+    body = { STANDARD, 11 },
+    small = { STANDARD, 10 },
+    data = { asian and STANDARD or "Fonts\\ARIALN.TTF", 11 },
 }
 
 -- r, g, b, a of a palette color (alpha overridden when given).

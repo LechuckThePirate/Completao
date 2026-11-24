@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: on Russian, Korean and Chinese clients, quest and zone names showed as empty boxes in the new window; the text now uses the game's own font for the client's language.
+
 ## 2.0.0
 
 - New: `/completao shots [entry id]` takes the screenshots of the CurseForge page by itself (main window, chain, details, full-screen tree, list, search, log, tracked, focus window, each preferences tab, minimap button, TomTom arrow and map marker); after a `/reload`, `node tools/shots.mjs` crops them into `images/screencaps/`.

@@ -11,6 +11,7 @@
     <Script file="Modules\UI\BlizzardTracker.lua"/>
     <Script file="Modules\UI\TreeView.lua"/>
     <Script file="Modules\UI\MainWindow.lua"/>
+    <Script file="Modules\UI\PinnedChains.lua"/>
     <Script file="Modules\UI\Preferences.lua"/>
     <Script file="Modules\UI\Welcome.lua"/>
     <Script file="Modules\UI\MinimapButton.lua"/>

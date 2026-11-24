@@ -142,6 +142,43 @@ local FRAMES = {
     iron = T.MEDIA .. "NodeIron", bronze = T.MEDIA .. "NodeBronze", locked = T.MEDIA .. "NodeLocked", gold = T.MEDIA .. "NodeGold",
 }
 
+-- Zoomed out, the canvas shrinks the text with the plates and the titles can't be read. So below COMPACT_ZOOM a node
+-- shows its title alone, centered and wrapped on up to two lines, in a font that grows as the zoom falls (until two
+-- lines fill the plate); the state still shows in the frame, the halo and the corner marks, the rest in the tooltip.
+local COMPACT_ZOOM, TITLE_SCREEN_SIZE, TITLE_MAX_SIZE = 0.75, 10, 22
+local nodeZoom = 1
+
+function ns.UI_NodeTitleSize(zoom)
+    local base = T.fonts.quest[2]
+    if zoom >= COMPACT_ZOOM then return base end
+    return math.min(TITLE_MAX_SIZE, math.max(base, TITLE_SCREEN_SIZE / zoom))
+end
+
+-- The node's text for the current zoom: the full plate, or the title alone (see COMPACT_ZOOM).
+local function fitNodeText(b)
+    local compact = nodeZoom < COMPACT_ZOOM
+    b.text:SetFont(T.fonts.quest[1], ns.UI_NodeTitleSize(nodeZoom), "")
+    if b.compact ~= compact then
+        b.compact = compact
+        b.text:ClearAllPoints()
+        if compact then
+            -- the corner ornaments are behind: the middle of the sides leaves a little more room
+            b.text:SetPoint("LEFT", NODE_PAD_X - 6, 0)
+            b.text:SetPoint("RIGHT", -(NODE_PAD_X - 6), 0)
+        else
+            b.text:SetPoint("TOPLEFT", NODE_PAD_X, -NODE_PAD_TOP)
+            b.text:SetPoint("TOPRIGHT", -NODE_PAD_X, -NODE_PAD_TOP)
+        end
+        b.text:SetWordWrap(compact)
+        if b.text.SetMaxLines then b.text:SetMaxLines(compact and 2 or 0) end
+        b.veil:SetPoint("BOTTOMRIGHT", compact and b.text or b.sub, "BOTTOMRIGHT", 6, -2)
+        b.sub:SetShown(not compact)
+        b.xp:SetShown(not compact)
+        b.money:SetShown(not compact)
+    end
+    for _, icon in ipairs(b.icons) do icon:SetShown(icon.wanted and not compact) end
+end
+
 local function getNodeButton(i)
     local b = nodeButtons[i]
     if b then return b end
@@ -515,17 +552,16 @@ local function renderTree(d)
         local ids = reward and ns.RewardItemIds(reward) or {}
         for k, icon in ipairs(b.icons) do
             local itemId = ids[k]
-            if itemId and x + NODE_ICON <= limit then
+            icon.wanted = itemId and x + NODE_ICON <= limit
+            if icon.wanted then
                 icon:ClearAllPoints()
                 icon:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", x, NODE_PAD_BOTTOM - 2)
                 icon.itemID = itemId
                 icon.tex:SetTexture(itemIcon(itemId))
-                icon:Show()
                 x = x + NODE_ICON + 2
-            else
-                icon:Hide()
             end
         end
+        fitNodeText(b)
         -- locked ones stay readable: muted slate, not dark grey on the stone
         if status == "locked" or status == "missed" then
             b.text:SetTextColor(T.rgba("muted"))
@@ -1922,7 +1958,13 @@ local function createFrame()
     -- Tree zoom: the canvas is scaled; saved with the settings.
     local zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, ns.char.zoom or 1))
     canvas:SetScale(zoom)
+    nodeZoom = zoom
     syncHolder()
+    -- the nodes' text follows the zoom (see COMPACT_ZOOM)
+    local function setNodeZoom(z)
+        nodeZoom = z
+        for _, b in ipairs(nodeButtons) do fitNodeText(b) end
+    end
 
     local function maxScroll(self)
         return math.max(0, holder:GetWidth() - self:GetWidth()), math.max(0, holder:GetHeight() - self:GetHeight())
@@ -1942,6 +1984,7 @@ local function createFrame()
         zoom = math.max(ZOOM_MIN, math.min(ZOOM_MAX, z))
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
+        setNodeZoom(zoom)
         syncHolder()
         treeBarUpdate()
         scrollTo(treeScroll, 0, 0)
@@ -1966,6 +2009,7 @@ local function createFrame()
         zoom = newZoom
         ns.char.zoom = zoom
         canvas:SetScale(zoom)
+        setNodeZoom(zoom)
         syncHolder()
         treeBarUpdate()
         scrollTo(treeScroll, offX + contentX * zoom - cx, offY + contentY * zoom - cy)

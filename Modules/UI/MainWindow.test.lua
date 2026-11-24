@@ -908,6 +908,48 @@ describe("MainWindow", function()
         assert.are.equal(0.35, ns.char.zoom)
     end)
 
+    describe("the nodes' text at each zoom", function()
+        local function aNode()
+            local byId = ShownNodes()
+            local _, b = next(byId)
+            return b
+        end
+        after_each(function() ns.UI_SetZoom(1) end)
+
+        it("shows the whole plate at 100%", function()
+            local b = aNode()
+            assert.are.equal(11, select(2, b.text:GetFont()))
+            assert.is_true(b.sub:IsShown())
+            assert.is_true(b.xp:IsShown())
+        end)
+
+        it("zoomed out, shows the title alone, bigger and on up to two lines", function()
+            ns.UI_SetZoom(0.5)
+            local b = aNode()
+            assert.are.equal(20, select(2, b.text:GetFont())) -- 10 on screen
+            assert.is_false(b.sub:IsShown())
+            assert.is_false(b.xp:IsShown())
+            assert.is_false(b.money:IsShown())
+            for _, icon in ipairs(b.icons) do assert.is_false(icon:IsShown()) end
+            assert.is_true(b.text._set.SetWordWrap[1])
+            assert.are.equal(2, b.text._set.SetMaxLines[1])
+        end)
+
+        it("the title grows only until two lines fill the plate", function()
+            assert.are.equal(22, ns.UI_NodeTitleSize(0.35))
+            assert.are.equal(11, ns.UI_NodeTitleSize(0.8))
+        end)
+
+        it("zooming back in brings the plate back", function()
+            ns.UI_SetZoom(0.4)
+            ns.UI_SetZoom(1)
+            local b = aNode()
+            assert.are.equal(11, select(2, b.text:GetFont()))
+            assert.is_true(b.sub:IsShown())
+            assert.is_false(b.text._set.SetWordWrap[1])
+        end)
+    end)
+
     describe("the tree's scroll bar", function()
         local scroll, canvas, holder
         -- where the tree ends on the right: -8 without the bar, -32 with it

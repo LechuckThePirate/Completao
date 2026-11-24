@@ -80,7 +80,7 @@ local function scenes(ctx)
     add({ name = "quest_details", frames = function() return { ns.Detail_Frame() } end, setup = function()
         if not (ns.Detail_Current() and ns.Detail_Frame() and ns.Detail_Frame():IsShown()) then return false end
     end })
-    add({ name = "tree_fullscreen", setup = function()
+    add({ name = "tree_fullscreen", frames = window, pad = { 0, 0, 0, 0 }, setup = function()
         ensureWindow()
         ns.UI_SelectEntry(ctx.entry)
         ns.UI_SetTreeFullscreen(true)
@@ -109,7 +109,11 @@ local function scenes(ctx)
         if not ns.Focus_Quest() then ns.Focus_Auto() end
         if not ns.Focus_Quest() then return false end
         ns.shotsChrome = true -- its title bar shows with the mouse over it only: for the picture, always
-    end, cleanup = function() ns.shotsChrome = nil end })
+        if ns.UI then ns.UI:Hide() end -- the main window would cover it
+    end, cleanup = function()
+        ns.shotsChrome = nil
+        if ns.UI then ns.UI:Show() end
+    end })
     local tabs = { "general", "interface", "tracker", "profile" }
     for index, name in ipairs(tabs) do
         add({ name = "preferences_" .. name, frames = function() return { _G.CompletaoPreferencesFrame } end, setup = function()
@@ -130,12 +134,14 @@ local function scenes(ctx)
         if not (q and _G.TomTom and ns.CanWaypoint(q.start)) then return false end
         ns.SetWaypoint(q.start, q.name)
     end })
-    add({ name = "map_marker", setup = function()
+    add({ name = "map_marker", frames = function() return { _G.WorldMapFrame } end, pad = { 20, 20, 20, 20 }, setup = function()
         local q = questOf(ns.entries[ctx.entry], function(candidate) return candidate.start and candidate.start.x end)
         if not (q and ns.CanShowMap(q.start)) then return false end
         ns.ShowOnMap(q.start, q.name)
+        if ns.UI then ns.UI:Hide() end -- keep the picture to the map
     end, cleanup = function()
         if _G.WorldMapFrame and _G.WorldMapFrame:IsShown() then pcall(_G.WorldMapFrame.Hide, _G.WorldMapFrame) end
+        if ns.UI then ns.UI:Show() end
     end })
     return list
 end

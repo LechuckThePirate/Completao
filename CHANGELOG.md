@@ -6,6 +6,7 @@
 - Fixed: on Russian, Korean and Chinese clients, quest and zone names showed as empty boxes in the new window; the text now uses the game's own font for the client's language.
 - New: the focus window can use a parchment background instead of obsidian (Preferences, Tracker & Waypoints tab).
 - Fixed: the focus window's parchment background had too little margin and too little contrast to read; its burnt rim is now thinner and the text sits further clear of it.
+- Fixed: the focus window's title on parchment was still hard to read on grey or pale quests; it now darkens further.
 
 ## 2.0.0
 

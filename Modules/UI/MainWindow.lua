@@ -130,6 +130,7 @@ local function chainMembers(d, id)
     end
     return set
 end
+ns.ChainMembers = chainMembers -- read by PinnedChains.lua, to render a pinned chain on its own
 
 -- The chain of quest `id` in entry `d`, for the chain view; nil for a loose quest (a chain of one).
 local function chainFor(d, id)
@@ -563,7 +564,14 @@ function ns.UI_Refresh()
     frame.refreshSummary() -- (the widgets above were all shown: the line shows only with filters on)
     if frame.chainBack:IsShown() ~= (focusChain ~= nil) then
         frame.chainBack:SetShown(focusChain ~= nil)
+        frame.pinButton:SetShown(focusChain ~= nil)
         frame.layoutToolbar() -- it takes its place in the toolbar, or gives it back
+    end
+    if focusChain then
+        local cur = ns.Detail_Current()
+        local pinned = cur and ns.Pin_IsPinned and ns.Pin_IsPinned(cur.id)
+        frame.pinButton:SetText(pinned and ns.L["Unpin"] or ns.L["Pin"])
+        frame.pinButton:SetEnabled(cur ~= nil)
     end
     -- in the chain view the title says which chain: its first quest
     local head = focusChain and chainHead(d, focusChain)
@@ -1358,6 +1366,19 @@ local function createFrame()
     back:SetScript("OnClick", function() ns.UI_LeaveChain() end)
     back:Hide()
     frame.chainBack = back
+
+    -- beside it, in the chain view: pins the chain into its own small floating window (PinnedChains.lua)
+    local pin = T.CreateGhostButton(body, ns.L["Pin"], 90, 22)
+    toolbarItems[#toolbarItems + 1] = { frame = pin, w = 90, h = 24, dy = 1 }
+    pin:SetScript("OnClick", function()
+        local d, cur = ns.entries[selectedId], ns.Detail_Current()
+        if d and cur then
+            ns.Pin_Toggle(d.id, cur.id)
+            ns.UI_Refresh() -- the button's label (Pin/Unpin) follows
+        end
+    end)
+    pin:Hide()
+    frame.pinButton = pin
     ns.Detail_Create(body, treeScroll, treeLeft(), frame.searchPanel)
     -- the tree's scroll bar only when it is taller than the view (the canvas is scaled by the zoom, which the
     -- client's own scroll range ignores)

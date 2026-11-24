@@ -84,6 +84,62 @@ describe("PinnedChains", function()
         assert.is_nil(ns.Focus_Quest())
     end)
 
+    -- the pin's ScrollFrame (wheel zoom, drag to pan): the one scrolling the pin's own holder
+    local function pinScrollArea(id)
+        local holder = ns.Pin_TreeView(id).canvas:GetParent()
+        return WowMock.Find(function(f) return f._kind == "ScrollFrame" and f._scrollChild == holder end)
+    end
+
+    -- the pin's own resize grip (not the main window's, which looks the same)
+    local function pinGrip(id)
+        local pinFrame = ns.Pin_Frame(id)
+        return WowMock.Find(function(f)
+            return f._kind == "Button" and f._parent == pinFrame and f._scripts.OnMouseDown and f._scripts.OnMouseUp
+        end)
+    end
+
+    it("the wheel zooms the pinned tree, centered where it is", function()
+        enterChain(10):Click()
+        local zoom = ns.Pin_Geometry(10)
+        local scrollArea = pinScrollArea(10)
+        assert.is_not_nil(scrollArea)
+        scrollArea._scripts.OnMouseWheel(scrollArea, 1) -- zoom in
+        assert.is_true(ns.Pin_Geometry(10) > zoom)
+        scrollArea._scripts.OnMouseWheel(scrollArea, -1)
+        scrollArea._scripts.OnMouseWheel(scrollArea, -1)
+        assert.is_true(ns.Pin_Geometry(10) < zoom)
+    end)
+
+    it("dragging the tree pans it (the scroll position changes)", function()
+        enterChain(10):Click()
+        local scrollArea = pinScrollArea(10)
+        -- zoom in first, so the canvas is bigger than the view and there is room to pan
+        for _ = 1, 3 do scrollArea._scripts.OnMouseWheel(scrollArea, 1) end
+        local before = scrollArea:GetHorizontalScroll()
+        WowMock.cursor = { 80, 0 }
+        scrollArea._scripts.OnDragStart(scrollArea)
+        WowMock.cursor = { 0, 0 } -- dragging left pans the (already left-most) view right, into new room
+        for _, f in ipairs(WowMock.frames) do
+            if f._parent == scrollArea and f._kind == "Frame" and f._scripts.OnUpdate then f._scripts.OnUpdate(f, 0.05) end
+        end
+        scrollArea._scripts.OnDragStop(scrollArea)
+        assert.are_not.equal(before, scrollArea:GetHorizontalScroll())
+    end)
+
+    it("the grip resizes the window; the new size is kept and saved", function()
+        enterChain(10):Click()
+        local _, w, treeH = ns.Pin_Geometry(10)
+        local grip = pinGrip(10)
+        assert.is_not_nil(grip)
+        grip:GetParent():SetSize(w + 60, treeH + 22 + 4 + 60)
+        grip._scripts.OnMouseUp(grip)
+        local _, newW, newTreeH = ns.Pin_Geometry(10)
+        assert.are.equal(w + 60, newW)
+        assert.are.equal(treeH + 60, newTreeH)
+        assert.are.equal(newW, ns.char.pinnedChains[1].w)
+        assert.are.equal(newTreeH, ns.char.pinnedChains[1].treeH)
+    end)
+
     it("survives a /reload: saved pins are restored", function()
         enterChain(2):Click()
         local saved = ns.char.pinnedChains

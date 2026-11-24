@@ -153,7 +153,7 @@ title, an **arrow that points to the step your waypoint is on, with the
 distance**, and the objectives below, each with a thin bar behind it that fills
 as you go ("Boars 3/7"), struck through once done. The waypoint goes on the
 nearest objective left and moves by itself as you finish them; with everything
-done the list turns into "Turn in <quest> (<npc>)". The title bar -- the padlock,
+done the list turns into `Turn in <quest> (<npc>)`. The title bar -- the padlock,
 the spyglass that puts the focus back on the nearest tracked quest, and the
 close button -- only shows while the mouse is over the window. Under the quest,
 **Also here** lists the other tracked quests with something to do by the same

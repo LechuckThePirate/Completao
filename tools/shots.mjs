@@ -51,13 +51,13 @@ mkdirSync(out, { recursive: true });
 const used = new Set();
 let done = 0;
 for (const shot of shots) {
-    if (only && !only.includes(shot.name)) continue;
     const file = files.find((f) => !used.has(f.path) && f.mtime >= shot.time - 1);
     if (!file) {
         console.log(`${shot.name}: no screenshot found after it was taken`);
         continue;
     }
-    used.add(file.path);
+    used.add(file.path); // also for the ones left out by --only, so the later shots match their own screenshots
+    if (only && !only.includes(shot.name)) continue;
     const probe = spawnSync("ffprobe", ["-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", file.path]);
     const [width, height] = probe.stdout.toString().trim().split(",").map(Number);
     const [l, t, r, b] = shot.rect;

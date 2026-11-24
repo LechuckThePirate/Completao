@@ -9,6 +9,7 @@
     <Script file="Modules\UI\Search.lua"/>
     <Script file="Modules\UI\FocusWindow.lua"/>
     <Script file="Modules\UI\BlizzardTracker.lua"/>
+    <Script file="Modules\UI\TreeView.lua"/>
     <Script file="Modules\UI\MainWindow.lua"/>
     <Script file="Modules\UI\Preferences.lua"/>
     <Script file="Modules\UI\Welcome.lua"/>

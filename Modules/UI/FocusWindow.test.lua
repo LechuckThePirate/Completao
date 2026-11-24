@@ -370,7 +370,7 @@ describe("FocusWindow", function()
             assert.is_true(frame.sheet:IsShown())
             assert.are.equal(0, frame.title._set.SetShadowOffset[1]) -- ink has no drop shadow
             local r, g, b = ns.QuestLevelColorRGB(20)
-            assert.are.same({ r * 0.55, g * 0.55, b * 0.55 }, { frame.title:GetTextColor() })
+            assert.are.same({ r * 0.35, g * 0.35, b * 0.35 }, { frame.title:GetTextColor() })
             assert.are.equal(0, frame._set.SetBackdropColor[4]) -- the obsidian panel is hidden behind the sheet
         end)
 

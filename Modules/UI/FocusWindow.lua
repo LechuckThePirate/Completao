@@ -34,7 +34,7 @@ local COLORS = { done = "ff64748b", target = "ffd4af37", todo = "ffe2e8f0", hint
 -- the light page. The window is small next to the side panel, so its sheet uses a thinner burnt rim (SHEET_SIZE,
 -- vs. the usual 40), and the text sits further in from the edge (PARCHMENT_PAD, PARCHMENT_TOP), clear of that rim:
 -- otherwise the ink text would land on the dark burnt texture itself instead of the light page, unreadable.
-local INK_SHADE = 0.55
+local INK_SHADE = 0.35 -- a grey/pale difficulty color (trivial quests) still needs to read against the light page
 local SHEET_SIZE = 12
 local PARCHMENT_PAD, PARCHMENT_TOP = 14, 12
 local INK_KINDS = { done = "inkMuted", target = "sienna", todo = "ink", hint = "inkSoft" }

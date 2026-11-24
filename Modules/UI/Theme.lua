@@ -152,15 +152,18 @@ function T.SliceColor(parts, r, g, b, a)
     for _, tex in ipairs(parts) do tex:SetVertexColor(r, g, b, a or 1) end
 end
 
--- Parchment (torn, burnt edges) filling `f`; `page`: the lighter sheet made for reading.
+-- Parchment (torn, burnt edges) filling `f`; `page`: the lighter sheet made for reading. `size`: the corner and rim's
+-- on-screen size (default 40, as big panels use); a small window (the focus window) passes a smaller one, or the
+-- burnt rim alone would swallow most of it, leaving too little of the light page for the text to sit on.
 -- A 9-slice: the burnt corners and the rim's width stay as they are however big the sheet gets; only the middle
 -- and the length of the edges stretch. The page (`page`) also has a wide version, used while the sheet is wider
 -- than tall (a maximized quest drawer), so neither is ever stretched much.
-function T.Parchment(f, layer, sublevel, page)
-    local tall = T.NineSlice(f, T.MEDIA .. (page and "ParchmentPage" or "Parchment"), 256, 512, 44, 40, 0,
+function T.Parchment(f, layer, sublevel, page, size)
+    size = size or 40
+    local tall = T.NineSlice(f, T.MEDIA .. (page and "ParchmentPage" or "Parchment"), 256, 512, 44, size, 0,
         layer or "BACKGROUND", sublevel or 4, true)
     if not page then return tall end
-    local wide = T.NineSlice(f, T.MEDIA .. "ParchmentPageWide", 1024, 512, 44, 40, 0, layer or "BACKGROUND", sublevel or 4, true)
+    local wide = T.NineSlice(f, T.MEDIA .. "ParchmentPageWide", 1024, 512, 44, size, 0, layer or "BACKGROUND", sublevel or 4, true)
     local function pick()
         local w, h = f:GetWidth() or 0, f:GetHeight() or 0
         local isWide = h > 0 and w > h * 1.3

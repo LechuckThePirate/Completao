@@ -9,7 +9,7 @@ let the addon walk you to the person who hands it out.
 Dungeons, raids, battlegrounds, zones, class and profession quests, races and
 world events are in, with more on the way.
 
-![Completao!! 2.0: the chain trees of a zone](https://media.joanvilarino.online/completao/images/screencaps/main_window.png)
+![Completao!! 2.0: the chain trees of a zone](https://media.joanvilarino.online/completao/images/screencaps/main_window.png?v=2)
 
 ---
 
@@ -60,7 +60,7 @@ quest**. A tree that fits the view is drawn in its middle. Your zoom is
 remembered. A button next to them puts the tree on the **whole screen**,
 without the side panel.
 
-![A chain, on its own, with the quest's details beside it](https://media.joanvilarino.online/completao/images/screencaps/chain_view.png)
+![A chain, on its own, with the quest's details beside it](https://media.joanvilarino.online/completao/images/screencaps/chain_view.png?v=2)
 
 ### One chain at a time
 In a crowded tree it is hard to follow a chain by eye. Click a quest that is
@@ -69,7 +69,7 @@ chain's name in the title and a **Back to all quests** button next to the
 filters. The same happens from a search result, from **View chain** and from
 other addons.
 
-![The tree on the whole screen](https://media.joanvilarino.online/completao/images/screencaps/tree_fullscreen.png)
+![The tree on the whole screen](https://media.joanvilarino.online/completao/images/screencaps/tree_fullscreen.png?v=2)
 
 ### A side panel that grows with the addon
 At the top, the four views -- **Search quests**, **Quest Log**, **Tracked
@@ -92,7 +92,7 @@ come as a table -- the same one as the search -- with status icons, level, zone,
 distance, XP and rewards, sortable by any column. **Chains only** keeps just the
 quests that belong to a chain. Your choice is remembered.
 
-![A zone as a list](https://media.joanvilarino.online/completao/images/screencaps/list_view.png)
+![A zone as a list](https://media.joanvilarino.online/completao/images/screencaps/list_view.png?v=2)
 
 ### Only what applies to you
 Quests of another class, race or faction stay out of your way. If you want to
@@ -128,7 +128,7 @@ least needed columns step aside (rewards first, then money, XP...) so the titles
 stay readable. Each table has its own title box: a search in the quest log only
 looks at the quest log.
 
-![Searching quests](https://media.joanvilarino.online/completao/images/screencaps/search.png)
+![Searching quests](https://media.joanvilarino.online/completao/images/screencaps/search.png?v=2)
 
 ### Your quest log, and the quests you track
 **Quest Log** shows the quests you carry in the same table, with a status icon
@@ -136,7 +136,7 @@ looks at the quest log.
 level, and can **group** them by zone, level, status or section, with
 **Expand all** and **Collapse all** for the groups.
 
-![The Quest Log, grouped by zone](https://media.joanvilarino.online/completao/images/screencaps/quest_log.png)
+![The Quest Log, grouped by zone](https://media.joanvilarino.online/completao/images/screencaps/quest_log.png?v=2)
 
 **Tracked Quests** narrows it to the ones in your objective tracker and lists,
 under each quest, its objectives with live progress: finished ones checked, the
@@ -144,7 +144,7 @@ next one in gold, and only the turn-in once the quest is ready. Click an
 objective to set your waypoint on it. **Quests to Turn In** lists what is ready
 to hand in, nearest first.
 
-![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png)
+![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png?v=2)
 
 ### The focus window
 **Right-click** a tracked quest (or use **Focus** in its details) to put it in a
@@ -161,7 +161,7 @@ spot, and folds away with a click. Drag it anywhere (also by its objectives), an
 in combat it lets every click through. With **Live focus** (Preferences) the
 focus follows you, switching to the nearest tracked quest as you play.
 
-![The focus window](https://media.joanvilarino.online/completao/images/screencaps/focus_window.png)
+![The focus window](https://media.joanvilarino.online/completao/images/screencaps/focus_window.png?v=2)
 
 ### Repeatable quests stand out
 Repeatable quests have a **blue** title in the trees, carry an **R** in the lists
@@ -224,7 +224,7 @@ table stays in sight beside it:
   **Focus**, **Waypoint**, **Chain**, **Open**, **Map** and **Abandon**.
 - A **maximize / restore** button to read the page over the whole window.
 
-![A quest's details](https://media.joanvilarino.online/completao/images/screencaps/quest_details.png)
+![A quest's details](https://media.joanvilarino.online/completao/images/screencaps/quest_details.png?v=2)
 
 ### Find it, go there
 - **Waypoint** is a split button that already points at the next step: the
@@ -241,9 +241,9 @@ table stays in sight beside it:
   elsewhere, like the game's own waypoint and TomTom -- or the unit you pick in
   the preferences.
 
-![The gold marker on the world map](https://media.joanvilarino.online/completao/images/screencaps/map_marker.png)
+![The gold marker on the world map](https://media.joanvilarino.online/completao/images/screencaps/map_marker.png?v=2)
 
-![A TomTom waypoint to the quest giver](https://media.joanvilarino.online/completao/images/screencaps/tomtom_integration.png)
+![A TomTom waypoint to the quest giver](https://media.joanvilarino.online/completao/images/screencaps/tomtom_integration.png?v=2)
 
 ### Made to stay out of your way
 - **Quest helpers** can be switched off -- in Preferences, with a shift-click
@@ -264,7 +264,7 @@ table stays in sight beside it:
 - Completion is always read live from the game, so it is never out of date.
 - A minimap button opens it (drag it wherever you like).
 
-![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png)
+![The minimap button](https://media.joanvilarino.online/completao/images/screencaps/minimap_button.png?v=2)
 
 ### Preferences, in four tabs
 The gear in the window's header opens them: **General** (the minimap button,
@@ -276,7 +276,7 @@ tracker, Tab targeting) and **Profile / Data** (keep them for one character or
 share them, and one set of filters for every view). The buttons at the foot
 reset the window position, the zoom and the filters.
 
-![The preferences](https://media.joanvilarino.online/completao/images/screencaps/preferences_interface.png)
+![The preferences](https://media.joanvilarino.online/completao/images/screencaps/preferences_interface.png?v=2)
 
 Commands: `/completao` (or `/cpl`) opens the window, `/completao prefs` the
 preferences, `/completao minimap` shows or hides the minimap button,

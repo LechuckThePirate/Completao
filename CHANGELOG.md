@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0
 
 - New: "Pin" (next to "Back to all quests" in the chain view) puts the chain into its own small floating window, up to 5 at once, stacked and foldable one click at a time (an accordion: opening one folds whichever was open). It resizes, zooms and pans like the main tree, and its size and zoom are remembered. Saved between sessions. A quest in it focuses it (Focus window), same as the tracker.
 - Fixed: zoomed out, the quest names in the tree were too small to read. Below 75 % each quest shows its name alone, bigger and on up to two lines (hover it for the rest).

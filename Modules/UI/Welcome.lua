@@ -12,13 +12,12 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New in 2.0: a whole new look, with a side panel on parchment, quests drawn as stone plates in chain trees that " ..
-        "read top to bottom, and a drawer for the quest's details.",
-    "- New: a list view for big zones, one set of filters for every view (with a line that says which are on), " ..
-        "and one chain shown alone with a way back.",
-    "- New: a lighter focus window with an arrow, the distance and a bar behind each objective, and preferences in four tabs.",
-    "- Fixed: distances in meters or yards by your region, like TomTom; quests that need another zone's quest say so.",
-    "- Fixed: \"Consolidate alts\" puts all your characters together again, each once.",
+    "- New in 2.1: pin a chain into its own small floating window (up to 5, foldable one at a time), which resizes, " ..
+        "zooms and pans like the main tree and remembers its size between sessions; a quest inside it focuses it.",
+    "- New: the focus window can use a parchment background instead of obsidian (Preferences, Tracker & Waypoints tab).",
+    "- Fixed: zoomed way out, quest names in the tree were too small to read; each one now shows its name alone, bigger.",
+    "- Fixed: on Russian, Korean and Chinese clients, quest and zone names showed as empty boxes; text now uses the " ..
+        "game's own font for the client's language.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

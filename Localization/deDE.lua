@@ -174,6 +174,7 @@ ns.AddLocale({ "deDE" }, {
     ["General"] = "Allgemein",
     ["Main window"] = "Hauptfenster",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab anvisiert zuerst Quest-Kreaturen und Abgabe-NPCs",
+    ["Focus window on parchment"] = "Fokusfenster auf Pergament",
     ["Target quest creatures and turn-in NPCs"] = "Quest-Kreaturen und Abgabe-NPCs anvisieren",
     ["Stop focus"] = "Fokus beenden",
     ["Track"] = "Verfolgen",

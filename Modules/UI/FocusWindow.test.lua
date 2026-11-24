@@ -354,6 +354,36 @@ describe("FocusWindow", function()
         assert.is_nil(ns.char.focusWindow)
     end)
 
+    describe("the parchment background (Preferences)", function()
+        it("is off by default: obsidian, with the usual difficulty color", function()
+            focus()
+            assert.is_false(frame.sheet:IsShown())
+            local r, g, b = ns.QuestLevelColorRGB(999001 and 20)
+            assert.are.same({ r, g, b }, { frame.title:GetTextColor() })
+            assert.are.equal(1, frame.title._set.SetShadowOffset[1]) -- a drop shadow on obsidian
+        end)
+
+        it("on, shows the sheet and darkens the difficulty color and the lines to read as ink", function()
+            focus()
+            ns.Focus_SetParchment(true)
+            assert.is_true(ns.char.focusParchment)
+            assert.is_true(frame.sheet:IsShown())
+            assert.are.equal(0, frame.title._set.SetShadowOffset[1]) -- ink has no drop shadow
+            local r, g, b = ns.QuestLevelColorRGB(20)
+            assert.are.same({ r * 0.55, g * 0.55, b * 0.55 }, { frame.title:GetTextColor() })
+            assert.are.equal(0, frame._set.SetBackdropColor[4]) -- the obsidian panel is hidden behind the sheet
+        end)
+
+        it("switching it off puts the window back on obsidian", function()
+            focus()
+            ns.Focus_SetParchment(true)
+            ns.Focus_SetParchment(false)
+            assert.is_nil(ns.char.focusParchment)
+            assert.is_false(frame.sheet:IsShown())
+            assert.are.equal(1, frame.title._set.SetShadowOffset[1])
+        end)
+    end)
+
     describe("the padlock", function()
         local function moved()
             local started = false

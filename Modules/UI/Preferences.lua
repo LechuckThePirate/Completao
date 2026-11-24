@@ -12,6 +12,7 @@ local X = 20                       -- the pages' left margin
 local CONTENT_W = WIDTH - 2 * X
 local LABEL_W = CONTENT_W - 28 - 8 -- a checkbox's text: from after the box to the page's right edge
 local STEP = 32                    -- between checkboxes: room for a text that wraps to a second line
+local TRACKER_STEP = 28            -- tighter: the Tracker page has one more checkbox than the others fit at STEP
 local prefs
 
 local function makeHeading(parent, y, text)
@@ -196,24 +197,24 @@ local function create()
         function() return ns.char.clickThroughMoving end,
         function(value) ns.char.clickThroughMoving = value or nil end)
 
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - STEP, L["Autofocus tracked quests"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - TRACKER_STEP, L["Autofocus tracked quests"],
         function() return ns.char.focusAuto end,
         function(value) ns.Focus_SetAuto(value) end)
 
     -- off unless ticked: the focus follows the player, switching quests by distance as they go
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - 2 * STEP, L["Live focus: switch to the nearest quest as you go"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 2 * TRACKER_STEP, L["Live focus: switch to the nearest quest as you go"],
         function() return ns.char.focusLive end,
         function(value) ns.Focus_SetLive(value) end)
 
     -- on unless switched off: saved as false, since nil means "never chosen"
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - 3 * STEP, L["Follow Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 3 * TRACKER_STEP, L["Follow Blizzard's quest tracker"],
         function() return ns.char.followBlizzardFocus ~= false end,
         function(value)
             ns.char.followBlizzardFocus = value
             if value then ns.Focus_FollowBlizzard() end
         end)
 
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - 4 * STEP, L["Focusing here also sets Blizzard's quest tracker"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 4 * TRACKER_STEP, L["Focusing here also sets Blizzard's quest tracker"],
         function() return ns.char.setBlizzardFocus ~= false end,
         function(value) ns.char.setBlizzardFocus = value end)
 
@@ -225,7 +226,7 @@ local function create()
         end)
 
     -- off unless ticked: the game's own tracker stays as it is by default
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - 5 * STEP, L["Hide Blizzard's objective tracker"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 5 * TRACKER_STEP, L["Hide Blizzard's objective tracker"],
         function() return ns.char.hideBlizzardTracker end,
         function(value)
             ns.char.hideBlizzardTracker = value or nil
@@ -233,12 +234,17 @@ local function create()
         end)
 
     -- off unless ticked: Tab is the player's own key by default
-    widgets[#widgets + 1] = makeCheck(tracker, -34 - 6 * STEP, L["Tab targets quest creatures and turn-in NPCs first"],
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 6 * TRACKER_STEP, L["Tab targets quest creatures and turn-in NPCs first"],
         function() return ns.char.tabTarget end,
         function(value)
             ns.char.tabTarget = value or nil
             ns.Focus_UpdateTargeting()
         end)
+
+    -- off unless ticked: the focus window stays on obsidian, like the main window
+    widgets[#widgets + 1] = makeCheck(tracker, -34 - 7 * TRACKER_STEP, L["Focus window on parchment"],
+        function() return ns.char.focusParchment end,
+        function(value) ns.Focus_SetParchment(value) end)
 
     -- on unless switched off: off, nothing pops up while questing (the focus window, waypoints, map markers)
     widgets[#widgets + 1] = makeCheck(tracker, -34, L["Quest helpers: focus window, waypoints and map markers"],

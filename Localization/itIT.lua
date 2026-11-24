@@ -174,6 +174,7 @@ ns.AddLocale({ "itIT" }, {
     ["General"] = "Generale",
     ["Main window"] = "Finestra principale",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab bersaglia prima creature di quest e PNG di consegna",
+    ["Focus window on parchment"] = "Finestra di focus su pergamena",
     ["Target quest creatures and turn-in NPCs"] = "Bersaglia creature di quest e PNG di consegna",
     ["Stop focus"] = "Interrompi il focus",
     ["Track"] = "Segui",

@@ -29,6 +29,21 @@ local CHECK_W = 16 -- room for the check before a done objective
 -- no heavy border: translucent obsidian and a fine brass edge
 local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 }
 local COLORS = { done = "ff64748b", target = "ffd4af37", todo = "ffe2e8f0", hint = "ff94a3b8" }
+-- "Focus window on parchment" (Preferences): a sheet of parchment written in ink, as the main window's side panel,
+-- instead of the obsidian. The texts turn to ink, and the difficulty colors are darkened so they still read on
+-- the light page.
+local INK_SHADE = 0.55
+local INK_KINDS = { done = "inkMuted", target = "sienna", todo = "ink", hint = "inkSoft" }
+local function onParchment() return ns.char and ns.char.focusParchment and true or false end
+local function lineColor(kind)
+    if onParchment() then return T.code(INK_KINDS[kind]):sub(3) end
+    return COLORS[kind]
+end
+-- a difficulty color as it is written on the window
+local function inked(r, g, b)
+    if onParchment() then return r * INK_SHADE, g * INK_SHADE, b * INK_SHADE end
+    return r, g, b
+end
 local PLUS = "|TInterface\\Buttons\\UI-PlusButton-Up:12:12|t "
 local MINUS = "|TInterface\\Buttons\\UI-MinusButton-Up:12:12|t "
 
@@ -128,9 +143,31 @@ local function updateLock()
     frame.lock:SetPushedTexture(texture)
 end
 
+-- The background and the colors that go with it (see onParchment).
+local function applyStyle()
+    if not frame then return end
+    local page = onParchment()
+    frame.sheet:SetShown(page)
+    frame:SetBackdropColor(T.rgba("obsidian", page and 0 or 0.82))
+    frame:SetBackdropBorderColor(T.rgba("brass", page and 0 or 0.9))
+    -- ink goes without the drop shadow
+    local shadow = page and 0 or 1
+    frame.title:SetShadowOffset(shadow, -shadow)
+    frame.dist:SetShadowOffset(shadow, -shadow)
+    frame.dist:SetTextColor(T.rgba(page and "inkSoft" or "muted"))
+    if page then frame.arrow:SetVertexColor(T.rgba("sienna")) else frame.arrow:SetVertexColor(1, 0.86, 0.12) end
+    for _, line in ipairs(lines) do line.text:SetShadowOffset(shadow, -shadow) end
+end
+
 function ns.Focus_ApplySettings()
     applyPosition()
     updateLock()
+end
+
+-- Preferences: the window on parchment, or on obsidian.
+function ns.Focus_SetParchment(on)
+    ns.char.focusParchment = on and true or nil
+    ns.Focus_Refresh()
 end
 
 function ns.Focus_ResetPosition()
@@ -145,6 +182,13 @@ local function create()
     frame:SetBackdrop(BACKDROP)
     frame:SetBackdropColor(T.rgba("obsidian", 0.82))
     frame:SetBackdropBorderColor(T.rgba("brass", 0.9))
+    -- the optional parchment background (see onParchment): its own frame, under everything else, so it can be
+    -- shown or hidden without touching the lines and buttons drawn directly on `frame`
+    frame.sheet = CreateFrame("Frame", nil, frame)
+    frame.sheet:SetAllPoints()
+    frame.sheet:SetFrameLevel(frame:GetFrameLevel())
+    T.Parchment(frame.sheet, "BACKGROUND", 2, true)
+    frame.sheet:Hide()
     frame:SetMovable(true)
     frame:EnableMouse(true)
     -- the title bar floats above the window: its strip counts as part of it, so it can be dragged by it
@@ -364,7 +408,7 @@ local function setLine(i, l)
     line.offset = l.flush and 0 or CHECK_W
     line.text:ClearAllPoints()
     line.text:SetPoint("LEFT", line.button, "LEFT", line.offset, 0)
-    line.text:SetText(("|c%s%s|r"):format(l.color or COLORS[l.kind], l.text))
+    line.text:SetText(("|c%s%s|r"):format(l.color or lineColor(l.kind), l.text))
     line.strike:SetShown(l.struck)
     line.frac = l.frac
     line.button:Show()
@@ -482,7 +526,7 @@ local function buildLines(q, steps, isReady, related, here)
         for _, e in ipairs(folded and {} or related) do
             local r, g, b = ns.QuestLevelColorRGB(e.q.level or e.q.minLevel)
             out[#out + 1] = { text = ns.QuestPrefix(e.q) .. ns.QuestTitle(e.q.id, e.q.name), kind = "todo", struck = false,
-                flush = true, color = hexColor(r, g, b) }
+                flush = true, color = hexColor(inked(r, g, b)) }
             for _, i in ipairs(e.indexes) do
                 local s = e.steps[i]
                 local tag = e.q.id .. ":" .. i
@@ -527,7 +571,7 @@ local function draw(iconKind, title, r, g, b, content)
         frame.title:SetPoint("LEFT", frame, "TOPLEFT", PAD, -(TOP + ICON / 2))
     end
     frame.title:SetText(title)
-    frame.title:SetTextColor(r, g, b)
+    frame.title:SetTextColor(inked(r, g, b))
 
     local width = math.max(indent + frame.title:GetStringWidth() + ARROW_ROOM,
         frame.barText:GetStringWidth() + 2 * math.max(BAR_SIDE, TITLE_H + 6))
@@ -554,6 +598,7 @@ local function draw(iconKind, title, r, g, b, content)
             line.fill:Hide()
         end
     end
+    applyStyle()
     frame:Show()
 end
 

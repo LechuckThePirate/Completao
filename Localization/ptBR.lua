@@ -174,6 +174,7 @@ ns.AddLocale({ "ptBR" }, {
     ["General"] = "Geral",
     ["Main window"] = "Janela principal",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab seleciona primeiro criaturas de quest e NPCs de entrega",
+    ["Focus window on parchment"] = "Janela de foco em pergaminho",
     ["Target quest creatures and turn-in NPCs"] = "Selecionar criaturas de quest e NPCs de entrega",
     ["Stop focus"] = "Parar de focar",
     ["Track"] = "Rastrear",

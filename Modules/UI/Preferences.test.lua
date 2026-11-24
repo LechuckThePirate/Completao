@@ -44,14 +44,14 @@ describe("Preferences", function()
         -- order: per character, minimap, messages, sync with the quest log, always open on the quest log,
         -- click-through in combat, click-through while moving, autofocus tracked quests, live focus, follow
         -- Blizzard's tracker, focusing here also sets Blizzard's tracker, hide categories with nothing to do, hide
-        -- Blizzard's tracker, Tab targets quest creatures first, quest helpers
-        assert.are.equal(16, #checks) -- (the last, same filters in every view, after those below)
-        assert.is_true(checks[15]:GetChecked()) -- the quest helpers are on by default
-        checks[15]:SetChecked(false); checks[15]:Click()
+        -- Blizzard's tracker, Tab targets quest creatures first, focus window on parchment, quest helpers
+        assert.are.equal(17, #checks) -- (the last, same filters in every view, after those below)
+        assert.is_true(checks[16]:GetChecked()) -- the quest helpers are on by default
+        checks[16]:SetChecked(false); checks[16]:Click()
         assert.is_true(ns.char.helpersOff)
-        checks[15]:SetChecked(true); checks[15]:Click()
+        checks[16]:SetChecked(true); checks[16]:Click()
         assert.is_nil(ns.char.helpersOff)
-        table.remove(checks, 15)
+        table.remove(checks, 16)
         assert.is_false(checks[9]:GetChecked()) -- live focus is off by default
         checks[9]:SetChecked(true); checks[9]:Click()
         assert.is_true(ns.char.focusLive)
@@ -99,6 +99,11 @@ describe("Preferences", function()
         assert.is_true(ns.char.tabTarget)
         checks[13]:SetChecked(false); checks[13]:Click()
         assert.is_nil(ns.char.tabTarget)
+        assert.is_false(checks[14]:GetChecked()) -- the focus window is on obsidian by default
+        checks[14]:SetChecked(true); checks[14]:Click()
+        assert.is_true(ns.char.focusParchment)
+        checks[14]:SetChecked(false); checks[14]:Click()
+        assert.is_nil(ns.char.focusParchment)
         checks[2]:SetChecked(false); checks[2]:Click()
         assert.is_false(ns.Minimap_IsShown())
     end)
@@ -139,7 +144,7 @@ describe("Preferences", function()
                 end
             end
         end
-        assert.are.equal(19, total) -- 16 checkboxes and 3 sliders
+        assert.are.equal(20, total) -- 17 checkboxes and 3 sliders
     end)
 
     it("the opacity while moving comes from the slider", function()

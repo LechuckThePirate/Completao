@@ -176,6 +176,7 @@ ns.AddLocale({ "frFR" }, {
     ["General"] = "Général",
     ["Main window"] = "Fenêtre principale",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab cible d'abord les créatures de quête et les PNJ de remise",
+    ["Focus window on parchment"] = "Fenêtre de suivi sur parchemin",
     ["Target quest creatures and turn-in NPCs"] = "Cibler les créatures de quête et les PNJ de remise",
     ["Stop focus"] = "Arrêter la focalisation",
     ["Track"] = "Suivre",

@@ -174,6 +174,7 @@ ns.AddLocale({ "esES", "esMX" }, {
     ["General"] = "General",
     ["Main window"] = "Ventana principal",
     ["Tab targets quest creatures and turn-in NPCs first"] = "Tab apunta primero a criaturas de quest y PNJ de entrega",
+    ["Focus window on parchment"] = "Ventana de foco en pergamino",
     ["Target quest creatures and turn-in NPCs"] = "Apuntar a criaturas de quest y PNJ de entrega",
     ["Stop focus"] = "Dejar de enfocar",
     ["Track"] = "Seguir",

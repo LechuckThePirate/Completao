@@ -79,9 +79,14 @@ local function applyPosition(frame)
     end
 end
 
+-- After a drag, GetPoint() can come back anchored by a different corner than the one it was given (whichever one
+-- WoW decides the frame ended up closest to) -- which flips which way a later resize grows it. Always force it
+-- back to TOPLEFT of UIParent's TOPLEFT, from the plain screen position, so a resize always grows the same way.
 local function savePosition(frame)
-    local point, _, relPoint, x, y = frame:GetPoint()
-    ns.char.pinnedWindow = { point = point, relPoint = relPoint, x = x, y = y }
+    local x, y = frame:GetLeft() - UIParent:GetLeft(), frame:GetTop() - UIParent:GetTop()
+    frame:ClearAllPoints()
+    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    ns.char.pinnedWindow = { point = "TOPLEFT", relPoint = "TOPLEFT", x = x, y = y }
 end
 
 -- Expanded (the tree shows) or folded (just the bar); only one pin is expanded at a time.

@@ -31,10 +31,17 @@ local BACKDROP = { bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interfac
 local COLORS = { done = "ff64748b", target = "ffd4af37", todo = "ffe2e8f0", hint = "ff94a3b8" }
 -- "Focus window on parchment" (Preferences): a sheet of parchment written in ink, as the main window's side panel,
 -- instead of the obsidian. The texts turn to ink, and the difficulty colors are darkened so they still read on
--- the light page.
+-- the light page. The window is small next to the side panel, so its sheet uses a thinner burnt rim (SHEET_SIZE,
+-- vs. the usual 40), and the text sits further in from the edge (PARCHMENT_PAD, PARCHMENT_TOP), clear of that rim:
+-- otherwise the ink text would land on the dark burnt texture itself instead of the light page, unreadable.
 local INK_SHADE = 0.55
+local SHEET_SIZE = 12
+local PARCHMENT_PAD, PARCHMENT_TOP = 14, 12
 local INK_KINDS = { done = "inkMuted", target = "sienna", todo = "ink", hint = "inkSoft" }
 local function onParchment() return ns.char and ns.char.focusParchment and true or false end
+-- the margin and top inset in use right now (more of both on parchment; see above)
+local function pad() return onParchment() and PARCHMENT_PAD or PAD end
+local function topInset() return onParchment() and PARCHMENT_TOP or TOP end
 local function lineColor(kind)
     if onParchment() then return T.code(INK_KINDS[kind]):sub(3) end
     return COLORS[kind]
@@ -157,6 +164,11 @@ local function applyStyle()
     frame.dist:SetTextColor(T.rgba(page and "inkSoft" or "muted"))
     if page then frame.arrow:SetVertexColor(T.rgba("sienna")) else frame.arrow:SetVertexColor(1, 0.86, 0.12) end
     for _, line in ipairs(lines) do line.text:SetShadowOffset(shadow, -shadow) end
+    -- the icon and the arrow sit clear of the burnt rim too (see pad/topInset)
+    frame.icon:ClearAllPoints()
+    frame.icon:SetPoint("TOPLEFT", pad(), -topInset())
+    frame.arrow:ClearAllPoints()
+    frame.arrow:SetPoint("TOPRIGHT", -pad() + 2, -topInset() + 5)
 end
 
 function ns.Focus_ApplySettings()
@@ -187,7 +199,7 @@ local function create()
     frame.sheet = CreateFrame("Frame", nil, frame)
     frame.sheet:SetAllPoints()
     frame.sheet:SetFrameLevel(frame:GetFrameLevel())
-    T.Parchment(frame.sheet, "BACKGROUND", 2, true)
+    T.Parchment(frame.sheet, "BACKGROUND", 2, true, SHEET_SIZE)
     frame.sheet:Hide()
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -401,7 +413,7 @@ end
 local function setLine(i, l)
     local line = getLine(i)
     line.button:ClearAllPoints()
-    line.button:SetPoint("TOPLEFT", frame, "TOPLEFT", PAD, -(TOP + HEADER_H + 4 + (i - 1) * LINE_H))
+    line.button:SetPoint("TOPLEFT", frame, "TOPLEFT", pad(), -(topInset() + HEADER_H + 4 + (i - 1) * LINE_H))
     line.button.step = l
     line.check:SetShown(l.struck)
     -- the "Also here" headers and quest titles start flush left; the objectives leave room for the check
@@ -560,6 +572,7 @@ end
 -- Draws the window: the header (status icon, or none, and the title in a color) and the lines under it.
 local function draw(iconKind, title, r, g, b, content)
     if not frame then create() end
+    local p, t = pad(), topInset()
     frame.title:ClearAllPoints()
     local indent = 0
     if iconKind then
@@ -568,7 +581,7 @@ local function draw(iconKind, title, r, g, b, content)
         frame.title:SetPoint("LEFT", frame.icon, "RIGHT", 4, 0)
     else
         frame.icon:Hide()
-        frame.title:SetPoint("LEFT", frame, "TOPLEFT", PAD, -(TOP + ICON / 2))
+        frame.title:SetPoint("LEFT", frame, "TOPLEFT", p, -(t + ICON / 2))
     end
     frame.title:SetText(title)
     frame.title:SetTextColor(inked(r, g, b))
@@ -580,18 +593,18 @@ local function draw(iconKind, title, r, g, b, content)
         width = math.max(width, line.offset + line.text:GetStringWidth())
     end
     for i = #content + 1, #lines do lines[i].button:Hide() end
-    width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * PAD))
-    frame:SetSize(width, TOP + HEADER_H + 4 + #content * LINE_H + PAD)
-    frame.title:SetWidth(width - 2 * PAD - indent - ARROW_ROOM)
+    width = math.max(WIDTH_MIN, math.min(WIDTH_MAX, math.ceil(width) + 2 * p))
+    frame:SetSize(width, t + HEADER_H + 4 + #content * LINE_H + p)
+    frame.title:SetWidth(width - 2 * p - indent - ARROW_ROOM)
     for i in ipairs(content) do
         local line = lines[i]
-        line.button:SetWidth(width - 2 * PAD)
-        line.text:SetWidth(width - 2 * PAD - line.offset)
-        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * PAD - line.offset))
+        line.button:SetWidth(width - 2 * p)
+        line.text:SetWidth(width - 2 * p - line.offset)
+        line.strike:SetWidth(math.min(line.text:GetStringWidth(), width - 2 * p - line.offset))
         if line.frac then
             line.fill:ClearAllPoints()
             line.fill:SetPoint("LEFT", line.button, "LEFT", line.offset - 2, 0)
-            line.fill:SetWidth(math.max(0.001, (width - 2 * PAD - line.offset + 2) * line.frac))
+            line.fill:SetWidth(math.max(0.001, (width - 2 * p - line.offset + 2) * line.frac))
             line.fill:SetColorTexture(T.rgba(line.frac >= 1 and "ready" or "active", line.frac >= 1 and 0.16 or 0.3))
             line.fill:SetShown(line.frac > 0)
         else

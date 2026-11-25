@@ -671,6 +671,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         ns.ToggleSavedQuest(current.id)
         render()
         ns.Search_Refresh()
+        ns.UI_Refresh() -- the side panel's "Saved Quests" badge counts it too
     end)
 
     -- "Map": the chosen step (inside an instance, its entrance)

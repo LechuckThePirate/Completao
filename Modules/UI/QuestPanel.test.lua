@@ -254,6 +254,15 @@ describe("QuestPanel", function()
         assert.is_not_nil(WowMock.FindButton("Save"))
     end)
 
+    it("Save updates the side panel's Saved Quests badge right away, without opening that view", function()
+        local badge = WowMock.FindByText("Saved Quests"):GetParent().badge
+        assert.is_false(badge:IsShown())
+        ns.Detail_Show(ns.FindQuestDef(166))
+        WowMock.FindButton("Save"):Click()
+        assert.is_true(badge:IsShown())
+        assert.are.equal("1", badge.text:GetText())
+    end)
+
     it("all the buttons are shown for any quest, the ones that don't apply disabled", function()
         ns.Detail_Show({ id = 999999, name = "Unknown quest" })
         for _, text in ipairs({ "Save", "Focus", "View chain", "Waypoint", "Show on map", "Abandon quest" }) do

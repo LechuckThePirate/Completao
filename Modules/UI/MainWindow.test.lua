@@ -887,6 +887,18 @@ describe("MainWindow", function()
                 if nodes[parent] then assert.is_true(topY(nodes[q.id]) < topY(nodes[parent])) end
             end
         end)
+
+        it("crosses entries: a chain that runs from one zone into another shows whole", function()
+            ns.RegisterEntry({ id = "z900a", name = "Zone A", category = "zones" })
+            ns.RegisterEntry({ id = "z900b", name = "Zone B", category = "zones" })
+            ns.AddQuests("z900a", { { id = 900101, name = "Start" } })
+            ns.AddQuests("z900b", { { id = 900102, name = "Continue", requires = { 900101 } } })
+            ns.UI_OpenQuest("z900a", 900101)
+            assert.is_true(ns.UI_InChainView())
+            local nodes = ShownNodes()
+            assert.is_not_nil(nodes[900101])
+            assert.is_not_nil(nodes[900102])
+        end)
     end)
 
     it("the search replaces the tree and picking an entry closes it", function()

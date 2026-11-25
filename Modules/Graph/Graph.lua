@@ -33,6 +33,29 @@ function ns.IsInChain(q)
     return set[q.id] == true
 end
 
+-- Whether the quest is part of a chain anywhere, not just its own entry: a questline can run from one zone into
+-- the next, or out into a dungeon, so a quest at one end of such a chain can have no same-entry chain-mate at all
+-- (ns.IsInChain would then say "no", even though "View chain" has a real, cross-entry chain to show). Built once
+-- (entries don't change at runtime) and reused; `seen` dedupes a quest registered in more than one entry.
+local globalChained
+function ns.IsInChainGlobal(q)
+    if not globalChained then
+        globalChained = {}
+        local seen = {}
+        for _, e in ipairs(ns.entryList) do
+            for _, other in ipairs(e.quests) do
+                if not seen[other.id] then
+                    seen[other.id] = true
+                    for _, parent in ipairs(parentsOf(other)) do
+                        globalChained[parent], globalChained[other.id] = true, true
+                    end
+                end
+            end
+        end
+    end
+    return globalChained[q.id] == true
+end
+
 -- The layout, read top to bottom: each chain (quests joined by prerequisites) in a band of its own, so a chain's
 -- quests are always together and its connections never cross another chain. Inside a band, a quest's row is its depth
 -- (the longest path from the chain's start) and the quests of one depth are side by side, centered in the band, in

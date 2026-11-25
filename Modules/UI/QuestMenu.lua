@@ -53,7 +53,7 @@ function ns.QuestMenu(anchor, q)
     add(isEntrance and L["Show entrance"] or L["Show on map"], function() ns.ShowStepOnMap(q, step) end,
         { disabled = not (loc and ns.CanShowMap(loc)) })
     add(L["View chain"], function() ns.UI_OpenQuest(q.entryId, q.id) end,
-        { disabled = not (q.entryId and ns.IsInChain(q)) })
+        { disabled = not (q.entryId and ns.IsInChainGlobal(q)) })
     add(L["Abandon quest"], function() ns.AbandonQuest(q.id) end,
         { color = { 1, 0.35, 0.35 }, disabled = not onQuest })
 

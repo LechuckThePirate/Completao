@@ -190,7 +190,7 @@ local function renderPin(p)
     local d = ns.entries[p.entryId]
     if not d then return end
     local set = ns.ChainMembers(d, p.questId)
-    p.treeView:Render(d.quests, function(q) return set[q.id] == true end, nil)
+    p.treeView:Render(ns.QuestsOf(set), function(q) return set[q.id] == true end, nil)
     if not p.zoom then
         local w = math.max(1, p.treeView.canvas:GetWidth())
         local h = math.max(1, p.treeView.canvas:GetHeight())

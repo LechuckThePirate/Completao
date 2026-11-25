@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: a chain's view and its pinned window only followed prerequisites inside the entry you opened it from, so a questline that runs from one zone into the next (or out into a dungeon) showed only its own piece. It now shows the chain whole, wherever its quests are registered.
+
 ## 2.1.0
 
 - New: "Pin" (next to "Back to all quests" in the chain view) puts the chain into its own small floating window, up to 5 at once, stacked and foldable one click at a time (an accordion: opening one folds whichever was open). It resizes, zooms and pans like the main tree, and its size and zoom are remembered. Saved between sessions. A quest in it focuses it (Focus window), same as the tracker.

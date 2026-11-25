@@ -345,6 +345,23 @@ describe("QuestPanel", function()
         assert.are.equal(chained.id, ns.Detail_Current().id)
     end)
 
+    it("has the chain icon even when its only link is to a quest of another entry", function()
+        ns.RegisterEntry({ id = "z900a", name = "Zone A", category = "zones" })
+        ns.RegisterEntry({ id = "z900b", name = "Zone B", category = "zones" })
+        ns.AddQuests("z900a", { { id = 900101, name = "Start" } })
+        ns.AddQuests("z900b", { { id = 900102, name = "Continue", requires = { 900101 } } })
+        local q = ns.FindQuestDef(900101)
+        assert.is_false(ns.IsInChain(q)) -- no chain-mate in its own entry
+        assert.is_true(ns.IsInChainGlobal(q)) -- but one in the next zone over
+        ns.Detail_Show(q)
+        local detail = WowMock.Find(function(f) return f.layoutButtons end)
+        local function title()
+            return WowMock.Find(function(f) return f._parent == detail.page and f._kind == "FontString" and f._set.SetWordWrap end)._text
+        end
+        assert.matches("|Hcompletao:chain|h", title(), 1, true)
+        assert.is_true(detail.btnChain:IsEnabled())
+    end)
+
     it("where it starts and ends: a pin instead of the coordinates, and a click on it marks the spot on the map", function()
         local q = ns.FindQuestDef(166)
         assert.is_true(q.start.x > 0)

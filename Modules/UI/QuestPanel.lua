@@ -404,7 +404,7 @@ local function render()
     local status = ns.QuestStatus(q)
     local c = ns.STATUS_COLORS[status]
     -- a quest of a chain: a chain icon after its title, a link to that chain's tree
-    local chained = q.entryId ~= nil and ns.IsInChain(q)
+    local chained = q.entryId ~= nil and ns.IsInChainGlobal(q)
     detail.title:SetText(ns.QuestTitle(q.id, q.name) .. (chained and ("  |Hcompletao:chain|h" .. T.ActionIconText("chain", 18) .. "|h") or ""))
     detail.meta:SetTextColor(inkRGB(c[1], c[2], c[3])) -- the status says its color
     local meta = { ns.STATUS_LABELS[status] }
@@ -428,7 +428,7 @@ local function render()
     detail.btnFocus:SetText(focused and L["Unfocus"] or L["Focus"])
     detail.btnFocus.tip = focused and L["Stop focus"] or L["Focus"]
     -- "View chain" goes to the quest's tree, when it is part of a chain
-    detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
+    detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChainGlobal(q))
     -- waypoint and map: the chosen step
     local step = selectedStep()
     local loc, isEntrance = nil, false

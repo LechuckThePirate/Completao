@@ -774,7 +774,7 @@ local function fillRow(row, i, y, focusTag)
     end
     row.name:SetText(ns.QuestPrefix(q) .. ns.QuestTitle(q.id, q.name, titleOf))
     -- the chain icon goes right after the title (which gives it room when it is cut)
-    local chained = q.entryId ~= nil and ns.IsInChain(q)
+    local chained = q.entryId ~= nil and ns.IsInChainGlobal(q)
     row.chain:SetShown(chained)
     if chained then
         row.name:SetWidth(math.max(20, cols.name - 18))

@@ -97,15 +97,24 @@ end
 
 -- (The chains of an entry and the filters on them are in Filters.lua, shared by every view.)
 
--- The quests connected to `id` by prerequisites (itself included) among the visible ones of the entry, as a set.
+-- The quests connected to `id` by prerequisites (itself included), as a set. A chain can cross entries (a
+-- questline can run from one zone into the next, or out into a dungeon), so every registered quest is a
+-- candidate, not just `d`'s own -- visibility is still judged as `d`'s view would (its category, e.g. "classes",
+-- still waives the class/race check the same way it does for `d`'s own quests). `seen` dedupes a quest that is
+-- registered in more than one entry (ns.AddQuests), keeping its first copy, as ns.FindQuestDef does.
 local function chainMembers(d, id)
-    local byId, kids = {}, {}
-    for _, q in ipairs(d.quests) do
-        if ns.QuestVisible(q, d) then
-            byId[q.id] = q
-            for _, parent in ipairs(ns.ParentsOf(q)) do
-                kids[parent] = kids[parent] or {}
-                table.insert(kids[parent], q.id)
+    local byId, kids, seen = {}, {}, {}
+    for _, e in ipairs(ns.entryList) do
+        for _, q in ipairs(e.quests) do
+            if not seen[q.id] then
+                seen[q.id] = true
+                if ns.QuestVisible(q, d) then
+                    byId[q.id] = q
+                    for _, parent in ipairs(ns.ParentsOf(q)) do
+                        kids[parent] = kids[parent] or {}
+                        table.insert(kids[parent], q.id)
+                    end
+                end
             end
         end
     end
@@ -132,6 +141,18 @@ local function chainMembers(d, id)
 end
 ns.ChainMembers = chainMembers -- read by PinnedChains.lua, to render a pinned chain on its own
 
+-- The quest definitions of a chain set (ns.ChainMembers' return): since the set can span several entries, this
+-- is what a tree needs to render it, in place of one entry's own `d.quests`.
+local function questsOf(set)
+    local list = {}
+    for id in pairs(set) do
+        local q = ns.FindQuestDef(id)
+        if q then list[#list + 1] = q end
+    end
+    return list
+end
+ns.QuestsOf = questsOf -- read by PinnedChains.lua
+
 -- The chain of quest `id` in entry `d`, for the chain view; nil for a loose quest (a chain of one).
 local function chainFor(d, id)
     local set, n = chainMembers(d, id), 0
@@ -142,11 +163,13 @@ local function chainFor(d, id)
     return nil
 end
 
--- The quest a chain starts with (none of its prerequisites in it; the lowest id if several), for the title.
-local function chainHead(d, set)
+-- The quest a chain starts with (none of its prerequisites in it; the lowest id if several), for the title. The
+-- set can span several entries, so each id is looked up on its own (ns.FindQuestDef), not read off one `d.quests`.
+local function chainHead(set)
     local head
-    for _, q in ipairs(d.quests) do
-        if set[q.id] then
+    for id in pairs(set) do
+        local q = ns.FindQuestDef(id)
+        if q then
             local first = true
             for _, p in ipairs(ns.ParentsOf(q)) do
                 if set[p] then first = false break end
@@ -167,14 +190,16 @@ local function makeFilter(d)
 end
 
 local function renderTree(d)
-    local layout = mainTreeView:Render(d.quests, makeFilter(d), ns.Detail_Current())
+    -- the chain view's quests can be of several entries (a chain can cross zones): the whole set, not just `d`'s
+    local quests = focusChain and questsOf(focusChain) or d.quests
+    local layout = mainTreeView:Render(quests, makeFilter(d), ns.Detail_Current())
 
     -- what is not used is hidden at the end, not everything up front: a frame hidden and shown again during a
     -- redraw loses the click that was in progress on it (Render itself does this for the nodes/rails/gems/arrows)
     emptyText:SetShown(layout.count == 0)
     if layout.count == 0 then
         local hasData = false
-        for _, q in ipairs(d.quests) do
+        for _, q in ipairs(quests) do
             if ns.QuestVisible(q, d) then hasData = true break end
         end
         emptyText:SetText(hasData and ns.L["No quests match the filters."] or ns.L["No quest data yet."])
@@ -575,7 +600,7 @@ function ns.UI_Refresh()
         frame.pinButton:SetEnabled(cur ~= nil)
     end
     -- in the chain view the title says which chain: its first quest
-    local head = focusChain and chainHead(d, focusChain)
+    local head = focusChain and chainHead(focusChain)
     frame.header:SetText(d and (ns.EntryName(d) .. (head and ("  -  " .. ns.QuestTitle(head.id, head.name)) or "")) or "")
     frame.placeSearchPanel()
     if list then

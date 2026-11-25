@@ -72,9 +72,9 @@ other addons.
 ![The tree on the whole screen](https://media.joanvilarino.online/completao/images/screencaps/tree_fullscreen.png?v=2)
 
 ### A side panel that grows with the addon
-At the top, the four views -- **Search quests**, **Quest Log**, **Tracked
-Quests** and **Quests to Turn In** -- the last three with how many quests they
-hold. Under them, the sections: **Dungeons**, **Raids** (Molten Core, Blackwing
+At the top, the views -- **Search quests**, **Quest Log**, **Tracked
+Quests**, **Saved Quests** and **Quests to Turn In** -- the last four with how
+many quests they hold. Under them, the sections: **Dungeons**, **Raids** (Molten Core, Blackwing
 Lair, Naxxramas, Ahn'Qiraj, Zul'Gurub...), **Battlegrounds**, **Zones**, **Class
 Quests**, **Professions**, **Races**, **Events** (Lunar Festival, Darkmoon Faire,
 the Ahn'Qiraj war effort, Scourge Invasion...) and **Miscellaneous**. A box above
@@ -145,6 +145,11 @@ objective to set your waypoint on it. **Quests to Turn In** lists what is ready
 to hand in, nearest first.
 
 ![The Tracked Quests view](https://media.joanvilarino.online/completao/images/screencaps/tracked_quests.png?v=2)
+
+**Saved Quests**, below Tracked Quests, is yours to fill: **Save** a quest from
+its details (or **Save** / **Unsave** from the right-click menu) to keep it
+there, whether you have taken it or not, so you can look it up again at any
+time without having to search for it.
 
 ### The focus window
 **Right-click** a tracked quest (or use **Focus** in its details) to put it in a
@@ -221,7 +226,7 @@ table stays in sight beside it:
   game's own item tooltip (Shift-click to link one in chat), plus money,
   experience and reputation.
 - Six plates at the foot, one word each (the whole action in the tooltip):
-  **Focus**, **Waypoint**, **Chain**, **Open**, **Map** and **Abandon**.
+  **Focus**, **Waypoint**, **Chain**, **Save**, **Map** and **Abandon**.
 - A **maximize / restore** button to read the page over the whole window.
 
 ![A quest's details](https://media.joanvilarino.online/completao/images/screencaps/quest_details.png?v=2)
@@ -236,7 +241,10 @@ table stays in sight beside it:
   that step and drop a bouncing gold **!** marker on the exact spot, easy to see
   even on a busy map. A step inside an instance? The button says **Entrance**
   and takes you to the door of the dungeon instead.
-- Already have the quest? **Open** opens your quest log right on it.
+- Don't have the quest yet, or just want to find it again later? **Save** keeps
+  it in **Saved Quests**, a view of its own below Tracked Quests in the side
+  panel. Already have it? Right-click a quest for **Open quest**, which opens
+  your quest log right on it.
 - Distances read in **meters or yards by your region** -- yards in the US, meters
   elsewhere, like the game's own waypoint and TomTom -- or the unit you pick in
   the preferences.

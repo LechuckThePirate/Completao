@@ -3,14 +3,15 @@ local L = ns.L
 local C_QuestLog = ns.QuestLog or C_QuestLog -- never the game's table directly (QuestLogCompat.lua)
 
 -- One set of filters for every view that lists quests (the tree and the list of an entry, the search, the quest log, the
--- tracked quests and the ones to turn in): the same options, the same words ("Hide ..."), the same meaning and one menu.
+-- tracked quests, the saved ones and the ones to turn in): the same options, the same words ("Hide ..."), the same
+-- meaning and one menu.
 -- Each view keeps its own (changing "Chains only" in one doesn't touch the others), unless the setting "Same filters in
 -- every view" (ns.char.sharedFilters) is on. The tree's are ns.char.filters, which the zones of the side panel also read
 -- (and what is shared goes in); the other views' are in ns.char.viewFilters[view]. "Show other faction" is always one for
 -- the whole addon: it decides which zones exist.
 --   hideLow, hideHigh, hideDone, hideRepeatable, otherFaction, chainsOnly, itemsOnly, rewardClass, rewardSub
 
--- The view being looked at: "tree" (also an entry's list), "search", "log", "tracked" or "turnin".
+-- The view being looked at: "tree" (also an entry's list), "search", "log", "tracked", "saved" or "turnin".
 function ns.CurrentFilterView()
     if ns.UI_IsSearchMode and ns.UI_IsSearchMode() and ns.Search_Mode then return ns.Search_Mode() end
     return "tree"

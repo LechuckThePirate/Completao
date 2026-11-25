@@ -12,12 +12,11 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New in 2.1: pin a chain into its own small floating window (up to 5, foldable one at a time), which resizes, " ..
-        "zooms and pans like the main tree and remembers its size between sessions; a quest inside it focuses it.",
-    "- New: the focus window can use a parchment background instead of obsidian (Preferences, Tracker & Waypoints tab).",
-    "- Fixed: zoomed way out, quest names in the tree were too small to read; each one now shows its name alone, bigger.",
-    "- Fixed: on Russian, Korean and Chinese clients, quest and zone names showed as empty boxes; text now uses the " ..
-        "game's own font for the client's language.",
+    "- New: \"Saved Quests\", a side panel below Tracked Quests for quests you keep on purpose, in your log or not, " ..
+        "to look up at any time; the quest details' button is now Save / Unsave.",
+    "- Fixed: a chain's view and its pinned window now show the whole questline even when it runs across zones or " ..
+        "into a dungeon, not just the piece in the entry you opened it from.",
+    "- Fixed: Save / Unsave in the quest details now updates the Saved Quests count right away.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

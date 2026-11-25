@@ -229,30 +229,41 @@ describe("QuestPanel", function()
         end)
     end)
 
-    it("the Open quest and Focus buttons are there always, enabled only with the quest in the log", function()
+    it("the Focus button is there always, enabled only with the quest in the log", function()
         local q = ns.FindQuestDef(166)
         ns.Detail_Show(q)
-        for _, text in ipairs({ "Open quest", "Focus" }) do
-            assert.is_true(WowMock.FindButton(text):IsShown())
-            assert.is_false(WowMock.FindButton(text):IsEnabled())
-        end
+        assert.is_true(WowMock.FindButton("Focus"):IsShown())
+        assert.is_false(WowMock.FindButton("Focus"):IsEnabled())
         WowMock.onQuest[166] = true
         ns.Detail_Refresh()
-        for _, text in ipairs({ "Open quest", "Focus" }) do
-            assert.is_true(WowMock.FindButton(text):IsShown())
-            assert.is_true(WowMock.FindButton(text):IsEnabled())
-        end
+        assert.is_true(WowMock.FindButton("Focus"):IsShown())
+        assert.is_true(WowMock.FindButton("Focus"):IsEnabled())
+    end)
+
+    it("Save keeps the quest in Saved Quests, whether it is in the log or not", function()
+        local q = ns.FindQuestDef(166)
+        ns.Detail_Show(q)
+        assert.is_true(WowMock.FindButton("Save"):IsShown())
+        assert.is_true(WowMock.FindButton("Save"):IsEnabled()) -- unlike Focus, it works without the quest in the log
+        WowMock.FindButton("Save"):Click()
+        assert.is_true(ns.IsQuestSaved(166))
+        local button = WowMock.FindButton("Unsave")
+        assert.is_not_nil(button)
+        button:Click()
+        assert.is_false(ns.IsQuestSaved(166))
+        assert.is_not_nil(WowMock.FindButton("Save"))
     end)
 
     it("all the buttons are shown for any quest, the ones that don't apply disabled", function()
         ns.Detail_Show({ id = 999999, name = "Unknown quest" })
-        for _, text in ipairs({ "Open quest", "Focus", "View chain", "Waypoint", "Show on map", "Abandon quest" }) do
+        for _, text in ipairs({ "Save", "Focus", "View chain", "Waypoint", "Show on map", "Abandon quest" }) do
             local button = WowMock.FindButton(text)
             assert.is_not_nil(button, text)
             assert.is_true(button:IsShown(), text)
         end
         assert.is_false(WowMock.FindButton("View chain"):IsEnabled())
         assert.is_false(WowMock.FindButton("Abandon quest"):IsEnabled())
+        assert.is_true(WowMock.FindButton("Save"):IsEnabled())
     end)
 
     it("Abandon quest asks the game's confirmation for a quest in the log", function()

@@ -5,7 +5,8 @@ local L = ns.L
 -- Right click on a quest (a node of a tree, a row of a table): a menu with what is usually done with a quest.
 -- The same options, in the same order, as the buttons of the quest details (QuestPanel.lua), but the ones that
 -- don't apply are left out here, not greyed out (focus, log, track and abandon need the quest in the log;
--- waypoint and map a place to go to; chain a chain). Track / Untrack has no button in the details.
+-- waypoint and map a place to go to; chain a chain). Track / Untrack has no button in the details. Save /
+-- Unsave works on any quest, taken or not, and shares its button with Open quest's old spot in the details.
 local WIDTH = 190
 
 -- The game's own "Abandon quest" confirmation, as the quest log asks it.
@@ -43,6 +44,11 @@ function ns.QuestMenu(anchor, q)
         refresh()
     end, { disabled = not onQuest })
     add(L["Open quest"], function() ns.OpenQuestInLog(q.id) end, { disabled = not onQuest })
+    local saved = ns.IsQuestSaved(q.id)
+    add(saved and L["Unsave"] or L["Save"], function()
+        ns.ToggleSavedQuest(q.id)
+        refresh()
+    end)
     local tracked = onQuest and ns.IsQuestTracked(q.id)
     add(tracked and L["Untrack"] or L["Track"], function()
         if tracked then ns.UntrackQuest(q.id) else ns.TrackQuest(q.id) end

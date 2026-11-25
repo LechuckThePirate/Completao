@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New: "Saved Quests", a side panel view below Tracked Quests for quests kept on purpose, in your log or not, to look up at any time. The quest details' "Open quest" button is now "Save" / "Unsave" (it works without the quest in the log, which is the point); "Open quest" stays in the right-click menu.
 - Fixed: a chain's view and its pinned window only followed prerequisites inside the entry you opened it from, so a questline that runs from one zone into the next (or out into a dungeon) showed only its own piece. It now shows the chain whole, wherever its quests are registered.
 
 ## 2.1.0

@@ -95,3 +95,38 @@ end
 function ns.ForgetTrackedQuest(id)
     if id and ns.char and ns.char.untrackedQuests then ns.char.untrackedQuests[id] = nil end
 end
+
+-- "Saved Quests": quests kept on purpose to look up at any time, taken or not (the character's own list,
+-- unlike tracking there's no game list to follow). The quest detail panel's Save button and the right-click
+-- menu (QuestMenu.lua) both go through this.
+local function savedQuests()
+    ns.char.savedQuests = ns.char.savedQuests or {}
+    return ns.char.savedQuests
+end
+
+function ns.IsQuestSaved(id)
+    return savedQuests()[id] and true or false
+end
+
+function ns.SaveQuest(id)
+    savedQuests()[id] = true
+end
+
+function ns.UnsaveQuest(id)
+    savedQuests()[id] = nil
+end
+
+-- Save / unsave; returns whether it is saved now.
+function ns.ToggleSavedQuest(id)
+    if ns.IsQuestSaved(id) then
+        ns.UnsaveQuest(id)
+        return false
+    end
+    ns.SaveQuest(id)
+    return true
+end
+
+-- Every saved quest's id (Search.lua's "Saved Quests" view, and the side panel's badge count).
+function ns.SavedQuestIds()
+    return ns.char and ns.char.savedQuests or {}
+end

@@ -81,8 +81,8 @@ local function rewardIds(r)
 end
 
 -- View: "search" (form + results), "log" (the quests in the log, in the same table), "tracked" (the ones
--- of them in the objective tracker) or "turnin" (the ones ready to turn in, tracked or not). The last three can
--- group their quests ("Group by").
+-- of them in the objective tracker), "turnin" (the ones ready to turn in, tracked or not) or "saved" (kept by
+-- hand, in the log or not). All but "search" can group their quests ("Group by").
 local mode = "search"
 
 -- The title typed in the box of each table view (the quest log, the tracked quests, the ones to turn in): a search in one
@@ -118,6 +118,17 @@ local function logQuests(only)
                 found[#found + 1] = { quest = { id = info.questID, name = info.title or "?", level = info.level }, zone = zone }
             end
         end
+    end
+    return found
+end
+
+-- "Saved Quests" (QuestTracking.lua): kept on purpose to look up at any time, whether they're in the log or
+-- not, so there's no log header (zone) to group them under -- their entry's name stands in for it (f.whereText).
+local function savedQuestsList()
+    local found = {}
+    for id in pairs(ns.SavedQuestIds()) do
+        local def = ns.FindQuestDef(id)
+        if def then found[#found + 1] = { quest = def, entry = ns.entries[def.entryId] } end
     end
     return found
 end
@@ -742,7 +753,9 @@ local function fillRow(row, i, y, focusTag)
         placeRow(row)
         row.placedFor = cols.gen
     end
-    if mode == "search" or mode == "entry" then
+    if mode == "search" or mode == "entry" or mode == "saved" then
+        -- "saved" quests aren't necessarily in the log: the search's icon (available, locked, done...) fits them,
+        -- not the log views' (ready to turn in / in progress)
         setSearchIcon(row.status, q)
     else
         setStatusIcon(row.status, readyToTurnIn(q) and "ready" or "progress")
@@ -867,6 +880,7 @@ local function refresh(moved)
         local list
         if mode == "search" then list = search()
         elseif mode == "entry" then list = entryQuests()
+        elseif mode == "saved" then list = filterLog(savedQuestsList(), viewText[mode])
         else
             list = filterLog(logQuests(mode ~= "log" and mode or nil), viewText[mode])
         end
@@ -1134,12 +1148,13 @@ function ns.Search_FiltersChanged()
 end
 
 -- "entry": the quests of the entry on show in the main window, as a table (its "List" view, MainWindow.lua).
-local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In", entry = "" }
+local TITLES = { search = "Search quests", log = "Quest Log", tracked = "Tracked Quests", turnin = "Quests to Turn In",
+    saved = "Saved Quests", entry = "" }
 local EMPTY = { search = "No quests match the search.", log = "Your quest log is empty.", entry = "No quests match the filters.",
-    tracked = "No quests are being tracked.", turnin = "No quests are ready to turn in." }
+    tracked = "No quests are being tracked.", turnin = "No quests are ready to turn in.", saved = "No quests are saved." }
 
 -- "search": the search; "log": the quests you carry in your log; "tracked": the ones being tracked;
--- "turnin": the ones ready to turn in.
+-- "turnin": the ones ready to turn in; "saved": the ones kept by hand.
 function ns.Search_SetMode(m)
     mode = TITLES[m] and m or "search"
     if not panel then return end

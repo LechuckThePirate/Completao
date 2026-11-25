@@ -383,9 +383,9 @@ local function visibleCategories()
 end
 
 -- The badges of the views at the top of the side panel: how many quests the log, the tracked ones and the ones ready
--- to turn in hold (the search has none).
+-- to turn in hold (the search has none). Saved Quests counts its own list instead: it isn't limited to the log.
 local function navCounts()
-    local counts = { log = 0, tracked = 0, turnin = 0 }
+    local counts = { log = 0, tracked = 0, turnin = 0, saved = 0 }
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
         local info = C_QuestLog.GetInfo(i)
         local id = info and not info.isHeader and info.questID
@@ -395,6 +395,7 @@ local function navCounts()
             if ns.IsReadyToTurnIn(id) then counts.turnin = counts.turnin + 1 end
         end
     end
+    for _ in pairs(ns.SavedQuestIds and ns.SavedQuestIds() or {}) do counts.saved = counts.saved + 1 end
     return counts
 end
 
@@ -541,8 +542,8 @@ function ns.UI_Refresh()
     if frame.consolidateSwitch then frame.consolidateSwitch.Update() end
     if frame.updateProgress then frame.updateProgress() end
     ns.RefreshFilterMenus() -- each view has its own filters: the menus show those of the one on show
-    -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "turnin"; the entry is
-    -- ns.char.selected)
+    -- remember where you are, to come back to it (the view, "tree" | "search" | "log" | "tracked" | "saved" | "turnin";
+    -- the entry is ns.char.selected)
     ns.char.view = searchMode and ns.Search_Mode() or "tree"
     refreshList()
     if searchMode then
@@ -1260,7 +1261,7 @@ local function createFrame()
     -- the bar hides by itself; the room it leaves goes to the main area through refreshList (sideScrolls)
     ns.AutoScrollBar(listScroll, function() end)
 
-    -- The four views, first in the side panel; they open the table in the main area (the search with its form, or
+    -- The views, first in the side panel; they open the table in the main area (the search with its form, or
     -- the quests you carry in your log). The open one gets a gold bar on its left; each counts its quests.
     local function sideButton(kind, icon, label)
         local b = CreateFrame("Button", nil, frame.listChild, "BackdropTemplate")
@@ -1298,6 +1299,7 @@ local function createFrame()
     sideButton("search", "Interface\\Common\\UI-Searchbox-Icon", ns.L["Search quests..."])
     sideButton("log", "Interface\\GossipFrame\\ActiveQuestIcon", ns.L["Quest Log"])
     sideButton("tracked", "Interface\\GossipFrame\\AvailableQuestIcon", ns.L["Tracked Quests"])
+    sideButton("saved", "Interface\\Icons\\INV_Misc_Book_09", ns.L["Saved Quests"])
     sideButton("turnin", "Interface\\RaidFrame\\ReadyCheck-Ready", ns.L["Quests to Turn In"])
 
     -- the catalogue's mini filter: by name, in every section at once (34 zones are a long scroll)
@@ -1641,7 +1643,7 @@ local function createFrame()
             searchMode = true
             ns.Search_SetMode("log")
         elseif not viewRestored and (ns.char.view == "log" or ns.char.view == "search" or ns.char.view == "tracked"
-            or ns.char.view == "turnin") then
+            or ns.char.view == "saved" or ns.char.view == "turnin") then
             searchMode = true
             ns.Search_SetMode(ns.char.view)
         end

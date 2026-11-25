@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- New: "Saved Quests", a side panel view below Tracked Quests for quests kept on purpose, in your log or not, to look up at any time. The quest details' "Open quest" button is now "Save" / "Unsave" (it works without the quest in the log, which is the point); "Open quest" stays in the right-click menu.
+
 ## 2.1.0
 
 - New: "Pin" (next to "Back to all quests" in the chain view) puts the chain into its own small floating window, up to 5 at once, stacked and foldable one click at a time (an accordion: opening one folds whichever was open). It resizes, zooms and pans like the main tree, and its size and zoom are remembered. Saved between sessions. A quest in it focuses it (Focus window), same as the tracker.

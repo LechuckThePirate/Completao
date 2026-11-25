@@ -65,11 +65,21 @@ describe("QuestMenu", function()
         C_QuestLog.GetQuestWatchType = nil
         local names = labels()
         table.sort(names)
-        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Set waypoint", "Show entrance", "Track", "View chain" }, names)
+        assert.are.same({ "Abandon quest", "Focus", "Open quest", "Save", "Set waypoint", "Show entrance", "Track", "View chain" },
+            names)
         ns.Detail_Show(q)
-        for _, text in ipairs({ "Focus", "Open quest", "Show entrance", "View chain", "Abandon quest", "Waypoint" }) do
+        for _, text in ipairs({ "Focus", "Save", "Show entrance", "View chain", "Abandon quest", "Waypoint" }) do
             assert.is_not_nil(WowMock.FindButton(text), text)
         end
+    end)
+
+    it("Save works even on a quest with no place, no chain and not in the log", function()
+        ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
+        assert.are.same({ "Save" }, labels())
+        choose("Save")
+        assert.is_true(ns.IsQuestSaved(999002))
+        ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
+        assert.are.same({ "Unsave" }, labels())
     end)
 
     describe("with the quest in the log", function()
@@ -153,9 +163,9 @@ describe("QuestMenu", function()
         assert.are.same(q.start, shown)
     end)
 
-    it("a quest with no place, no chain and not in the log has no menu", function()
-        ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999002, name = "Nowhere" })
-        assert.are.equal(0, #menuOptions())
+    it("a quest with no place, no chain and not in the log still gets a menu, for Save", function()
+        ns.QuestMenu(WowMock.NewFrame("Button"), { id = 999003, name = "Nowhere" })
+        assert.are.equal(1, #menuOptions())
     end)
 
     it("right click on a table row opens the menu", function()

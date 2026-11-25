@@ -421,12 +421,15 @@ local function render()
     relayout()
     local onQuest = C_QuestLog.IsOnQuest(q.id) and true or false
     -- every button is always there: the ones that don't apply to this quest are disabled, not hidden
-    detail.btnOpen:SetEnabled(onQuest)
     detail.btnFocus:SetEnabled(onQuest)
     detail.btnAbandon:SetEnabled(onQuest)
     local focused = ns.Focus_Quest() == q.id
     detail.btnFocus:SetText(focused and L["Unfocus"] or L["Focus"])
     detail.btnFocus.tip = focused and L["Stop focus"] or L["Focus"]
+    -- Save works on any quest, in the log or not (it's the point: looking up one you don't have yet)
+    local saved = ns.IsQuestSaved(q.id)
+    detail.btnSave:SetText(saved and L["Unsave"] or L["Save"])
+    detail.btnSave.tip = saved and L["Remove from Saved Quests"] or L["Save for later"]
     -- "View chain" goes to the quest's tree, when it is part of a chain
     detail.btnChain:SetEnabled(q.entryId ~= nil and ns.IsInChain(q))
     -- waypoint and map: the chosen step
@@ -605,7 +608,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
 
     -- The action bar at the bottom, in two columns of plates with one word and an icon each (the whole action in the
     -- tooltip): on the left the wooden ones, what is done most (Focus, Waypoint, Chain); on the right the stone ones
-    -- (Open, Map, Abandon). Waypoint is a split button: the plate goes to the chosen step (the next one by default),
+    -- (Save, Map, Abandon). Waypoint is a split button: the plate goes to the chosen step (the next one by default),
     -- the arrow lists every step to pick another.
     local BTN_W, BTN_H = 159, 28
     detail.wayGroup = CreateFrame("Frame", nil, detail)
@@ -660,10 +663,14 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
         if current and current.entryId then ns.UI_OpenQuest(current.entryId, current.id) end
     end)
 
-    detail.btnOpen = T.CreatePlateButton(detail, L["Open"], BTN_W, BTN_H, "stone", "open")
-    detail.btnOpen.tip = L["Open quest"]
-    detail.btnOpen:SetScript("OnClick", function()
-        if current then openQuest(current.id) end
+    -- replaces the old "Open quest" button (that option stays in the right-click menu, QuestMenu.lua): this one
+    -- works without the quest in the log, to keep ones you don't have yet for later
+    detail.btnSave = T.CreatePlateButton(detail, L["Save"], BTN_W, BTN_H, "stone", "open")
+    detail.btnSave:SetScript("OnClick", function()
+        if not current then return end
+        ns.ToggleSavedQuest(current.id)
+        render()
+        ns.Search_Refresh()
     end)
 
     -- "Map": the chosen step (inside an instance, its entrance)
@@ -682,7 +689,7 @@ function ns.Detail_Create(parent, tree, leftOffset, companionPanel)
 
     -- in rows of two (more if the drawer is maximized); the page ends right above them
     local buttons = {
-        { frame = detail.btnFocus, w = BTN_W }, { frame = detail.btnOpen, w = BTN_W },
+        { frame = detail.btnFocus, w = BTN_W }, { frame = detail.btnSave, w = BTN_W },
         { frame = detail.wayGroup, w = BTN_W }, { frame = detail.btnMap, w = BTN_W },
         { frame = detail.btnChain, w = BTN_W }, { frame = detail.btnAbandon, w = BTN_W },
     }

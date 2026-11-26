@@ -155,6 +155,7 @@ ns.AddLocale({ "deDE" }, {
     ["Click to set the waypoint."] = "Klicken, um den Wegpunkt zu setzen.",
     ["Click to show it on the map."] = "Klicken, um sie auf der Karte zu zeigen.",
     ["No quests are being tracked."] = "Es werden keine Quests verfolgt.",
+    ["No quests are saved."] = "Keine Quests gespeichert.",
     ["Quests to Turn In"] = "Abzugebende Quests",
     ["No quests are ready to turn in."] = "Keine Quest ist bereit zur Abgabe.",
     ["Focus"] = "Fokussieren",

@@ -168,6 +168,15 @@ describe("QuestPanel", function()
             assert.matches("Start: Giver", text)
         end)
 
+        it("with the quest in the log, shows the client's objective text instead of the data's", function()
+            q.objective = "Do things."
+            WowMock.onQuest[900001] = true
+            _G.GetQuestLogQuestText = function() return "Game description", "Game objective" end
+            ns.Detail_Show(q)
+            assert.matches("Game objective", panelText())
+            assert.is_nil(panelText():find("Do things.", 1, true))
+        end)
+
         it("not started: the button goes to the missing requirement", function()
             ns.Detail_Show(q)
             assert.are.equal("Waypoint: Requirement: Quest 900000", wayButton().tip)

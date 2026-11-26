@@ -305,6 +305,7 @@ end
 -- The log's text is the selected quest's: it is selected, read, and the selection put back. It is kept
 -- in memory only, once per quest and session, so the selection isn't touched on every window refresh.
 local fromLog = {}
+local objectiveFromLog = {}
 
 -- The game's log redraws itself a moment after its selection changes and selects the quest again on its own
 -- (the window would follow that echo and jump to another quest): our own selection changes are muted for a
@@ -319,23 +320,26 @@ function ns.QuestSelectMuted()
     return ns.quietSelect or GetTime() < mutedUntil
 end
 
+-- GetQuestLogQuestText's second return is the objective text (distinct from the description, and also
+-- in the client's language): cached alongside it in objectiveFromLog.
 local function readFromLog(id)
     if fromLog[id] ~= nil then return fromLog[id] end
-    fromLog[id] = false
+    fromLog[id], objectiveFromLog[id] = false, false
     local getSel, setSel = C_QuestLog.GetSelectedQuest, C_QuestLog.SetSelectedQuest
     if not (getSel and setSel and GetQuestLogQuestText) then return false end
     local previous = getSel()
     ns.quietSelect = true -- our own selection changes aren't the player's (see MainWindow)
     ns.MuteQuestSelect()
-    local ok, text = pcall(function()
+    local ok, text, objective = pcall(function()
         setSel(id)
         if getSel() ~= id then return nil end
         local index = C_QuestLog.GetLogIndexForQuestID and C_QuestLog.GetLogIndexForQuestID(id)
-        return (GetQuestLogQuestText(index))
+        return GetQuestLogQuestText(index)
     end)
     if previous ~= id then pcall(setSel, previous or 0) end
     ns.quietSelect = nil
     if ok and type(text) == "string" and strtrim(text) ~= "" then fromLog[id] = text end
+    if ok and type(objective) == "string" and strtrim(objective) ~= "" then objectiveFromLog[id] = objective end
     return fromLog[id]
 end
 
@@ -345,6 +349,16 @@ function ns.QuestDescription(q)
     if not text then return nil end
     local name = (UnitName("player") or ""):gsub("%%", "%%%%")
     return (text:gsub("%$[Nn]", name))
+end
+
+-- A quest's objective, in the client's language when it is in the log (the data's own text, from the
+-- quest giver's language at generation time, otherwise).
+function ns.QuestObjective(q)
+    if C_QuestLog.IsOnQuest(q.id) then
+        readFromLog(q.id)
+        if objectiveFromLog[q.id] then return objectiveFromLog[q.id] end
+    end
+    return q.objective
 end
 
 -- The experience a quest gives. Data/<Flavor>/Generated/Rewards.lua only lists it when it isn't zero, so a quest with none (or

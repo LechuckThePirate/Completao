@@ -206,6 +206,23 @@ describe("QuestState", function()
         end)
     end)
 
+    describe("QuestObjective", function()
+        it("uses the data's text when the quest isn't in the log", function()
+            assert.are.equal("Kill boars.", ns.QuestObjective({ id = 33, objective = "Kill boars." }))
+            assert.is_nil(ns.QuestObjective({ id = 34 }))
+        end)
+        it("with the quest in the log, uses the client's objective text (GetQuestLogQuestText's second return)", function()
+            WowMock.onQuest[35] = true
+            _G.GetQuestLogQuestText = function() return "Game description", "Game objective" end
+            assert.are.equal("Game objective", ns.QuestObjective({ id = 35, objective = "English objective" }))
+        end)
+        it("falls back to the data's text when the client gives none", function()
+            WowMock.onQuest[36] = true
+            _G.GetQuestLogQuestText = function() return "Game description", "" end
+            assert.are.equal("English objective", ns.QuestObjective({ id = 36, objective = "English objective" }))
+        end)
+    end)
+
     describe("QuestXP", function()
         it("is the data's experience, and 0 when the quest has none or no row", function()
             local saved = ns.REWARDS

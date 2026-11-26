@@ -6,8 +6,11 @@ local _, ns = ...
 --   CompletaoAPI.version              the API's version (1)
 --   CompletaoAPI.HasQuest(questID)    does Completao know the quest (is it in one of its trees)?
 --   CompletaoAPI.ShowQuest(questID)   opens Completao's window on the quest, in its tree with its panel; false when unknown
+--   CompletaoAPI.AddLocale(locales, strings)   same as the addon's own ns.AddLocale (Localization/Locale.lua): lets a
+--                                      separate language-pack addon add translations without touching Completao's files
 
 local API = { version = 1 }
+API.AddLocale = ns.AddLocale
 
 function API.HasQuest(questID)
     if type(questID) ~= "number" then return false end

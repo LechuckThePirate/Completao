@@ -155,6 +155,7 @@ ns.AddLocale({ "itIT" }, {
     ["Click to set the waypoint."] = "Clicca per impostare il waypoint.",
     ["Click to show it on the map."] = "Clicca per mostrarla sulla mappa.",
     ["No quests are being tracked."] = "Non stai seguendo nessuna missione.",
+    ["No quests are saved."] = "Nessuna missione è salvata.",
     ["Quests to Turn In"] = "Missioni da consegnare",
     ["No quests are ready to turn in."] = "Nessuna missione è pronta da consegnare.",
     ["Focus"] = "Focalizza",

@@ -82,6 +82,16 @@ events:SetScript("OnEvent", function(_, event, arg1)
     end
 end)
 
+local CACHE_LABELS = { titleCache = "titles", objectiveCache = "objectives", descriptionCache = "descriptions" }
+local function dumpCacheStats()
+    local stats, totalCount, totalBytes, locale = ns.CacheStats()
+    ns.Print(ns.L["Cache (%s):"]:format(locale))
+    for _, s in ipairs(stats) do
+        print(ns.L["  %s: %d (%.1f KB)"]:format(ns.L[CACHE_LABELS[s.name]], s.count, s.bytes / 1024))
+    end
+    print(ns.L["  Total: %d (%.1f KB)"]:format(totalCount, totalBytes / 1024))
+end
+
 local function dumpQuestLog()
     ns.Print(ns.L["Quests in your log (id - title):"])
     for i = 1, C_QuestLog.GetNumQuestLogEntries() do
@@ -106,6 +116,8 @@ SlashCmdList.COMPLETAO = function(msg)
     msg = strtrim((msg or ""):lower())
     if msg == "dump" then
         dumpQuestLog()
+    elseif msg == "cache" then
+        dumpCacheStats()
     elseif msg == "prefs" or msg == "options" or msg == "config" then
         ns.Prefs_Toggle()
     elseif msg == "minimap" then
@@ -127,6 +139,6 @@ SlashCmdList.COMPLETAO = function(msg)
     elseif msg == "" then
         ns.UI_Toggle()
     else
-        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"])
+        ns.Print(ns.L["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump | cache"])
     end
 end

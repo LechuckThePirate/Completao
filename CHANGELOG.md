@@ -5,6 +5,7 @@
 - Fixed: a quest's objective in the details panel showed in English even on a translated client, while the description below it was already in that language; it now uses the client's own objective text (from the quest log) when the quest is in your log.
 - New: `CompletaoAPI.AddLocale`, same as the addon's own `ns.AddLocale`, so a separate language-pack addon can add translations without touching Completao's files.
 - Fixed: "No quests are saved." (the empty Saved Quests panel) had no translation in esES, frFR, itIT or ptBR; it showed in English even on those clients.
+- New: a quest's title, objective and description, once the client has given them in your language, are remembered (per account, per locale) instead of asked for again every session — titles for any quest, objectives and descriptions for the ones you've had in your log at least once. `/completao cache` shows how many of each are cached and how much space they take.
 
 ## 2.2.0
 

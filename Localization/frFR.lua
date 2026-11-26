@@ -112,8 +112,14 @@ ns.AddLocale({ "frFR" }, {
     ["%d-man"] = "%d joueurs",
     ["Quests in your log (id - title):"] = "Quêtes de votre journal (id - titre) :",
     ["  %d - %s (level %d)"] = "  %d - %s (niveau %d)",
-    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump"] =
-        "Usage : /completao (ouvrir) | prefs | minimap | helpers | fade <10-100> | changelog | dump",
+    ["Usage: /completao (open) | prefs | minimap | helpers | fade <10-100> | changelog | dump | cache"] =
+        "Usage : /completao (ouvrir) | prefs | minimap | helpers | fade <10-100> | changelog | dump | cache",
+    ["Cache (%s):"] = "Cache (%s) :",
+    ["titles"] = "titres",
+    ["objectives"] = "objectifs",
+    ["descriptions"] = "descriptions",
+    ["  %s: %d (%.1f KB)"] = "  %s : %d (%.1f Ko)",
+    ["  Total: %d (%.1f KB)"] = "  Total : %d (%.1f Ko)",
     ["Done inside the instance: %s"] = "Se fait à l'intérieur de l'instance : %s",
     ["Instance"] = "Instance",
     ["The Temple of Atal'Hakkar"] = "Le temple d'Atal'Hakkar",

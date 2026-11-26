@@ -29,6 +29,25 @@ describe("QuestState", function()
             WowMock.titles[11] = "Second"
             assert.are.equal("Second (2/3)", ns.QuestTitle(11, "Second (2/3)"))
         end)
+        it("caches the client's title, and uses it again once the client's lookup goes back to empty", function()
+            ns.db = {}
+            WowMock.titles[12] = "Client title"
+            assert.are.equal("Client title", ns.QuestTitle(12, "Fallback"))
+            WowMock.titles[12] = nil
+            assert.are.equal("Client title", ns.QuestTitle(12, "Fallback"))
+        end)
+        it("keeps a different cache per client locale", function()
+            ns.db = {}
+            WowMock.locale = "deDE"
+            WowMock.titles[13] = "Deutscher Titel"
+            ns.QuestTitle(13, "Fallback")
+            WowMock.titles[13] = nil
+            WowMock.locale = "enUS"
+            assert.are.equal("Fallback", ns.QuestTitle(13, "Fallback"))
+            WowMock.locale = "deDE"
+            assert.are.equal("Deutscher Titel", ns.QuestTitle(13, "Fallback"))
+            WowMock.locale = "enUS"
+        end)
     end)
 
     describe("QuestStatus", function()
@@ -204,6 +223,40 @@ describe("QuestState", function()
             assert.are.equal("Game text", ns.QuestDescription({ id = 32, desc = "english" }))
             assert.are.equal(5, WowMock.selectedQuest)
         end)
+        it("caches the client's description, and uses it again once the quest is no longer in the log", function()
+            ns.db = {}
+            WowMock.onQuest[38] = true
+            _G.GetQuestLogQuestText = function() return "Game text for $N", "" end
+            assert.are.equal("Game text for Tester", ns.QuestDescription({ id = 38, desc = "english" }))
+            WowMock.onQuest[38] = nil
+            assert.are.equal("Game text for Tester", ns.QuestDescription({ id = 38, desc = "english" }))
+        end)
+    end)
+
+    describe("CacheStats", function()
+        it("counts entries and bytes per cache, for the current locale only", function()
+            ns.db = {}
+            WowMock.titles[40] = "A title"
+            ns.QuestTitle(40, "Fallback")
+            WowMock.onQuest[41] = true
+            _G.GetQuestLogQuestText = function() return "A description", "An objective" end
+            ns.QuestObjective({ id = 41, objective = "x" })
+            ns.QuestDescription({ id = 41, desc = "x" })
+            -- a title cached under another locale doesn't count for this one
+            WowMock.locale = "deDE"
+            WowMock.titles[42] = "Ein Titel"
+            ns.QuestTitle(42, "Fallback")
+            WowMock.locale = "enUS"
+
+            local stats, totalCount = ns.CacheStats()
+            local byName = {}
+            for _, s in ipairs(stats) do byName[s.name] = s end
+            assert.are.equal(1, byName.titleCache.count)
+            assert.are.equal(1, byName.objectiveCache.count)
+            assert.are.equal(1, byName.descriptionCache.count)
+            assert.are.equal(3, totalCount)
+            assert.is_true(byName.titleCache.bytes > 0)
+        end)
     end)
 
     describe("QuestObjective", function()
@@ -220,6 +273,14 @@ describe("QuestState", function()
             WowMock.onQuest[36] = true
             _G.GetQuestLogQuestText = function() return "Game description", "" end
             assert.are.equal("English objective", ns.QuestObjective({ id = 36, objective = "English objective" }))
+        end)
+        it("caches the client's objective, and uses it again once the quest is no longer in the log", function()
+            ns.db = {}
+            WowMock.onQuest[37] = true
+            _G.GetQuestLogQuestText = function() return "Game description", "Game objective" end
+            assert.are.equal("Game objective", ns.QuestObjective({ id = 37, objective = "English objective" }))
+            WowMock.onQuest[37] = nil
+            assert.are.equal("Game objective", ns.QuestObjective({ id = 37, objective = "English objective" }))
         end)
     end)
 

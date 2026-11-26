@@ -169,6 +169,16 @@ describe("Completao (startup)", function()
             assert.matches("166 %- The Defias Brotherhood", WowMock.printed[#WowMock.printed])
         end)
 
+        it("cache prints entries and size per cache", function()
+            ns.db = {}
+            WowMock.titles[166] = "A title"
+            ns.QuestTitle(166, "Fallback")
+            SlashCmdList.COMPLETAO("cache")
+            local printed = table.concat(WowMock.printed, "\n")
+            assert.matches("titles: 1", printed)
+            assert.matches("Total: 1", printed)
+        end)
+
         it("an unknown command shows the help", function()
             SlashCmdList.COMPLETAO("foo")
             assert.matches("Usage", WowMock.printed[#WowMock.printed])

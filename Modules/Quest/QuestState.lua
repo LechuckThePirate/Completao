@@ -16,12 +16,58 @@ end
 
 ns.RequestQuestLoad = requestLoad
 
+-- Account-wide cache under ns.db (Settings.lua, CompletaoDB.<name>), keyed by the client's own locale (so a
+-- locale change can't show stale text): for text only the client itself can translate, which can take a
+-- while to arrive (the client answers RequestLoadQuestByID in its own time, well after the window that asked
+-- has moved on) or may never come again (a quest's objective, once it is abandoned and no longer in the log).
+local function localeCache(name)
+    local db = ns.db
+    if not db then return nil end
+    db[name] = db[name] or {}
+    local locale = GetLocale()
+    db[name][locale] = db[name][locale] or {}
+    return db[name][locale]
+end
+
+-- Entries and approximate size (sum of the id and text lengths, as they will roughly take in the saved
+-- variables file) of each cache, for the current client's locale only: that is the only one being read or
+-- grown this session. Used by "/completao cache".
+local CACHE_NAMES = { "titleCache", "objectiveCache", "descriptionCache" }
+function ns.CacheStats()
+    local db = ns.db
+    local locale = GetLocale()
+    local stats, totalCount, totalBytes = {}, 0, 0
+    for _, name in ipairs(CACHE_NAMES) do
+        local cache = db and db[name] and db[name][locale]
+        local count, bytes = 0, 0
+        if cache then
+            for id, text in pairs(cache) do
+                count = count + 1
+                bytes = bytes + #tostring(id) + #text
+            end
+        end
+        stats[#stats + 1] = { name = name, count = count, bytes = bytes }
+        totalCount = totalCount + count
+        totalBytes = totalBytes + bytes
+    end
+    return stats, totalCount, totalBytes, locale
+end
+
 -- Title in the client's language. Chain steps that share a name are numbered in the data
 -- ("Hidden Enemies (3/5)"): the number is kept with the game's title too, which lacks it. `getTitle` stands in for
 -- the client's lookup (the search table's, which reads the log once for all its rows).
 function ns.QuestTitle(id, fallback, getTitle)
     local title = (getTitle or C_QuestLog.GetTitleForQuestID)(id)
+    local live = title and title ~= ""
+    if not live then
+        local cache = localeCache("titleCache")
+        title = cache and cache[id]
+    end
     if title and title ~= "" then
+        if live then
+            local cache = localeCache("titleCache")
+            if cache then cache[id] = title end
+        end
         local step = fallback and fallback:match(" %(%d+/%d+%)$")
         if step and not title:find(step, 1, true) then title = title .. step end
         return title
@@ -343,21 +389,34 @@ local function readFromLog(id)
     return fromLog[id]
 end
 
+-- A quest's long description, with the client's own text cached (localeCache) once seen, same as the
+-- objective: still shown, instead of falling back to q.desc / ns.DESC, once the quest is no longer in the log.
 function ns.QuestDescription(q)
-    local text = C_QuestLog.IsOnQuest(q.id) and readFromLog(q.id) or nil
-    text = text or q.desc or (ns.DESC and ns.DESC[q.id])
+    local live = C_QuestLog.IsOnQuest(q.id) and readFromLog(q.id) or nil
+    local cache = localeCache("descriptionCache")
+    if live and cache then cache[q.id] = live end
+    local text = live or (cache and cache[q.id]) or q.desc or (ns.DESC and ns.DESC[q.id])
     if not text then return nil end
     local name = (UnitName("player") or ""):gsub("%%", "%%%%")
     return (text:gsub("%$[Nn]", name))
 end
 
--- A quest's objective, in the client's language when it is in the log (the data's own text, from the
--- quest giver's language at generation time, otherwise).
+-- A quest's objective, in the client's language when it is in the log (the data's own English text
+-- otherwise). The client's text is cached once seen (localeCache), so it is still shown, instead of
+-- falling back to English, once the quest is abandoned and no longer in the log.
 function ns.QuestObjective(q)
     if C_QuestLog.IsOnQuest(q.id) then
         readFromLog(q.id)
-        if objectiveFromLog[q.id] then return objectiveFromLog[q.id] end
+        local live = objectiveFromLog[q.id]
+        if live then
+            local cache = localeCache("objectiveCache")
+            if cache then cache[q.id] = live end
+            return live
+        end
     end
+    local cache = localeCache("objectiveCache")
+    local cached = cache and cache[q.id]
+    if cached then return cached end
     return q.objective
 end
 

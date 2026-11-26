@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.3.0
 
 - Fixed: a quest's objective in the details panel showed in English even on a translated client, while the description below it was already in that language; it now uses the client's own objective text (from the quest log) when the quest is in your log.
 - New: `CompletaoAPI.AddLocale`, same as the addon's own `ns.AddLocale`, so a separate language-pack addon can add translations without touching Completao's files.

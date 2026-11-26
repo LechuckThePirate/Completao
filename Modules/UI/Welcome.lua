@@ -12,11 +12,14 @@ local ISSUES_URL = "https://github.com/LechuckThePirate/Completao/issues"
 -- Mirrors the latest entry in CHANGELOG.md -- update this alongside it (and the version bump) on every
 -- release; shown as-is, scrollable, in the window below.
 local LATEST_CHANGELOG_TEXT = table.concat({
-    "- New: \"Saved Quests\", a side panel below Tracked Quests for quests you keep on purpose, in your log or not, " ..
-        "to look up at any time; the quest details' button is now Save / Unsave.",
-    "- Fixed: a chain's view and its pinned window now show the whole questline even when it runs across zones or " ..
-        "into a dungeon, not just the piece in the entry you opened it from.",
-    "- Fixed: Save / Unsave in the quest details now updates the Saved Quests count right away.",
+    "- Fixed: a quest's objective in the details panel showed in English even on a translated client; it now uses " ..
+        "the client's own text while the quest is in your log.",
+    "- New: quest titles, objectives and descriptions the client has given you in your language are now " ..
+        "remembered, so they stay translated even if you later abandon the quest or hand it in (see /completao cache).",
+    "- New: CompletaoAPI.AddLocale, so a separate language-pack addon can add translations without touching " ..
+        "Completao's files.",
+    "- Fixed: a few strings (like the empty Saved Quests message) had no translation in Spanish, French, Italian " ..
+        "or Portuguese.",
 }, "\n")
 
 -- The other addons of the same author, shown with their links.

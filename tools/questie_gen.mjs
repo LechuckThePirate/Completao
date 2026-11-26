@@ -295,10 +295,11 @@ for (const [area, ids] of core) {
 // ----------------------------------------------------------------------------------------------------
 // locations and steps
 // an NPC's location: preferred zone (its most common) and first coordinate; NPCs inside an instance have
-// coordinates -1 and are emitted without a position
+// coordinates -1 and are emitted without a position. npcId is kept too, in English name only (Questie's
+// database has no other language): lets the client look up its own localized name at runtime.
 function location(npcId) {
     const n = npc(npcId);
-    const parts = [`npc = ${lua(n[1])}`];
+    const parts = [`npc = ${lua(n[1])}`, `npcId = ${npcId}`];
     const spawns = keyed(n[7]);
     if (Object.keys(spawns).length) {
         const zone = spawns[n[9]] ? n[9] : Math.min(...Object.keys(spawns).map(Number));

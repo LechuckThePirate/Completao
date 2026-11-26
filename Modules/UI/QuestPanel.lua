@@ -148,7 +148,8 @@ local function buildText(q)
     local careful = ns.QuestLostTo(q) and lost or ns.QuestWarnings(q)
     if #careful > 0 then section(L["Careful"], "|cffff8c1a" .. table.concat(careful, "\n") .. "|r") end
 
-    if q.objective then section(L["Objective"], q.objective) end
+    local objective = ns.QuestObjective(q)
+    if objective then section(L["Objective"], objective) end
     if detail.steps and #detail.steps > 0 then section(L["Steps"], stepsText()) end
     if q.dungeon then
         local inside = ns.entries[q.dungeon]

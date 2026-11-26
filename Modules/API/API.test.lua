@@ -14,6 +14,10 @@ describe("CompletaoAPI", function()
         assert.are.equal(1, CompletaoAPI.version)
     end)
 
+    it("exposes AddLocale, so a separate language-pack addon can add translations", function()
+        assert.are.equal(ns.AddLocale, CompletaoAPI.AddLocale)
+    end)
+
     it("knows the quests of its trees, and only those", function()
         assert.is_true(CompletaoAPI.HasQuest(questID))
         assert.is_false(CompletaoAPI.HasQuest(99999999))

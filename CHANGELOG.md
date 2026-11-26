@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: a quest's objective in the details panel showed in English even on a translated client, while the description below it was already in that language; it now uses the client's own objective text (from the quest log) when the quest is in your log.
+- New: `CompletaoAPI.AddLocale`, same as the addon's own `ns.AddLocale`, so a separate language-pack addon can add translations without touching Completao's files.
+
 ## 2.2.0
 
 - New: "Saved Quests", a side panel view below Tracked Quests for quests kept on purpose, in your log or not, to look up at any time. The quest details' "Open quest" button is now "Save" / "Unsave" (it works without the quest in the log, which is the point); "Open quest" stays in the right-click menu.
